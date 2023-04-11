@@ -1,0 +1,9 @@
+(sym_lib_table
+  (lib (name "W65")(type "KiCad")(uri "${KIPRJMOD}/../lib/W65.kicad_sym")(options "")(descr ""))
+  (lib (name "SRAM")(type "KiCad")(uri "${KIPRJMOD}/../lib/SRAM.kicad_sym")(options "")(descr ""))
+  (lib (name "Common")(type "KiCad")(uri "${KIPRJMOD}/../lib/Common.kicad_sym")(options "")(descr ""))
+  (lib (name "libsnes")(type "KiCad")(uri "${KIPRJMOD}/../lib/libsnes.kicad_sym")(options "")(descr ""))
+  (lib (name "FTDI")(type "KiCad")(uri "${KIPRJMOD}/../lib/FTDI.kicad_sym")(options "")(descr ""))
+  (lib (name "explicit_74lvc2g04")(type "KiCad")(uri "${KIPRJMOD}/../lib/explicit_74lvc2g04.kicad_sym")(options "")(descr ""))
+  (lib (name "MPS")(type "KiCad")(uri "${KIPRJMOD}/../lib/MPS.kicad_sym")(options "")(descr ""))
+)

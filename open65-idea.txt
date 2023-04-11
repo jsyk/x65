@@ -1,0 +1,99 @@
+
+MAIN-BOARD PCB, 10x10cm 2-L
+===============================
+CPU = W64C02, and pcb-compatible with W65C816S
+https://eu.mouser.com/ProductDetail/Western-Design-Center-WDC/W65C816S6TQG-14?qs=9lcNTSmDlCpDFNJ8GRf7eQ%3D%3D
+in 44-pin TQFP
+
+System controller "NORA" = iCE40HX4K-TQ144
+https://eu.mouser.com/ProductDetail/Lattice/iCE40HX4K-TQ144?qs=F9A14TELRMvGNTZXkNDuOw%3D%3D
+in 144 TQFP
+
+SRAM = 2MB
+    X16 has: 512K ROM + 40K program RAM + 512K banked RAM (expandable to 2MB) = tot. max. 2600 kB
+    (we could alloc all into our SRAM, do remap in FPGA as necessary)
+    
+    IS61WV20488FBLL-10TLI
+    2MB, TSOP-44
+    https://cz.mouser.com/ProductDetail/ISSI/IS61WV20488FBLL-10TLI?qs=l7cgNqFNU1hrNZYLU3MwTg%3D%3D
+
+NorFlash = NE
+    radeji SPI-Flash/SD-Card + PBL v FPGA-BRAM
+
+SPI-Flash min. 2MB
+    * either 3x SPI-Flash - for NORA, VERA, CPU
+    * or one "unified" SPI-Flash - starts with NORA bitstream, then VERA bitstream, then CPU ROMs / FS
+    * W25Q128JVS  - 32MB SO8
+
+RTC Battery-backed Microchip MCP7940N real-time-clock chip on I2C
+
+DIP switches?
+
+original "VIA" W65C22, tbd implemented inside of FPGA
+    https://github.com/mikestir/fpga-bbc
+    https://github.com/mikestir/fpga-bbc/blob/master/m6522.vhd
+
+
+PS/2 kbd and mouse
+    https://eu.mouser.com/c/connectors/circular-connectors/circular-din-connectors/?number%20of%20contacts=6%20Contact&standard=Mini%20DIN&instock=y
+    KMDGX-6S-BS
+    https://eu.mouser.com/ProductDetail/Kycon/KMDGX-6S-BS?qs=gomZSfZNELc%252BcxHiGAVThw%3D%3D
+
+    TE 5749180-1
+    https://eu.mouser.com/ProductDetail/TE-Connectivity/5749180-1?qs=XlZqES4cpWZV2xh%2FjR2Ukw%3D%3D
+
+
+SNES inputs
+
+Debug = FT2232H
+    FT2232HL        LQFP64, no stock
+    FT2232HQ        QFN64, no stock
+    FT2232H-56Q     VQN56, stocked.
+
+
+
+Front panel:
+    Status LEDs: PWR READY, NORA READY, VERA READY, CPU READY
+    2x SNES input
+
+Back panel:
+    USB-C FTDI USB debug port
+    USB-C power-input
+    2x PS2 minidin-6 sockets
+    Ethernet RJ45?  ==> move to VERA boards
+
+On PCB:
+    pin header to VERA: 2x 02x10p
+    pin header to ILI TFT: 1x 01x14p and 01x04p
+
+
+MULTIMEDIA BOARD, 10x10cm, 2L
+================================
+Video = "VERA" FPGA
+ICE40UP5K-SG48I
+https://eu.mouser.com/ProductDetail/Lattice/ICE40UP5K-SG48I?qs=Rp3RbKSfAt3UqOG1AN4%2FAg%3D%3D
+in QFN-48
+https://github.com/fvdhoef/vera-module
+https://github.com/fvdhoef/ice-dip
+
+SD-Card - already on VERA (or ILI)
+
+SPI ILI9341 TFT (not going through VERA; but make that an option!), touch.
+
+Sound: VERA + YM2151??? radeji v dalsi FPGA
+	https://github.com/jotego/jt51
+
+Network = Wiznet W6100
+
+Consider also alternative MM-boards!
+    that would not have an FPGA -> bring SDCard SPI from baseboard also.
+
+
+
+NAMING
+========
+
+OPEN65.ORG
+
+X65.EU
+    like X86, but with 65C02

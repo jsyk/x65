@@ -1,0 +1,17 @@
+
+PCB constraints:
+
+PCB Track/Spacing: 
+    Gatema: > 0.15mm / 0.15mm
+    PCBWAY: > 0.153m / 0.153mm (6mil), or: 0.127mm / 0.127mm (5mil)
+
+    ==> use MIN: 0.160mm / 0.160mm in our boards!
+    ==> use STD: 0.25mm / 0.20mm
+
+Hole:
+    Gatema: > 0.3mm diam.
+    PCBWAY: > 0.25mm diam.
+
+    ==> use MIN hole / anular: 0.3mm / 0.46 mm
+    ==> use STD hole / anular: 0.4mm / 0.8mm
+

@@ -1,0 +1,5 @@
+HDMI
+
+https://hackaday.com/2020/06/02/an-open-source-hdmi-implementation-for-fpgas/
+https://hackaday.com/2019/07/26/hdmi-from-your-arduino/
+https://www.raio.com.tw/en/RA8889.html
