@@ -1,0 +1,134 @@
+# OpenX65 motherboard rev 01
+
+#
+# Bank 3
+#   Pins 1 - 34
+#
+set_io CSYNC_VPA    1
+set_io CNMIn        2
+set_io CMLn         3
+set_io CIRQn        4
+set_io CABORTn      7
+set_io CRDY         8
+set_io CVPn         9
+set_io CRESn        10
+set_io CVDA         11
+set_io CSOB_MX      12
+set_io CPHI2        15
+set_io CBE          16
+set_io CEF          17
+set_io CRWn         18
+set_io CD[0]          19  
+set_io CD[1]          20
+set_io CD[2]          21
+set_io CD[3]          22
+set_io CD[4]          23
+set_io CD[5]          24
+set_io CD[6]          25
+set_io CD[7]          26
+set_io CA[15]         28
+set_io CA[14]         29
+set_io CA[13]         31
+set_io CA[12]         32
+set_io MAL[11]          33
+set_io MAL[10]          34
+
+#
+# Bank 2
+#   Pins 37 - 64
+#
+set_io MAL[9]           37
+set_io MAL[8]           38
+set_io MAL[7]           39
+set_io MAL[6]           41
+set_io MAL[5]           42
+set_io MAL[4]           43
+set_io MAL[3]           44
+set_io MAL[2]           45
+set_io MAL[1]           47
+set_io MAL[0]           48
+set_io M1CSn        49
+set_io MD[0]           52
+set_io MD[1]           55
+set_io MD[2]           56
+set_io MD[3]           60
+set_io MD[4]           61
+set_io MD[5]           62
+set_io MD[6]           63
+set_io MD[7]           64
+
+
+#
+# Bank 1
+#   Pins 73 - 107
+#
+set_io MAH[20]          73
+set_io MAH[18]          74
+set_io MAH[17]          75
+set_io MAH[16]          76
+set_io MAH[15]          78
+set_io MRDn         79
+set_io MAH[19]          80
+set_io VIAPHI2      81
+set_io VIACS        82
+set_io VIAIRQ       83
+set_io MWRn         84
+set_io I2C_SCL      85
+set_io I2C_SDA      87
+set_io NESLATCH     88
+set_io NESCLOCK     90
+set_io NESDATA1     91
+set_io NESDATA0     93
+set_io ILICSn       94
+set_io PERIRESn     95
+set_io ILIDC        96
+set_io TCSn         97
+set_io PS2M_DATA    98
+set_io PS2M_CLK     99
+set_io PS2K_CLK     101
+set_io PS2K_DATA    102
+set_io PS2K_DATADR  104
+set_io PS2M_CLKDR   105
+set_io PS2M_DATADR  106
+set_io PS2K_CLKDR   107
+
+#
+# Bank 0
+#   Pins 110 - 144
+#
+set_io TIRQn        110
+set_io UART_CTS     112
+set_io UART_RTS     113
+set_io UART_TX      114
+set_io UART_RX      115
+set_io VERADONE     116
+set_io VERARSTn     117
+set_io VERAFCSn     118
+set_io ICD2VERAROM  119
+set_io ICD_CSn      120
+set_io ICD_MOSI     121
+set_io ICD_MISO     122
+set_io VCS2n        124
+set_io VIRQn        125
+set_io ICD_SCK      128
+set_io FPGACLK      129
+set_io VCS1n        130
+set_io VAUX2        134
+set_io VCS0n        135
+set_io VAUX0        136
+set_io VAUX1        137
+set_io MAH[12]          138
+set_io MAH[13]          139
+set_io MAH[14]          141
+set_io ATTBTN       142
+set_io CPULED0      143
+set_io CPULED1      144
+
+
+#
+# Bank SPI
+#
+set_io FMOSI        67
+set_io FMISO        68
+set_io FSCK         70
+set_io FLASHCSn     71
