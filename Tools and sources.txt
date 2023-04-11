@@ -1,0 +1,9 @@
+Tools and Sources
+===================
+
+Kicad
+
+Assembler: ACME
+
+YosysHQ/IceStorm
+

@@ -1,0 +1,72 @@
+Commander_X16
+
+https://www.c64-wiki.com/wiki/Commander_X16
+https://github.com/commanderx16
+file:///home/jara/ownCloud/hw-devkit-boards/Commander%20X16%20VERA/docs/X16%20Reference%20-%2007%20-%20Memory%20Map.html
+
+
+Address Range 	Size 	Description
+FPGA REG:
+0x0000-0x0001 	2 bytes 	RAM, ROM bank control bytes
+    Address 	Description
+    $0000 	Current RAM bank (0-255)
+    $0001 	Current ROM bank (0-31)
+
+SRAM fixed:
+0x0002-0x0021 	32 bytes 	16 bit ABI registers r0-r15 for KERNAL API
+0x0022-0x007F 	94 bytes 	User zero page
+0x0080-0x00FF 	128 bytes 	KERNAL and BASIC zero page variables
+0x0100-0x01FF 	256 bytes 	Accumulator stack
+0x0200-0x03FF 	512 bytes 	KERNAL and BASIC variables, vectors
+0x0400-0x07FF 	1024 bytes 	User space
+
+0x0800-0x9EFF 	38,656 bytes 	BASIC program/variable RAM
+
+I/O Area
+0x9F00-0x9FFF 	256 bytes 	I/O registers
+
+    This is the memory map of the I/O Area:
+    Addresses 	Description
+    9F00−9F0F 	VIA I/O controller #1   -- yes, but tbd move inside of fpga
+    9F10−9F1F 	VIA I/O controller #2   -- will not be impl.
+    9F20−9F3F 	VERA video controller
+    9F40−9F41 	YM2151 audio controller  -- no
+    9F42−9F4F 	Reserved
+    9F50−9F5F 	Reserved
+    9F60−9FFF 	External devices
+
+    Note: Wiznet W6100 requires 2-bit Indirect address.
+    That would fit at 0x9F60 - 0x9F63.
+    Our FPGA could use 9F42 - 9F5F
+
+SRAM banked:
+0xA000-0xBFFF 	8192 bytes* 	RAM Bank window (512K total, expandable to 2MB)
+
+    This is the allocation of banked RAM in the KERNAL/BASIC environment.
+    Bank 	Description
+    0 	Used for KERNAL/CBDOS variables and buffers
+    1-255 	Available to the user
+
+    (On systems with only 512 KB RAM, banks 64-255 are unavailable.)
+
+    During startup, the KERNAL activates RAM bank 1 as the default for the user.
+
+ROM banked:
+0xC000-0xFFFF 	16,384 bytes* 	ROM Bank window (512K total)
+
+    This is the allocation of the banks of banked ROM:
+    Bank 	Name 	Description
+    0 	KERNAL 	KERNAL operating system and drivers
+    1 	KEYBD 	Keyboard layout tables
+    2 	CBDOS 	The computer-based CBM-DOS for FAT32 SD cards
+    3 	GEOS 	GEOS KERNAL
+    4 	BASIC 	BASIC interpreter
+    5 	MONITOR 	Machine Language Monitor
+    6 	CHARSET 	PETSCII and ISO character sets (uploaded into VRAM)
+    7 	CODEX 	CodeX16 Interactive Assembly Environment / Monitor
+    8 	GRAPH 	Kernal graph and font routines
+    9 	DEMO 	Demo routines
+    10 	AUDIO 	Audio routines
+    11-31 	– 	[Currently unused]
+
+
