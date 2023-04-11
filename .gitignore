@@ -53,3 +53,13 @@ dkms.conf
 
 # Datasheets
 Datasheet/
+
+# verilog intermedied
+*.vcd
+*.vp
+*.asc
+*.json
+*.bin
+*.rpt
+
+*.code-workspace
