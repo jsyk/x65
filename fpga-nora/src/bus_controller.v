@@ -59,24 +59,17 @@ module bus_controller (
     output reg      nora_slv_req_SCRB_o,
     output reg      nora_slv_rwn_o,
     // Bank parameters from SCRB
-    input [7:0]     rambank_mask_i
+    input [7:0]     rambank_mask_i,
+    // Trace output
+    // output reg [28:0]   cpubus_trace_o,
+    // output reg          trace_catch_o
 );
-
-    // state machine
-    // parameter CPU_INITIAL = 3'o0;
-    // parameter CPU_READING_NORA_SLAVE = 3'o1;
-    // parameter CPU_READING_EXT_SLAVE = 3'o2;
-    // parameter CPU_WRITING_NORA_SLAVE = 3'o3;
-    // parameter CPU_WRITING_EXT_SLAVE = 3'o4;
-    // parameter CPU_DISABLED_NORA_MASTER_READING = 3'o5;
-    // parameter CPU_DISABLED_NORA_MASTER_WRITING = 3'o6;
+//// IMPLEMENTATION ////
 
     parameter HIGH_INACTIVE = 1'b1;
     parameter HIGH_ACTIVE = 1'b1;
     parameter LOW_ACTIVE = 1'b0;
     parameter LOW_INACTIVE = 1'b0;
-
-    // reg  [2:0]      bus_state;
 
     parameter MST_IDLE = 3'o0;
     parameter MST_WAIT_CPU_STOP = 3'o1;
@@ -126,6 +119,8 @@ module bus_controller (
 
     always @( posedge clk6x )
     begin
+        // trace_en_o <= 0;
+        
         if (!resetn)
         begin   // sync reset
             // bus_state <= CPU_INITIAL;
@@ -143,7 +138,7 @@ module bus_controller (
             nora_slv_req_BOOTROM_o <= 0;
             nora_slv_req_SCRB_o <= 0;
             rambank_nr <= 0;
-            rombank_nr <= 0;
+            rombank_nr <= 6'b011111;        // rombank 31
             nora_slv_req_BANKREG <= 0;
             mst_state <= MST_IDLE;
             nora_mst_driving_memdb <= 0;
@@ -218,6 +213,16 @@ module bus_controller (
                 end
             end
             
+            // if (release_cs)
+            // begin
+            //     // end of a CPU cycle -> catch trace
+            //     trace_catch_o <= 1;
+            //     cpubus_trace_o <= { cpu_ab_i /*16b*/ , cpu_db_i /*8b*/, 
+            //                         cpu_sync_vpa_i, cpu_vpu_i,
+            //                         cpu_vda_i, cpu_cef_i, cpu_rw_i
+            //                       };
+            // end
+
             if (release_cs || (mst_state == MST_FIN_ACC))
             begin
                 // end of CPU or MST access;
@@ -350,16 +355,6 @@ module bus_controller (
                     nora_mst_ack_o <= 1;                // end of master access
                     mst_state <= MST_IDLE;
                     nora_mst_driving_memdb <= 0;        // stop driving the memory bus
-                    // disable all CS
-                    // sram_csn_o <= HIGH_INACTIVE;
-                    // via_csn_o <= HIGH_INACTIVE;
-                    // vera_csn_o <= HIGH_INACTIVE;
-                    // nora_slv_req_BOOTROM_o <= 0;
-                    // nora_slv_req_BANKREG <= 0;
-                    // nora_slv_req_SCRB_o <= 0;
-                    // disable memorybus rd/wr flags
-                    // mem_rdn_o <= HIGH_INACTIVE;
-                    // mem_wrn_o <= HIGH_INACTIVE;
                     // enable CPU bus
                     cpu_be_o <= HIGH_ACTIVE;
                 end

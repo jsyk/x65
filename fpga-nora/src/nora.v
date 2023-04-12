@@ -36,10 +36,10 @@ module top (
     output MWRn,            // Memory Write
 
 // VIA interface
-    output VIAPHI2,
-    output VIACS,
-    input VIAIRQ,
-    output PERIRESn,
+    output VIAPHI2,         // TBD remove
+    output VIACS,           // TBD remove
+    input VIAIRQ,           // TBD remove
+    output PERIRESn,        // TBD maybe remove
 
     inout I2C_SCL,
     inout I2C_SDA,
@@ -81,9 +81,9 @@ module top (
     input VERAFCSn,
     input ICD2VERAROM,
 
-    output VCS0n,
-    output VCS1n,
-    output VCS2n,
+    output VCS0n,               // VERA
+    output VCS1n,               // WIZNET
+    output VCS2n,               // AURA/LATCH
     input VIRQn,
     input VAUX0,
     input VAUX1,
@@ -184,6 +184,27 @@ module top (
     // Bank parameters from SCRB
     wire    [7:0]   rambank_mask = 8'hFF;
 
+    // Trace signal
+    wire [39:0]   cpubus_trace = { 
+            CA, MAL,        // CPU address bus, [15:12][11:0] = 16b
+            
+            CD,             // CPU data bus, 8b
+            
+            4'h0,
+            CRESn,           // CPU reset
+            CIRQn,           // CPU IRQ request
+            CNMIn,           // CPU NMI request
+            CABORTn,         // CPU ABORT request (16b only)
+            
+            CRDY,             // CPU ready signal
+            CSOB_MX,          // CPU SOB (set overflow - 8b) / MX (16b)
+            CSYNC_VPA,        // CPU SYNC (8b) / VPA (16b) signal
+            CMLn,             // CPU memory lock
+            CVPn,             // CPU vector pull signal
+            CVDA,             // CPU VDA (16b only)
+            CEF,              // CPU EF (16b only)
+            CRWn              // CPU R/W signal
+        };
 
     /* ICD SPI Slave - MISO driver */
     wire icd_miso_o;
@@ -198,6 +219,8 @@ module top (
     wire [7:0]  icd_tx_byte;
     wire        icd_tx_en;
 
+    wire        icd_run_cpu;
+    wire        icd_cpu_force_resn;
 
     /**
     * SPI Slave (Target) - for ICD function.
@@ -247,7 +270,14 @@ module top (
         // .nora_mst_req_VIA_o (nora_mst_req_VIA),
         // .nora_mst_req_VERA_o (nora_mst_req_VERA),
         .nora_mst_rwn_o (nora_mst_rwn),
-    );
+        // CPU control
+        .run_cpu (icd_run_cpu),
+        .stopped_cpu (stopped_cpu),
+        .cpu_force_resn_o (icd_cpu_force_resn),
+        // Trace input
+        .cpubus_trace_i (cpubus_trace),
+        .trace_catch_i (release_cs)
+);
 
 
     /**
@@ -312,6 +342,9 @@ module top (
         .nora_slv_rwn_o (nora_slv_rwn),
         // Bank parameters from SCRB
         .rambank_mask_i (rambank_mask)
+        // // Trace output
+        // .cpubus_trace_o (cpubus_trace),
+        // .trace_catch_o (trace_catch)
     );
 
 
@@ -333,7 +366,7 @@ module top (
     assign MAL = (CBE) ? 12'bZZZZZZZZZZZZ : mem_abl_o;
 
 
-    assign CRESn = 1'b0;           // CPU reset
+    assign CRESn = icd_cpu_force_resn;           // CPU reset
     assign CIRQn = 1'b1;           // CPU IRQ request
     assign CNMIn = 1'b1;           // CPU NMI request
     assign CABORTn = 1'b1;         // CPU ABORT request (16b only)
@@ -342,9 +375,9 @@ module top (
 
     assign FMOSI = ~FMISO;
     assign FSCK = clk6x;
-    assign FLASHCSn = clk6x_locked;
+    assign FLASHCSn = 1;
 
-    assign ph_run_cpu = 0; //busct_run_cpu;
+    assign ph_run_cpu = busct_run_cpu && icd_run_cpu;
 
     // always @( posedge clk6x )
     // begin

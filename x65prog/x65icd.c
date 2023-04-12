@@ -57,6 +57,7 @@ static bool verbose = false;
 #define CMD_GETSTATUS 		0x0
 #define CMD_BUSMEM_ACC 		0x1
 #define CMD_CPUCTRL 		0x2
+#define CMD_READTRACE 		0x3
 
 #define nSRAM_OTHER_BIT 	4
 #define nWRITE_READ_BIT 	5
@@ -247,6 +248,53 @@ static int icd_sram_memtest(unsigned int seed, uint32_t mstart, int mbytes)
 	return errors;
 }
 
+
+static void icd_cpu_ctrl(int run_cpu, int cstep_cpu, int reset_cpu)
+{
+	run_cpu &= 1;
+	cstep_cpu &= 1;
+	reset_cpu &= 1;
+
+	uint8_t hdr[2] = { CMD_CPUCTRL | (run_cpu << 4) | (cstep_cpu << 5), reset_cpu };
+
+    icd_chip_select();
+    mpsse_xfer_spi(hdr, 2);
+    icd_chip_deselect();
+}
+
+static void icd_cpu_read_trace(int *is_valid, int *is_ovf, uint8_t *tbuf, int tbuflen)
+{
+	uint8_t hdr[2] = { CMD_READTRACE, 0 /*dummy*/, 0 /*RX:buf-status*/ };
+
+    icd_chip_select();
+    mpsse_xfer_spi(hdr, 3);
+	*is_valid = hdr[2] & 1;
+	*is_ovf = hdr[2] & 2;
+
+    mpsse_xfer_spi(tbuf, tbuflen);
+    
+	icd_chip_deselect();
+}
+
+void read_print_trace()
+{
+	int is_valid;
+	int is_ovf;
+	int tbuflen = 5;
+	uint8_t tbuf[tbuflen];
+
+	icd_cpu_read_trace(&is_valid, &is_ovf, tbuf, tbuflen);
+
+	printf("TraceBuf: V:%c O:%c  CA:%04X  CD:%02X  ctr:%02X  sta:%02X\n",
+			(is_valid ? '*' : '-'),
+			(is_ovf ? '*' : '-'),
+			(int)tbuf[4] * 256 + tbuf[3],
+			tbuf[2],
+			tbuf[1],
+			tbuf[0]
+		);
+}
+
 // ---------------------------------------------------------
 // x65icd implementation
 // ---------------------------------------------------------
@@ -396,8 +444,59 @@ int main(int argc, char **argv)
     //     fprintf(stderr, "[%d] = 0x%02x\n", i, (unsigned int)cmddataB[i]);
     // }
 
-	icd_sram_memtest(time(NULL), 0, SIZE_2MB);
+	// stop cpu, activate the reset
+	icd_cpu_ctrl(0, 0, 1);
+
+	icd_sram_memtest(time(NULL), 0, 8192);
+
+	// icd_sram_memtest(time(NULL), 0, SIZE_2MB);
+
 	// icd_sram_memtest(111, 5000*BLOCKSIZE, 1000*BLOCKSIZE);
+
+
+	uint8_t microhello[16] = {
+		// FFF0: any vector starts
+		0xA9, 0x01,				// LDA  #1
+		0xA9, 0x02,				// LDA  #2
+		0xA9, 0x03,				// LDA  #3
+		0x80, 0xF8,				// BRA  -8
+
+		0x00,
+		0x00,
+		// FFFA,B = NMI
+		0xF0, 0xFF,
+		// FFFC,D = RES
+		0xF0, 0xFF,
+		// FFFE,F = BRK, IRQ
+		0xF0, 0xFF,
+	};
+
+	// write startup code at the very end of ROMBANK #31, where the CPU starts
+	icd_sram_blockwrite(255 * 8192 + 8192-sizeof(microhello), sizeof(microhello), microhello);
+
+	// stop cpu, activate the reset
+	printf("CPU Stop & Reset\n");
+	icd_cpu_ctrl(0, 0, 1);
+	read_print_trace();
+	read_print_trace();
+
+	printf("CPU Step & Reset\n");
+	// step the cpu while reset is active for some time
+	for (int i = 0; i < 10; ++i)
+	{
+		icd_cpu_ctrl(0, 1, 1);
+		read_print_trace();
+	}
+
+	printf("CPU Step:\n");
+	// deactivate the reset, step the cpu
+	for (int i = 0; i < 25; ++i)
+	{
+		icd_cpu_ctrl(0, 1, 0);
+		printf("Step #%d\n", i);
+		read_print_trace();
+	}
+
 
 	x65_idle();
 
