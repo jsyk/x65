@@ -1,6 +1,19 @@
 /* 
  * Phaser generates CPU and VIA phased clocks CPHI2, VPHI2
  * and supporting signals for control of the cpu and memory bus.
+ *
+ * clk6x - 48MHz:
+ *     ____      ____      ____      ____      ____      ____      ____
+ * ___|    |____|    |____|    |____|    |____|    |____|    |____|
+ *      S0L       S1L       S2L       S3H       S4H       S5H
+ *     release_cs          setup_cs                      release_wr
+ *               (stopped)
+ *
+ * cphi2 - 8MHz:
+ * ___                               ________________________
+ *    |_____________________________|                        |__________
+ *
+ *
  */
 module phaser (
     input   clk6x,          // system clock, 6x faster than the 65C02 clock -> NORA has 6 microcycles (@48MHz) per one CPU cycle (@8MHz)
@@ -10,6 +23,7 @@ module phaser (
     output reg  cphi2,      // generated 65C02 PHI2 clock
     output reg  vphi2,      // generated 65C22 PHI2 clock, which is shifted by +60deg (21ns)
     output reg  setup_cs,   // catch CPU address and setup the CSx signals
+    output reg  release_wr, // release write signal now, to have a hold before the cs-release
     output reg  release_cs  // CPU access is complete, release the CS
 );
 
@@ -31,11 +45,13 @@ module phaser (
             cphi2 <= 1'b0;
             vphi2 <= 1'b1;
             setup_cs <= 1'b0;
+            release_wr <= 1'b0;
             release_cs <= 1'b0;
             stopped <= 1'b0;
         end else begin
             // default outputs:
             setup_cs <= 1'b0;
+            release_wr <= 1'b0;
             release_cs <= 1'b0;
             stopped <= 1'b0;
 
@@ -79,6 +95,7 @@ module phaser (
                         state_reg <= S5H;
                         cphi2 <= 1'b1;
                         vphi2 <= 1'b1;
+                        release_wr <= 1'b1;     // release MWR signals in the next microcycle
                     end
 
                 S5H:

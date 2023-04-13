@@ -32,6 +32,7 @@ module bus_controller (
     output reg      vera2_csn_o,
     // Phaser for CPU clock
     input           setup_cs,
+    input           release_wr,
     input           release_cs,
     output reg      run_cpu,
     input           stopped_cpu,
@@ -76,7 +77,8 @@ module bus_controller (
     parameter MST_DISABLE_CPU_BUS = 3'o2;
     parameter MST_SETUP_ACC = 3'o3;
     parameter MST_EXT_ACC = 3'o4;
-    parameter MST_FIN_ACC = 3'o5;
+    parameter MST_DATA_ACC = 3'o5;
+    parameter MST_FIN_ACC = 3'o6;
 
     // master request state machine
     reg [2:0]       mst_state;
@@ -223,6 +225,13 @@ module bus_controller (
             //                       };
             // end
 
+            if (release_wr || (mst_state == MST_DATA_ACC))
+            begin
+                // write latch is sensitive: to have some hold time, release it now
+                // before the CS gets released next.
+                mem_wrn_o <= HIGH_INACTIVE;
+            end
+
             if (release_cs || (mst_state == MST_FIN_ACC))
             begin
                 // end of CPU or MST access;
@@ -344,6 +353,15 @@ module bus_controller (
 
                 MST_EXT_ACC:
                 begin
+                    // empty cycle to allow for memory setup and access time
+                    mst_state <= MST_DATA_ACC;
+                end
+
+                MST_DATA_ACC:
+                begin
+                    // Perform data i/o operation
+                    // This is performed in addition to release_wr block above;
+                    nora_mst_datard_o <= cpu_db_o;          // read data is valid now!
                     mst_state <= MST_FIN_ACC;
                 end
 
@@ -351,8 +369,7 @@ module bus_controller (
                 begin
                     // Finalize master access.
                     // This is performed in addition to release_cs block above;
-                    nora_mst_datard_o <= cpu_db_o;          // last cycle: read data is valid now!
-                    nora_mst_ack_o <= 1;                // end of master access
+                    nora_mst_ack_o <= 1;                // signalize the end of master access
                     mst_state <= MST_IDLE;
                     nora_mst_driving_memdb <= 0;        // stop driving the memory bus
                     // enable CPU bus

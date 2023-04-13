@@ -137,6 +137,7 @@ module top (
     wire  busct_run_cpu;
     wire  stopped_cpu;
     wire  setup_cs;   // catch CPU address and setup the CSx signals
+    wire  release_wr;  // release write signal now, to have a hold before the cs-release
     wire  release_cs;  // CPU access is complete, release the CS
 
     /* 
@@ -151,6 +152,7 @@ module top (
         .cphi2  (CPHI2),
         .vphi2  (VIAPHI2),
         .setup_cs (setup_cs),
+        .release_wr (release_wr),
         .release_cs (release_cs)
     );
 
@@ -184,26 +186,49 @@ module top (
     // Bank parameters from SCRB
     wire    [7:0]   rambank_mask = 8'hFF;
 
+    // CPU address bus -virtual internal `input' signal
+    // create the 16-bit CPU bus address by concatenating the two bus signals
+    wire [15:0]     cpu_ab = { CA, MAL };
+    reg [15:0]      cpu_ab_r;
+    reg             csob_mx_r, csync_vpa_r, cmln_r, cvpn_r, cvda_r, cef_r, crwn_r;
+
+    // sample address and CPU status outputs for trace buffer at setup_cs
+    always @(posedge clk6x)
+    begin
+        if (setup_cs)
+        begin
+            cpu_ab_r <= cpu_ab;
+            csob_mx_r <= CSOB_MX;
+            csync_vpa_r <= CSYNC_VPA;
+            cmln_r <= CMLn;
+            cvpn_r <= CVPn;
+            cvda_r <= CVDA;
+            cef_r <= CEF;
+            crwn_r <= CRWn;
+        end
+    end
+
     // Trace signal
-    wire [39:0]   cpubus_trace = { 
-            CA, MAL,        // CPU address bus, [15:12][11:0] = 16b
-            
+    wire [39:0]   cpubus_trace = {
+        // trace bytes [4], [3]:
+            cpu_ab_r,        // CPU address bus, [15:12][11:0] = 16b
+        // trace byte [2]:
             CD,             // CPU data bus, 8b
-            
+        // trace byte [1]:
             4'h0,
             CRESn,           // CPU reset
             CIRQn,           // CPU IRQ request
             CNMIn,           // CPU NMI request
             CABORTn,         // CPU ABORT request (16b only)
-            
+        // trace byte [0]:
             CRDY,             // CPU ready signal
-            CSOB_MX,          // CPU SOB (set overflow - 8b) / MX (16b)
-            CSYNC_VPA,        // CPU SYNC (8b) / VPA (16b) signal
-            CMLn,             // CPU memory lock
-            CVPn,             // CPU vector pull signal
-            CVDA,             // CPU VDA (16b only)
-            CEF,              // CPU EF (16b only)
-            CRWn              // CPU R/W signal
+            csob_mx_r,          // CPU SOB (set overflow - 8b) / MX (16b)
+            csync_vpa_r,        // CPU SYNC (8b) / VPA (16b) signal
+            cmln_r,             // CPU memory lock
+            cvpn_r,             // CPU vector pull signal
+            cvda_r,             // CPU VDA (16b only)
+            cef_r,              // CPU EF (16b only)
+            crwn_r              // CPU R/W signal
         };
 
     /* ICD SPI Slave - MISO driver */
@@ -276,7 +301,7 @@ module top (
         .cpu_force_resn_o (icd_cpu_force_resn),
         // Trace input
         .cpubus_trace_i (cpubus_trace),
-        .trace_catch_i (release_cs)
+        .trace_catch_i (release_wr)
 );
 
 
@@ -314,6 +339,7 @@ module top (
         .vera2_csn_o (VCS2n),
         // Phaser for CPU clock
         .setup_cs (setup_cs),
+        .release_wr (release_wr),
         .release_cs (release_cs),
         .run_cpu (busct_run_cpu),
         .stopped_cpu (stopped_cpu),
