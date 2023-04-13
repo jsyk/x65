@@ -264,7 +264,7 @@ static void icd_cpu_ctrl(int run_cpu, int cstep_cpu, int reset_cpu)
 
 static void icd_cpu_read_trace(int *is_valid, int *is_ovf, uint8_t *tbuf, int tbuflen)
 {
-	uint8_t hdr[2] = { CMD_READTRACE, 0 /*dummy*/, 0 /*RX:buf-status*/ };
+	uint8_t hdr[3] = { CMD_READTRACE, 0 /*dummy*/, 0 /*RX:buf-status*/ };
 
     icd_chip_select();
     mpsse_xfer_spi(hdr, 3);
@@ -276,6 +276,27 @@ static void icd_cpu_read_trace(int *is_valid, int *is_ovf, uint8_t *tbuf, int tb
 	icd_chip_deselect();
 }
 
+#define TRACE_FLAG_RWN			1
+#define TRACE_FLAG_VECTPULL		8
+#define TRACE_FLAG_MLOCK		16
+#define TRACE_FLAG_SYNC			32
+
+const char *w65c02_dismap[256] = {
+	"BRK s", "ORA (zp,X)", "?", "?", "TSB zp", "ORA zp", "ASL zp", "RMB0 zp", "PHP s", "ORA #", "ASL A", "?", "TSB A", "ORA a", "ASL a", "BBR0 r",
+	"BPL r", "ORA (zp),Y", "ORA (zp)", "?", "TRB zp", "ORA zp,X", "ASL zp,X", "RMB1 zp", "CLC i", "ORA a,Y", "INC A", "?", "TRB a", "ORA a,x", "ASL a,x", "BBR1 r",
+	"JSR a", "AND (zp,X)", "?", "?", "BIT zp", "AND zp", "ROL zp", "RMB2 zp", "PLP s", "AND #", "ROL A", "?", "BIT a", "AND a", "ROL a", "BBR2 r",
+	"BMI r", "AND (zp),Y", "AND (zp)", "?", "BIT zp,X", "AND zp,X", "ROL zp,X", "RMB3 zp", "SEC i", "AND a,Y", "DEC A", "?", "BIT a,X", "AND a,X", "ROL a,X", "BBR3 r",
+	"RTI s", "EOR (zp,X)", "?", "?", "?", "EOR zp", "LSR zp", "RMB4 zp", "PHA s", "EOR #", "LSR A", "?", "JMP a", "EOR a", "LSR a", "BBR4 r",
+	"BVC r", "EOR (zp),Y", "EOR (zp)", "?", "?", "EOR zp,X", "LSR zp,X", "RMB5 zp", "CLI i", "EOR a,Y", "PHY s", "?", "?", "EOR a,X", "LSR a,X", "BBR5 r",
+	"RTS s", "ADC (zp,X)", "?", "?", "STZ zp", "ADC zp", "ROR zp", "RMB6 zp", "PLA s", "ADC #", "ROR A", "?", "JMP (a)", "ADC a", "ROR a", "BBR6 r",
+	"BVS s", "ADC (zp),Y", "ADC (zp)", "?", "STZ zp,X", "ADC zp,X", "ROR zp,X", "RMB7 zp", "SEI i", "ADC a,Y", "PLY s", "?", "JMP (a,X)", "ADC a,X", "ROR a,X", "BBR7 r",
+	"BRA r", "STA (zp,X)", "?", "?", "STY zp", "STA zp", "STX zp", "SMB0 zp", "DEY i", "BIT #", "TXA i", "?", "STY a", "STA a", "STX a", "BBS0 r",
+	"BCC r", "STA (zp),Y", "STA (zp)", "?", "STY zp,X", "STA zp,X", "STX zp,Y", "SMB1 zp", "TYA i", "STA a,Y", "TXS i", "?", "STZ a", "STA a,X", "STZ a,X", "BBS1 r",
+	"LDY #", "LDA (zp,X)", "LDX #", "?", "LDY zp", "LDA zp", "LDX zp", "SMB2 zp", "TAY i", "LDA #", "TAX i", "?", "LDY A", "LDA a", "LDX a", "BBS2 r",
+	// TBD... lines B-F
+};
+
+
 void read_print_trace()
 {
 	int is_valid;
@@ -285,13 +306,15 @@ void read_print_trace()
 
 	icd_cpu_read_trace(&is_valid, &is_ovf, tbuf, tbuflen);
 
-	printf("TraceBuf: V:%c O:%c  CA:%04X  CD:%02X  ctr:%02X  sta:%02X\n",
+	printf("TraceBuf: V:%c O:%c  CA:%04X  CD:%02X  ctr:%02X  sta:%02X:%c%c%c%c     %s\n",
 			(is_valid ? '*' : '-'),
 			(is_ovf ? '*' : '-'),
-			(int)tbuf[4] * 256 + tbuf[3],
-			tbuf[2],
-			tbuf[1],
-			tbuf[0]
+			/*CA:*/ (int)tbuf[4] * 256 + tbuf[3],
+			/*CD:*/ tbuf[2],
+			/*ctr:*/ tbuf[1],
+			/*sta:*/ tbuf[0], (tbuf[0] & TRACE_FLAG_RWN ? 'r' : 'W'), (tbuf[0] & TRACE_FLAG_VECTPULL ? '-' : 'v'), 
+					(tbuf[0] & TRACE_FLAG_MLOCK ? '-' : 'L'), (tbuf[0] & TRACE_FLAG_SYNC ? 'S' : '-'),
+			(tbuf[0] & TRACE_FLAG_SYNC ? w65c02_dismap[tbuf[2]] : "")
 		);
 }
 
@@ -447,7 +470,7 @@ int main(int argc, char **argv)
 	// stop cpu, activate the reset
 	icd_cpu_ctrl(0, 0, 1);
 
-	icd_sram_memtest(time(NULL), 0, 8192);
+	do { icd_sram_memtest(time(NULL), 0, 8192); } while (0);
 
 	// icd_sram_memtest(time(NULL), 0, SIZE_2MB);
 
@@ -457,12 +480,14 @@ int main(int argc, char **argv)
 	uint8_t microhello[16] = {
 		// FFF0: any vector starts
 		0xA9, 0x01,				// LDA  #1
+		0x48,					// PHA
 		0xA9, 0x02,				// LDA  #2
-		0xA9, 0x03,				// LDA  #3
-		0x80, 0xF8,				// BRA  -8
-
+		0x68,					// PLA
+		0x1A,					// INC  A
+		0x80, /*0xF9*/ -7,				// BRA  -7   (@PHA)
+		
 		0x00,
-		0x00,
+		
 		// FFFA,B = NMI
 		0xF0, 0xFF,
 		// FFFC,D = RES
@@ -490,13 +515,15 @@ int main(int argc, char **argv)
 
 	printf("CPU Step:\n");
 	// deactivate the reset, step the cpu
-	for (int i = 0; i < 25; ++i)
+	for (int i = 0; i < 128; ++i)
 	{
 		icd_cpu_ctrl(0, 1, 0);
 		printf("Step #%d\n", i);
 		read_print_trace();
 	}
 
+	// run
+	icd_cpu_ctrl(1, 0, 0);
 
 	x65_idle();
 
