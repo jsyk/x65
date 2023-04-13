@@ -63,3 +63,6 @@ Datasheet/
 *.rpt
 
 *.code-workspace
+open65-backups
+x65icd
+x65prog
