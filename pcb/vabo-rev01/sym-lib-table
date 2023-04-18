@@ -1,0 +1,5 @@
+(sym_lib_table
+  (lib (name "sdcage")(type "KiCad")(uri "${KIPRJMOD}/../lib/sdcage.kicad_sym")(options "")(descr ""))
+  (lib (name "Wiznet")(type "KiCad")(uri "${KIPRJMOD}/../lib/Wiznet.kicad_sym")(options "")(descr ""))
+  (lib (name "Amplif")(type "KiCad")(uri "${KIPRJMOD}/../lib/Amplif.kicad_sym")(options "")(descr ""))
+)
