@@ -1,0 +1,5 @@
+(fp_lib_table
+  (lib (name "vera-module")(type "KiCad")(uri "${KIPRJMOD}/../lib/vera-module.pretty")(options "")(descr ""))
+  (lib (name "switches")(type "KiCad")(uri "${KIPRJMOD}/../lib/switches.pretty")(options "")(descr ""))
+  (lib (name "ledplcc2")(type "KiCad")(uri "${KIPRJMOD}/../lib/ledplcc2.pretty")(options "")(descr ""))
+)

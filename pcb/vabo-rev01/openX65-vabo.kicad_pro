@@ -55,7 +55,19 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "silk_over_copper|159960000|112025000|25b99f1b-ca55-4412-bdf9-105be07a81a6|45ee7ea5-bb6e-4075-a142-a1ff08e44ccb",
+        "silk_over_copper|159960000|112025000|25b99f1b-ca55-4412-bdf9-105be07a81a6|527c1e93-d0a4-4d82-a979-f6514f1c83db",
+        "silk_over_copper|159960000|127975000|25b99f1b-ca55-4412-bdf9-105be07a81a6|5e0a7e0d-3192-40d6-812f-5efdf32bc295",
+        "silk_over_copper|160000000|107400000|25b99f1b-ca55-4412-bdf9-105be07a81a6|5ea060c8-1581-493e-956d-0db2c945b5f6",
+        "silk_over_copper|160000000|51150000|25b99f1b-ca55-4412-bdf9-105be07a81a6|bb658ab6-faa9-4a8f-9fb9-cf8846b577d3",
+        "silk_over_copper|160000000|56350000|25b99f1b-ca55-4412-bdf9-105be07a81a6|6ef29555-dd05-4d4d-8772-f7b3c7eb7569",
+        "silk_over_copper|160000000|60000000|25b99f1b-ca55-4412-bdf9-105be07a81a6|7de25542-df08-43f2-8495-7b463b8ce18e",
+        "silk_over_copper|160000000|74000000|25b99f1b-ca55-4412-bdf9-105be07a81a6|0abbef87-fe29-42ac-a024-2ee9f5c8a9ba",
+        "silk_over_copper|160000000|76600000|25b99f1b-ca55-4412-bdf9-105be07a81a6|7402e7f8-9889-411a-aad2-5527dac17200",
+        "track_dangling|114119935|103530065|feaf926c-01ea-4d50-8c9c-f7993f464003|00000000-0000-0000-0000-000000000000",
+        "track_dangling|120300000|117250000|d80a7dc5-6af5-4485-9b6d-66203a5c1abc|00000000-0000-0000-0000-000000000000"
+      ],
       "meta": {
         "version": 2
       },
@@ -119,7 +131,10 @@
         "use_height_for_length_calcs": true
       },
       "track_widths": [
-        0.0
+        0.0,
+        0.2,
+        0.3,
+        0.5
       ],
       "via_dimensions": [
         {
@@ -333,7 +348,7 @@
       "pin_not_connected": "error",
       "pin_not_driven": "error",
       "pin_to_pin": "warning",
-      "power_pin_not_driven": "error",
+      "power_pin_not_driven": "ignore",
       "similar_labels": "warning",
       "unannotated": "error",
       "unit_value_mismatch": "error",
@@ -363,7 +378,7 @@
         "name": "Default",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.25,
+        "track_width": 0.2,
         "via_diameter": 0.8,
         "via_drill": 0.4,
         "wire_width": 6.0
@@ -417,7 +432,7 @@
       "workbook_filename": ""
     },
     "page_layout_descr_file": "",
-    "plot_directory": "",
+    "plot_directory": "scm-prints/",
     "spice_adjust_passive_values": false,
     "spice_external_command": "spice \"%I\"",
     "subpart_first_id": 65,
@@ -438,7 +453,7 @@
     ],
     [
       "24ab6e58-c39a-4580-a4ca-24b4eca62ff3",
-      "VERA SPI-Flash, SDHC"
+      "VERA SPI-Flash, SDC"
     ],
     [
       "cbc92ee9-2239-4d4e-b43a-d73ce73b028b",
