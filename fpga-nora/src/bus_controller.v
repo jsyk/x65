@@ -26,10 +26,10 @@ module bus_controller (
     output reg      mem_rdn_o,            // Memory Read external
     output reg      mem_wrn_o,            // Memory Write external
     output reg      sram_csn_o,           // SRAM chip-select
-    output reg      via_csn_o,             // VIA chip-select
+    // output reg      via_csn_o,             // VIA chip-select
     output reg      vera_csn_o,              // VERA chip-select
-    output reg      vera1_csn_o,
-    output reg      vera2_csn_o,
+    output reg      aura_csn_o,             // AURA chip-select
+    output reg      enet_csn_o,             // e-net LAN chip-select
     // Phaser for CPU clock
     input           setup_cs,
     input           release_wr,
@@ -58,6 +58,7 @@ module bus_controller (
     input   [7:0]   nora_slv_data_i,
     output reg      nora_slv_req_BOOTROM_o,
     output reg      nora_slv_req_SCRB_o,
+    output reg      nora_slv_req_VIA1_o,
     output reg      nora_slv_rwn_o,
     // Bank parameters from SCRB
     input [7:0]     rambank_mask_i,
@@ -95,9 +96,10 @@ module bus_controller (
 
     wire nora_mst_req_OTHER_BOOTROM_i = nora_mst_req_OTHER_i && nora_mst_addr_i[20];
     wire nora_mst_req_OTHER_BANKREG_i = nora_mst_req_OTHER_i && nora_mst_addr_i[19];
-    wire nora_mst_req_OTHER_SCRB_i = nora_mst_req_OTHER_i && nora_mst_addr_i[18];
-    wire nora_mst_req_OTHER_VERA_i = nora_mst_req_OTHER_i && nora_mst_addr_i[17];
-    wire nora_mst_req_OTHER_VIA_i = nora_mst_req_OTHER_i && nora_mst_addr_i[16];
+    wire nora_mst_req_OTHER_IOREGS = nora_mst_req_OTHER_i && nora_mst_addr_i[18];
+    // wire nora_mst_req_OTHER_SCRB_i = nora_mst_req_OTHER_i && nora_mst_addr_i[18];
+    // wire nora_mst_req_OTHER_VERA_i = nora_mst_req_OTHER_i && nora_mst_addr_i[17];
+    // wire nora_mst_req_OTHER_VIA_i = nora_mst_req_OTHER_i && nora_mst_addr_i[16];
 
 
     // Current Banks - remap
@@ -132,13 +134,14 @@ module bus_controller (
             sram_csn_o <= HIGH_INACTIVE;
             via_csn_o <= HIGH_INACTIVE;
             vera_csn_o <= HIGH_INACTIVE;
-            vera1_csn_o <= HIGH_INACTIVE;
-            vera2_csn_o <= HIGH_INACTIVE;
+            aura_csn_o <= HIGH_INACTIVE;
+            enet_csn_o <= HIGH_INACTIVE;
             run_cpu <= 0;
             stretching_viaphi <= 0;
             nora_mst_ack_o <= 0;
             nora_slv_req_BOOTROM_o <= 0;
             nora_slv_req_SCRB_o <= 0;
+            nora_slv_req_VIA1_o <= 0;
             rambank_nr <= 0;
             rombank_nr <= 6'b011111;        // rombank 31
             nora_slv_req_BANKREG <= 0;
@@ -179,19 +182,25 @@ module bus_controller (
                 end
                 else if (cpu_ab_i[15:8] == 8'h9F)
                 begin
-                    // IO area at 0x9Fxx
+                    //
+                    // IO area at 0x9Fxx decoding from CPU address
+                    //
                     if (cpu_ab_i[7:4] == 4'h0)
                     begin
                         // 0x9F00 VIA I/O controller #1
-                        via_csn_o <= LOW_ACTIVE;
-                        mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_o <= cpu_rw_i;
-                        // TBD stretching!!
+                        nora_slv_req_VIA1_o <= 1;
                     end 
-                    else if (cpu_ab_i[7:5] == 4'o1)
+                    else if (cpu_ab_i[7:5] == 3'b001)
                     begin
                         // 0x9F20, 0x9F30 VERA video controller
                         vera_csn_o <= LOW_ACTIVE;
+                        mem_rdn_o <= ~cpu_rw_i;
+                        mem_wrn_o <= cpu_rw_i;
+                    end
+                    else if (cpu_ab_i[7:4] == 4'h4)
+                    begin
+                        // 0x9F40 AURA audio controller
+                        aura_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
                         mem_wrn_o <= cpu_rw_i;
                     end
@@ -199,6 +208,13 @@ module bus_controller (
                     begin
                         // 0x9F50 NORA-SCRB
                         nora_slv_req_SCRB_o <= 1;
+                    end
+                    else if (cpu_ab_i[7:4] == 4'h8)
+                    begin
+                        // 0x9F80 ENET LAN controller
+                        enet_csn_o <= LOW_ACTIVE;
+                        mem_rdn_o <= ~cpu_rw_i;
+                        mem_wrn_o <= cpu_rw_i;
                     end
                 end
                 else if (cpu_ab_i[15:1] == 15'b000000000000000)
@@ -247,10 +263,10 @@ module bus_controller (
                         if (!nora_slv_addr_o[0])
                         begin
                             // 0x00 = RAMBANK
-                            rambank_nr <= cpu_db_i & rambank_mask_i;
+                            rambank_nr <= nora_slv_datawr_o & rambank_mask_i;
                         end else begin
                             // 0x01 = ROMBANK
-                            rombank_nr <= cpu_db_i[5:0];
+                            rombank_nr <= nora_slv_datawr_o[5:0];
                         end
                     end
                 end
@@ -262,11 +278,12 @@ module bus_controller (
                 sram_csn_o <= HIGH_INACTIVE;
                 via_csn_o <= HIGH_INACTIVE;
                 vera_csn_o <= HIGH_INACTIVE;
-                vera1_csn_o <= HIGH_INACTIVE;
-                vera2_csn_o <= HIGH_INACTIVE;
+                aura_csn_o <= HIGH_INACTIVE;
+                enet_csn_o <= HIGH_INACTIVE;
                 nora_slv_req_BOOTROM_o <= 0;
                 nora_slv_req_BANKREG <= 0;
                 nora_slv_req_SCRB_o <= 0;
+                nora_slv_req_VIA1_o <= 0;
             end
 
             case (mst_state)
@@ -312,20 +329,25 @@ module bus_controller (
                     // CPU stopped and its bus is disabled (HiZ).
                     // Realize the access! -> decode CS
 
+                    nora_slv_addr_o <= nora_mst_addr_i[15:0];
+                    nora_slv_rwn_o <= nora_mst_rwn_i;
+
                     if (nora_mst_req_SRAM_i)
                     begin
                         sram_csn_o <= LOW_ACTIVE;
+                        mem_rdn_o <= ~nora_mst_rwn_i;
+                        mem_wrn_o <= nora_mst_rwn_i;
                     end
 
-                    if (nora_mst_req_OTHER_VIA_i)
-                    begin
-                        via_csn_o <= LOW_ACTIVE;
-                    end
+                    // if (nora_mst_req_OTHER_VIA_i)
+                    // begin
+                    //     via_csn_o <= LOW_ACTIVE;
+                    // end
 
-                    if (nora_mst_req_OTHER_VERA_i)
-                    begin
-                        vera_csn_o <= LOW_ACTIVE;
-                    end
+                    // if (nora_mst_req_OTHER_VERA_i)
+                    // begin
+                    //     vera_csn_o <= LOW_ACTIVE;
+                    // end
 
                     if (nora_mst_req_OTHER_BOOTROM_i)
                     begin
@@ -337,15 +359,47 @@ module bus_controller (
                         nora_slv_req_BANKREG <= 1;
                     end
 
-                    if (nora_mst_req_OTHER_SCRB_i)
-                    begin
-                        nora_slv_req_SCRB_o <= 1;
-                    end
+                    // if (nora_mst_req_OTHER_SCRB_i)
+                    // begin
+                    //     nora_slv_req_SCRB_o <= 1;
+                    // end
 
-                    if (nora_mst_req_SRAM_i || nora_mst_req_OTHER_VIA_i || nora_mst_req_OTHER_VERA_i)
+                    if (nora_mst_req_OTHER_IOREGS)
                     begin
-                        mem_rdn_o <= ~nora_mst_rwn_i;
-                        mem_wrn_o <= nora_mst_rwn_i;
+                        // IOREGS area from ICD;
+                        // decode address bits 7:0 just as from CPU to determine the final chip-select
+                        //
+                        if (nora_mst_addr_i[7:4] == 4'h0)
+                        begin
+                            // 0x9F00 VIA I/O controller #1
+                            nora_slv_req_VIA1_o <= 1;
+                        end 
+                        else if (nora_mst_addr_i[7:5] == 3'b001)
+                        begin
+                            // 0x9F20, 0x9F30 VERA video controller
+                            vera_csn_o <= LOW_ACTIVE;
+                            mem_rdn_o <= ~nora_mst_rwn_i;
+                            mem_wrn_o <= nora_mst_rwn_i;
+                        end
+                        else if (nora_mst_addr_i[7:4] == 4'h4)
+                        begin
+                            // 0x9F40 AURA audio controller
+                            aura_csn_o <= LOW_ACTIVE;
+                            mem_rdn_o <= ~nora_mst_rwn_i;
+                            mem_wrn_o <= nora_mst_rwn_i;
+                        end
+                        else if (nora_mst_addr_i[7:4] == 4'h5)
+                        begin
+                            // 0x9F50 NORA-SCRB
+                            nora_slv_req_SCRB_o <= 1;
+                        end
+                        else if (nora_mst_addr_i[7:4] == 4'h8)
+                        begin
+                            // 0x9F80 ENET LAN controller
+                            enet_csn_o <= LOW_ACTIVE;
+                            mem_rdn_o <= ~nora_mst_rwn_i;
+                            mem_wrn_o <= nora_mst_rwn_i;
+                        end
                     end
 
                     mst_state <= MST_EXT_ACC;
@@ -361,7 +415,17 @@ module bus_controller (
                 begin
                     // Perform data i/o operation
                     // This is performed in addition to release_wr block above;
+                    // if (nora_slv_req_BANKREG)
+                    // begin
+                    //     if (!nora_mst_addr_i[0])
+                    //     begin
+                    //         nora_mst_datard_o <= 8'h12; //rambank_nr;
+                    //     end else begin
+                    //         nora_mst_datard_o <= 8'h34; //{ 3'b000, rombank_nr };
+                    //     end
+                    // end else begin
                     nora_mst_datard_o <= cpu_db_o;          // read data is valid now!
+                    // end
                     mst_state <= MST_FIN_ACC;
                 end
 
@@ -401,7 +465,7 @@ module bus_controller (
                 cpu_db_o <= { 3'b000, rombank_nr };
             end
         end
-        else if (nora_slv_req_BOOTROM_o || nora_slv_req_SCRB_o)
+        else if (nora_slv_req_BOOTROM_o || nora_slv_req_SCRB_o || nora_slv_req_VIA1_o)
         begin
             // internal slave reading
             cpu_db_o <= nora_slv_data_i;

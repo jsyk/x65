@@ -82,8 +82,8 @@ module top (
     input ICD2VERAROM,
 
     output VCS0n,               // VERA
-    output VCS1n,               // WIZNET
-    output VCS2n,               // AURA/LATCH
+    output VCS1n,               // AURA
+    output VCS2n,               // ENET
     input VIRQn,
     input VAUX0,
     input VAUX1,
@@ -182,6 +182,7 @@ module top (
     wire    [7:0]   nora_slv_datard;
     wire            nora_slv_req_BOOTROM;
     wire            nora_slv_req_SCRB;
+    wire            nora_slv_req_VIA1;
     wire            nora_slv_rwn;
     // Bank parameters from SCRB
     wire    [7:0]   rambank_mask = 8'hFF;
@@ -333,10 +334,10 @@ module top (
         .mem_rdn_o (MRDn),            // Memory Read external
         .mem_wrn_o (MWRn),            // Memory Write external
         .sram_csn_o (M1CSn),           // SRAM chip-select
-        .via_csn_o (VIACS),             // VIA chip-select
+        // .via_csn_o (VIACS),             // VIA chip-select
         .vera_csn_o (VCS0n),              // VERA chip-select
-        .vera1_csn_o (VCS1n),
-        .vera2_csn_o (VCS2n),
+        .aura_csn_o (VCS1n),
+        .enet_csn_o (VCS2n),
         // Phaser for CPU clock
         .setup_cs (setup_cs),
         .release_wr (release_wr),
@@ -365,6 +366,7 @@ module top (
         .nora_slv_data_i (nora_slv_datard),
         .nora_slv_req_BOOTROM_o (nora_slv_req_BOOTROM),
         .nora_slv_req_SCRB_o (nora_slv_req_SCRB),
+        .nora_slv_req_VIA1_o (nora_slv_req_VIA1),
         .nora_slv_rwn_o (nora_slv_rwn),
         // Bank parameters from SCRB
         .rambank_mask_i (rambank_mask)

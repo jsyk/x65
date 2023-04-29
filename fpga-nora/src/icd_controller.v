@@ -3,10 +3,11 @@
  * port on the OpenX65 computer.
  *
  * Structure of the 1st header byte :
- *   [ 7:4      3:0 ]
+ *   [ 7:4  ,   3:0 ]
+ *    opts  , command
  *              0x0         GETSTATUS
  *
- *              0x1         BUS/MEM ACCESS
+ *      |       0x1         BUS/MEM ACCESS
  *      `----------------------->   [4]     0 => SRAM, 1 => OTHER
  *                                  [5]     0 => WRITE, 1 => READ
  *                                  [6]     0 => ADR-KEEP, 1 => ADR-INC
@@ -16,13 +17,11 @@
  *                                                  OTHER => [23:21]=0,
  *                                                           [20]=BOOTROM_CS
  *                                                           [19]=BANKREG_CS
- *                                                           [18]=SCRB_CS
- *                                                           [17]=VERA_CS
- *                                                           [16]=VIA_CS
+ *                                                           [18]=IOREGS (256B area, decoded as in CPU)
  *                          5th byte = READ=>dummy_byte, WRITE=>1st-wr_byte.
  *                          6th, 7th... bytes = READ/WRITE data bytes.
  *
- *              0x2         CPU CTRL
+ *      |       0x2         CPU CTRL
  *      `----------------------->   [4]     0 => Stop CPU, 1 => RUN CPU (indefinitely)
  *                                  [5]     0 => no-action, 1 => Single-Cycle-Step CPU (it must be stopped prior)
  *                          2nd byte = forcing of CPU control signals
@@ -160,15 +159,17 @@ module icd_controller #(
 
                     if ((icd_cmd[nWRITE_READ_BIT] == 1) && (counter == 2))
                     begin
-                        // start SRAM read (we have all we need); 
+                        // start SRAM/OTHER read (we have all we need); 
                         // (for a write, we need at least 1 more byte - wr-data)
-                        nora_mst_req_SRAM_o <= 1;
+                        nora_mst_req_SRAM_o <= ~icd_cmd[4];
+                        nora_mst_req_OTHER_o <= icd_cmd[4];
                         nora_mst_rwn_o <= icd_cmd[nWRITE_READ_BIT];
                     end
                 end else begin
                     // counter == 3; multiple bytes
-                    // start SRAM write, or continue SRAM read
-                    nora_mst_req_SRAM_o <= 1;
+                    // start SRAM/OTHER write, or continue SRAM/OTHER read
+                    nora_mst_req_SRAM_o <= ~icd_cmd[4];
+                    nora_mst_req_OTHER_o <= icd_cmd[4];
                     nora_mst_rwn_o <= icd_cmd[nWRITE_READ_BIT];
                     nora_mst_data_o <= rx_byte_i;       // ignored on read
                 end
@@ -225,6 +226,7 @@ module icd_controller #(
                 tx_en_o <= 1;
                 // deselect bus devices
                 nora_mst_req_SRAM_o <= 0;
+                nora_mst_req_OTHER_o <= 0;
                 // increment bus address?
                 if (icd_cmd[ADR_INC_BIT])
                 begin
@@ -240,6 +242,7 @@ module icd_controller #(
                 cpubus_trace_reg <= cpubus_trace_i;
             end
 
+            // finishing a single-step command?
             if (single_step_cpu && !stopped_cpu)
             begin
                 run_cpu <= 0;
