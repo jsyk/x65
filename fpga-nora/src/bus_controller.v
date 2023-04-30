@@ -78,8 +78,9 @@ module bus_controller (
     parameter MST_DISABLE_CPU_BUS = 3'o2;
     parameter MST_SETUP_ACC = 3'o3;
     parameter MST_EXT_ACC = 3'o4;
-    parameter MST_DATA_ACC = 3'o5;
-    parameter MST_FIN_ACC = 3'o6;
+    parameter MST_EXT_ACC2 = 3'o5;
+    parameter MST_DATA_ACC = 3'o6;
+    parameter MST_FIN_ACC = 3'o7;
 
     // master request state machine
     reg [2:0]       mst_state;
@@ -406,6 +407,12 @@ module bus_controller (
                 end
 
                 MST_EXT_ACC:
+                begin
+                    // empty cycle to allow for memory setup and access time
+                    mst_state <= MST_EXT_ACC2;
+                end
+
+                MST_EXT_ACC2:
                 begin
                     // empty cycle to allow for memory setup and access time
                     mst_state <= MST_DATA_ACC;

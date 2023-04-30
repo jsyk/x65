@@ -16,6 +16,7 @@ class ICD:
     ADR_INC_BIT =		6
 
     ICD_OTHER_BANKREG_BIT = 19
+    ICD_OTHER_IOREG_BIT = 18
 
     # Composite commands
     ICD_SRAM_WRITE	= (CMD_BUSMEM_ACC | (1 << ADR_INC_BIT))
@@ -51,6 +52,7 @@ class ICD:
         self.com.spiwriteonly(data)
         self.com.icd_chip_deselect()
 
+
     def bankregs_read(self, maddr, n):
         maddr &= 1
         maddr |= (1 << ICD.ICD_OTHER_BANKREG_BIT)
@@ -60,6 +62,18 @@ class ICD:
         maddr &= 1
         maddr |= (1 << ICD.ICD_OTHER_BANKREG_BIT)
         return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
+
+
+    def ioregs_read(self, maddr, n):
+        maddr &= 0xFF
+        maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT)
+        return self.busread(ICD.ICD_OTHER_READ, maddr, n)
+
+    def ioregs_write(self, maddr, data):
+        maddr &= 0xFF
+        maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT)
+        return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
+
 
     def sram_blockwrite(self, maddr, data):
         self.buswrite(ICD.ICD_SRAM_WRITE, maddr, data)

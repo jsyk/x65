@@ -4,6 +4,8 @@
 module top (
 // 12MHz FPGA clock input
     input FPGACLK,
+// CDONE / LED output
+    // output CDONE,
 
 // CPU interface
     inout [7:0] CD,         // CPU data bus
@@ -126,11 +128,13 @@ module top (
         .resetn (resetn)
     );
 
+    wire blinkerled;
+
     blinker //#(.TOP(10))
     blnk0 (
         .clk (clk6x), .resetn (resetn),
         .blink_en (1'b1),
-        .led_o (CPULED0)
+        .led_o (blinkerled)
     );
  
     wire  ph_run_cpu;
@@ -303,7 +307,7 @@ module top (
         // Trace input
         .cpubus_trace_i (cpubus_trace),
         .trace_catch_i (release_wr)
-);
+    );
 
 
     /**
@@ -375,9 +379,51 @@ module top (
         // .trace_catch_o (trace_catch)
     );
 
+    // signals for VIA1
+    wire [7:0] via1_slv_datard;
+    wire [7:0] via1_gpio_ora;          // ORA = output reg A
+    wire [7:0] via1_gpio_orb;
+    wire [7:0] via1_gpio_ira;           // IRA = input reg A
+    wire [7:0] via1_gpio_irb;
+    wire [7:0] via1_gpio_ddra;         // DDRA = data direction reg A; 0 = input, 1 = output.
+    wire [7:0] via1_gpio_ddrb;
 
+    /**
+    * Simplified VIA (65C22) - provides basic GPIO and Timer service.
+    */
+    simple_via via1 (
+        // Global signals
+        .clk6x (clk6x),      // 48MHz
+        .resetn (resetn),     // sync reset
+        // NORA slave interface - internal devices
+        .slv_addr_i (nora_slv_addr[3:0]),
+        .slv_datawr_i (nora_slv_datawr),     // write data = available just at the end of cycle!!
+        .slv_datawr_valid (nora_slv_datawr_valid),      // flags nora_slv_datawr_o to be valid
+        .slv_datard_o (via1_slv_datard),
+        .slv_req_i (nora_slv_req_VIA1),
+        .slv_rwn_i (nora_slv_rwn),
+        // GPIO interface, 2x 8-bit
+        .gpio_ora (via1_gpio_ora),          // ORA = output reg A
+        .gpio_orb (via1_gpio_orb),
+        .gpio_ira (via1_gpio_ira),           // IRA = input reg A
+        .gpio_irb (via1_gpio_irb),
+        .gpio_ddra (via1_gpio_ddra),         // DDRA = data direction reg A; 0 = input, 1 = output.
+        .gpio_ddrb (via1_gpio_ddrb),
+        //
+        .phi2 (CPHI2)
+    );
 
+    assign nora_slv_datard = via1_slv_datard;
 
+    assign via1_gpio_ira = { NESDATA0, NESDATA1, 1'b1, 1'b1, NESCLOCK, NESLATCH, I2C_SCL, I2C_SDA };
+    assign via1_gpio_irb = { 6'h00, CPULED1, CPULED0 };
+    assign NESCLOCK = (via1_gpio_ddra[3]) ? via1_gpio_ora[3] : 1'b0;
+    assign NESLATCH = (via1_gpio_ddra[2]) ? via1_gpio_ora[2] : 1'b0;
+    assign I2C_SCL = (via1_gpio_ddra[1]) ? via1_gpio_ora[1] : 1'bZ;
+    assign I2C_SDA = (via1_gpio_ddra[0]) ? via1_gpio_ora[0] : 1'bZ;
+
+    assign CPULED0 = (via1_gpio_ddrb[0]) ? via1_gpio_orb[0] : blinkerled;
+    assign CPULED1 = (via1_gpio_ddrb[1]) ? via1_gpio_orb[1] : 1'b1;
 
 
 // CPU interface
