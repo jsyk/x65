@@ -1,4 +1,7 @@
 
+blink.bin: blink.o
+
+blink.o: blink.s
 
 microhello.bin: microhello.o
 # ld65 -C romboot.ld microhello.o -o microhello.bin

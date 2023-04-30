@@ -62,6 +62,9 @@ Datasheet/
 *.bin
 *.rpt
 
+# Python
+__pycache__
+
 *.code-workspace
 open65-backups
 x65icd
