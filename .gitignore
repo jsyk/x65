@@ -67,5 +67,7 @@ __pycache__
 
 *.code-workspace
 open65-backups
+openX65-vabo-backups
 x65icd
 x65prog
+pcb/vera-rev4

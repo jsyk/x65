@@ -70,3 +70,21 @@ ROM banked:
     11-31 	– 	[Currently unused]
 
 
+SMC I2C Slave registers:
+    (SMC is device 0x42 on the I2C bus)
+    Register 	Value 	Description
+    $01 	$00 	Power off
+    $01 	$01 	Hard reboot
+    $02 	$00 	Inject RESET
+    $03 	$00 	Inject NMI
+    $04 	00..FF 	Power LED brightness
+    $05 	00..FF 	Activity LED brightness
+    $08             debug: set echo_byte // read echo_byte
+    $09             debug: print echo_byte
+
+    $07 	- 	Read from keyboard buffer (.ino:264)
+    $18 	- 	Read ps2 status  //Get keyboard command status (.ino:278: ret Keyboard.getCommandStatus() -> PS2_CMD_STATUS: IDLE = 0,  CMD_PENDING = 1,   CMD_ACK = 0xFA,  CMD_ERR = 0xFE)
+    $19 	00..FF 	Send ps2 command: //Send command to keyboard (one byte) (.ino:251)
+    $1A             //Send command to keyboard (two bytes) (.ino:255) ** not documented!
+    
+    $21 	- 	Read from mouse buffer: //Get mouse packet (.ino:281) -- ret 3B or 0

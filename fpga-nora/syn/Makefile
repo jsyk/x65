@@ -4,7 +4,7 @@ DEVICE = hx4k
 PACKAGE = tq144
 SYNSRC = ../src/nora.v ../src/bus_controller.v ../src/phaser.v ../src/blinker.v \
 	../src/resetgen.v ../src/pll.v ../src/spi_slave.v ../src/icd_controller.v \
-	../src/simple_via.v
+	../src/simple_via.v ../src/ps2_port.v
 
 all: $(PROJ).rpt $(PROJ).bin
 
