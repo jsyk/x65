@@ -457,16 +457,17 @@ int main(int argc, char **argv)
     // }
 
 
-    // fprintf(stderr, "icd test #4 - sram read:\n");
-    // icd_chip_select();
-    // uint8_t cmddataB[14] = { 0x03, 0x02, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
-    // mpsse_xfer_spi(cmddataB, 14);
-    // icd_chip_deselect();
-    // for (int i = 0; i < 14; ++i)
-    // {
-    //     fprintf(stderr, "[%d] = 0x%02x\n", i, (unsigned int)cmddataB[i]);
-    // }
+    fprintf(stderr, "icd test #4 - sram read:\n");
+    icd_chip_select();
+    uint8_t cmddataB[14] = { ICD_SRAM_READ, 0x00, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
+    mpsse_xfer_spi(cmddataB, 14);
+    icd_chip_deselect();
+    for (int i = 0; i < 14; ++i)
+    {
+        fprintf(stderr, "[%d] = 0x%02x\n", i, (unsigned int)cmddataB[i]);
+    }
 
+#if 1
 	// stop cpu, activate the reset
 	icd_cpu_ctrl(0, 0, 1);
 
@@ -524,6 +525,7 @@ int main(int argc, char **argv)
 
 	// run
 	icd_cpu_ctrl(1, 0, 0);
+#endif
 
 	x65_idle();
 
