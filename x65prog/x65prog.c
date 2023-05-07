@@ -92,53 +92,99 @@ enum flash_cmd {
 	FC_RESET = 0x99, /* Reset Device */
 };
 
+// bit masks of the signals on ACBUSx
+#define ICD2NORAROM 		0x01			// ACBUS0
+#define ICDCSN				0x02			// ACBUS1
+#define AURARSTN			0x04			// ACBUS2
+#define AURAFCS				0x08			// ACBUS3
+#define VERAFCS				0x10			// ACBUS4
+#define VERAAURADONE		0x40			// ACBUS6
+#define VERARSTN			0x80			// ACBUS7
+
+
+enum target_flash 
+{
+	TARGET_UNKNOWN = 'U',
+	TARGET_NORA = 'N',
+	TARGET_AURA = 'A',
+	TARGET_VERA = 'V'
+};
+
+static enum target_flash target = TARGET_UNKNOWN;
+
 // ---------------------------------------------------------
 // Hardware specific CS, CReset, CDone functions
 // ---------------------------------------------------------
 
-static void set_cs_creset(int cs_b, int creset_b)
+static void set_cs_creset_nora(int cs_b, int creset_b)
 {
 	uint8_t gpio = 0;
 	uint8_t direction = 0x03;
 
 	if (!cs_b) {
-		// ADBUS4 (GPIOL0)
-		direction |= 0x10;
+		// ADBUS4 (GPIOL0) = FLASHCSN for NORA
+		direction |= 0x10;		// set to output mode, will drive 0
 	}
 
 	if (!creset_b) {
-		// ADBUS7 (GPIOL3)
-		direction |= 0x80;
+		// ADBUS7 (GPIOL3) = NORARSTN
+		direction |= 0x80;		// set to output mode, will drive 0
 	}
 
 	mpsse_set_gpio_low(gpio, direction);
 }
 
-static bool get_cdone(void)
+static void set_cs_creset_vera(int cs_b, int creset_b)
 {
-	// ADBUS6 (GPIOL2)
+	uint8_t gpio = VERAFCS | ICD2NORAROM;
+	uint8_t direction = 0x03 | ICD2NORAROM;
+
+	if (!cs_b) {
+		// ADBUS4 (GPIOL0) = VERAFCS for VERA
+		direction |= VERAFCS;		// set to output mode, will drive logic 1
+	}
+
+	if (!creset_b) {
+		// ADBUS7 (GPIOL3) = VERARSTN
+		direction |= VERARSTN;		// set to output mode, will drive 0
+	}
+
+	mpsse_set_gpio_high(gpio, direction);
+}
+
+
+static bool get_cdone_nora(void)
+{
+	// ADBUS6 (GPIOL2) = NORADONE
 	return (mpsse_readb_low() & 0x40) != 0;
 }
+
+static bool get_cdone_vera_aura(void)
+{
+	return (mpsse_readb_high() & VERAAURADONE) != 0;
+}
+
+
+// ---------------------------------------------------------
+// Indirection functions - for different targets we have
+// ---------------------------------------------------------
+
+static void (*set_cs_creset)(int cs_b, int creset_b);
+
+static bool (*get_cdone)(void);
+
 
 // ---------------------------------------------------------
 // FLASH function implementations
 // ---------------------------------------------------------
 
-// bit masks of the signals on ACBUSx
-#define ICD2NORAROM 		0x01			// ACBUS0
-#define ICDCSN				0x02			// ACBUS1
-#define ICD2VERAROM			0x04			// ACBUS2
-#define VERA2FCSN			0x08			// ACBUS3
-#define VERAFCSN			0x10			// ACBUS4
-#define VERADONE			0x40			// ACBUS6
-#define VERARSTN			0x80			// ACBUS7
 
-// configure the high-byte (ACBUSx) to route SPI to the flash,
+// configure the high-byte (ACBUSx) to route SPI to the flashes,
 // and disable ICD.
 static void x65_select_flash()
 {
-	// drive high ICD2NORAROM, ICDCSN, keep others as IN.
-	mpsse_set_gpio_high(ICD2NORAROM | ICDCSN | VERA2FCSN | VERAFCSN | VERADONE | VERARSTN, 
+	// drive high ICD2NORAROM (= ICD2FLASHES), ICDCSN, keep others as IN.
+	mpsse_set_gpio_high(ICD2NORAROM | ICDCSN | AURAFCS | VERAFCS | VERAAURADONE | VERARSTN, 
 				ICD2NORAROM | ICDCSN);
 }
 
@@ -148,14 +194,20 @@ static void x65_idle()
 {
 	// drive low ICD2NORAROM (this unroutes SPI to flash),
 	// drive high ICDCSN, keep others as IN.
-	mpsse_set_gpio_high(ICDCSN | VERA2FCSN | VERAFCSN | VERADONE | VERARSTN, 
+	mpsse_set_gpio_high(ICDCSN | AURAFCS | VERAFCS | VERAAURADONE | VERARSTN, 
 				ICD2NORAROM | ICDCSN);
+}
+
+// the NORA FPGA reset is released so also FLASH chip select should be deasserted
+static void flash_release_reset_nora()
+{
+	set_cs_creset_nora(1, 1);	
 }
 
 // the FPGA reset is released so also FLASH chip select should be deasserted
 static void flash_release_reset()
 {
-	set_cs_creset(1, 1);
+	set_cs_creset(1, 1);	
 }
 
 // FLASH chip select assert
@@ -631,7 +683,7 @@ int main(int argc, char **argv)
 	/* Decode command line parameters */
 	int opt;
 	char *endptr;
-	while ((opt = getopt_long(argc, argv, "d:i:I:rR:e:o:cbnStQvspXk", long_options, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "d:i:I:rR:e:o:cbnStQvspXkANV", long_options, NULL)) != -1) {
 		switch (opt) {
 		case 'd': /* device string */
 			devstr = optarg;
@@ -739,6 +791,15 @@ int main(int argc, char **argv)
 		case 'k': /* disable power down command */
 			disable_powerdown = true;
 			break;
+		case 'A': /* access AURA flash */
+			target = TARGET_AURA;
+			break;
+		case 'N': /* access NORA flash (default) */
+			target = TARGET_NORA;
+			break;
+		case 'V': /* access VERA flash */
+			target = TARGET_VERA;
+			break;
 		case -2:
 			help(argv[0]);
 			return EXIT_SUCCESS;
@@ -803,6 +864,27 @@ int main(int argc, char **argv)
 		fprintf(stderr, "%s: missing argument\n", my_name);
 		fprintf(stderr, "Try `%s --help' for more information.\n", argv[0]);
 		return EXIT_FAILURE;
+	}
+
+	switch (target)
+	{
+		case TARGET_AURA:
+			set_cs_creset = NULL;		// TBD
+			get_cdone = get_cdone_vera_aura;
+			break;
+		case TARGET_NORA:
+			set_cs_creset = set_cs_creset_nora;
+			get_cdone = get_cdone_nora;
+			break;
+		case TARGET_VERA:
+			set_cs_creset = set_cs_creset_vera;
+			get_cdone = get_cdone_vera_aura;
+			break;
+		default:
+			fprintf(stderr, "%s: the target flash memory in X65 must be specified. "
+							"Give one of -N, -V or -A for NORA, VERA, or AURA.\n", 
+				my_name);
+			return EXIT_FAILURE;
 	}
 
 	/* open input/output file in advance
@@ -895,7 +977,17 @@ int main(int argc, char **argv)
 	fprintf(stderr, "cdone: %s\n", get_cdone() ? "high" : "low");
 
 	x65_select_flash();
+
+	if (target == TARGET_NORA) {
+		// NORA
+	} else {
+		// VERA or AURA
+		// we put NORA to reset so to not interfere with FTDI flash accesses
+		set_cs_creset_nora(1, 0);
+	}
+
 	flash_release_reset();
+
 	usleep(100000);
 
 	if (test_mode)
@@ -1104,6 +1196,13 @@ int main(int argc, char **argv)
 
 	if (f != NULL && f != stdin && f != stdout)
 		fclose(f);
+
+	if (target == TARGET_NORA) {
+		// NORA
+	} else {
+		// VERA or AURA
+		flash_release_reset_nora();
+	}
 
 	x65_idle();
 
