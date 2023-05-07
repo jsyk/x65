@@ -74,6 +74,9 @@ class ICD:
         maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT)
         return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
 
+    def iopoke(self, addr, data):
+        return self.ioregs_write(addr, [data])
+
 
     def sram_blockwrite(self, maddr, data):
         self.buswrite(ICD.ICD_SRAM_WRITE, maddr, data)

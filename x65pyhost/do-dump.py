@@ -20,9 +20,10 @@ apa.add_argument('length')
 
 args = apa.parse_args()
 
-print(args.area)
-print(args.start)
-print(args.length)
+# print(args.area)
+# print(args.start)
+# print(args.length)
+
 
 # start = 0xFF00
 # length = 256
@@ -35,8 +36,10 @@ print('Active banks: RAMBANK={:2x}  ROMBANK={:2x}'.format(banks[0], banks[1]))
 rambank = banks[0]
 rombank = banks[1]
 
-start = int(args.start)
-length = int(args.length)
+start = int(args.start, 0)
+length = int(args.length, 0)
+
+print("DUMP area:{} addr:0x{:x} length:{:2}".format(args.area, start, length))
 
 
 if args.area == 'sram':
@@ -68,6 +71,8 @@ if args.area == 'cpu':
 
 BYTESSPERLINE = 16
 print()
+
+print("             +0 +1 +2 +3   +4 +5 +6 +7   +8 +9 +A +B   +C +D +E +F")
 
 k = 0
 while k < length:
