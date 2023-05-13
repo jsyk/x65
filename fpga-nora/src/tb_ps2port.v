@@ -16,6 +16,12 @@ module tb_ps2port ( );
     // 
     wire [7:0]  code_rx_o;       // received scan-code
     wire        code_rx_v_o;       // scan-code valid
+    // Host-to-Device (TX) interface
+    reg [7:0]     cmd_tx_i;         // command byte to send   
+    reg           cmd_tx_v_i;         // send the command byte
+    wire      busy;             // ongoing TX (not accepting a new command)
+    wire      tx_acked_o;
+    wire      tx_errd_o;
 
 
     // generate 1us pulses for PS2 port
@@ -56,7 +62,13 @@ module tb_ps2port ( );
         .PS2_DATADR0,    // 1=>drive zero on DATA, 0=>HiZ
         // 
         .code_rx_o,       // received scan-code
-        .code_rx_v_o       // scan-code valid
+        .code_rx_v_o,       // scan-code valid
+        //
+        .cmd_tx_i,         // command byte to send   
+        .cmd_tx_v_i,         // send the command byte
+        .busy,             // ongoing TX (not accepting a new command)
+        .tx_acked_o,
+        .tx_errd_o
     );
 
 
@@ -110,11 +122,41 @@ module tb_ps2port ( );
         end
     endtask
 
+    task receive;
+        input [7:0] cmd;
+        begin
+            cmd_tx_i = cmd;
+            @(posedge clk6x);
+            cmd_tx_v_i = 1;
+            @(posedge clk6x);
+            cmd_tx_v_i = 0;
+            @(posedge clk6x);
+
+            @(negedge PS2_CLKDR0);
+
+            for (j = 0; j < 10; ++j)
+            begin
+                #33000 PS2_CLK = 0;
+                #33000 PS2_CLK = 1;
+            end
+
+            // output the ACK=0
+            #16500 PS2_DATA = 0;
+            #16500 PS2_CLK = 0;
+            #33000 PS2_CLK = 1;
+            #16500 PS2_DATA = 1;
+
+
+        end
+    endtask
+
     initial
     begin
         PS2_CLK = 1;
         PS2_DATA = 1;
         resetn = 1'b0;
+        cmd_tx_i = 8'h00;
+        cmd_tx_v_i = 0;
         for (j = 0; j < 20; ++j)
         begin
             @(posedge clk6x);
@@ -134,8 +176,11 @@ module tb_ps2port ( );
         #100000;
         send(8'h7C);
 
+        #100000;
 
-        #33000;
+        receive(8'h45);
+
+        #100000;
 
         $finish;
     end

@@ -53,12 +53,20 @@ if args.area == 'io':
     areasize = 256
     rdata = icd.ioregs_read(start, length)
 
+if args.area == 'banks':
+    areasize = 2
+    rdata = icd.bankregs_read(start, length)
+
 if args.area == 'cpu':
     areasize = 65536
     if start < 0:
         start = areasize + start
 
-    if start < 0x9F00:
+    # TODO: this code doesn't handle the crossing of boundary within a single dump!!
+    if 0 <= start < 2:
+        # bank regs
+        rdata = icd.bankregs_read(start, length)
+    elif start < 0x9F00:
         # CPU low memory starts at sram fix 0x170000
         rdata = icd.sram_blockread(start + 0x170000, length)
     elif 0xA000 <= start < 0xC000:

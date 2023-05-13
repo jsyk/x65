@@ -136,12 +136,15 @@ static void set_cs_creset_nora(int cs_b, int creset_b)
 
 static void set_cs_creset_vera(int cs_b, int creset_b)
 {
-	uint8_t gpio = VERAFCS | ICD2NORAROM;
-	uint8_t direction = 0x03 | ICD2NORAROM;
+	// bitmap of GPIO output register values (0/1 drive)
+	uint8_t gpio = ICD2NORAROM;
+	// bitmap of GPIO direction register values (0=in, 1=out)
+	uint8_t direction = 0x03 | ICD2NORAROM | VERAFCS;
 
 	if (!cs_b) {
 		// ADBUS4 (GPIOL0) = VERAFCS for VERA
-		direction |= VERAFCS;		// set to output mode, will drive logic 1
+		// direction |= VERAFCS;		// set to output mode, will drive logic 1
+		gpio |= VERAFCS;			// drive HIGH to VERAFCS
 	}
 
 	if (!creset_b) {
@@ -183,16 +186,18 @@ static bool (*get_cdone)(void);
 // and disable ICD.
 static void x65_select_flash()
 {
-	// drive high ICD2NORAROM (= ICD2FLASHES), ICDCSN, keep others as IN.
-	mpsse_set_gpio_high(ICD2NORAROM | ICDCSN | AURAFCS | VERAFCS | VERAAURADONE | VERARSTN, 
-				ICD2NORAROM | ICDCSN);
+	// drive high ICD2NORAROM (= ICD2FLASHES), ICDCSN, 
+	// drive low AURAFCS, low VERAFCS,
+	// keep others as IN.
+	mpsse_set_gpio_high(ICD2NORAROM | ICDCSN  | VERAAURADONE | VERARSTN, 
+				ICD2NORAROM | ICDCSN | AURAFCS | VERAFCS);
 }
 
 // configure the high-byte (ACBUSx) to route SPI to the ICD,
 // and keep ICD high (deselect).
 static void x65_idle()
 {
-	// drive low ICD2NORAROM (this unroutes SPI to flash),
+	// drive low ICD2NORAROM (this unroutes SPI to flash), 
 	// drive high ICDCSN, keep others as IN.
 	mpsse_set_gpio_high(ICDCSN | AURAFCS | VERAFCS | VERAAURADONE | VERARSTN, 
 				ICD2NORAROM | ICDCSN);

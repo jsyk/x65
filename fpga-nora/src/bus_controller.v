@@ -144,7 +144,8 @@ module bus_controller (
             nora_slv_req_SCRB_o <= 0;
             nora_slv_req_VIA1_o <= 0;
             rambank_nr <= 0;
-            rombank_nr <= 6'b011111;        // rombank 31
+            // rombank_nr <= 6'b011111;        // rombank 31 - starts at 0x1F_0000
+            rombank_nr <= 6'b000000;        // rombank 0 - starts at 0x18_0000
             nora_slv_req_BANKREG <= 0;
             mst_state <= MST_IDLE;
             nora_mst_driving_memdb <= 0;

@@ -28,6 +28,7 @@ class ICD:
     # Aux definitions
     BLOCKSIZE = 256
     PAGESIZE = 8192
+    MAXREQSIZE = 16384
     SIZE_2MB =	(2048 * 1024)
 
 
@@ -79,7 +80,11 @@ class ICD:
 
 
     def sram_blockwrite(self, maddr, data):
-        self.buswrite(ICD.ICD_SRAM_WRITE, maddr, data)
+        k = 0
+        while len(data)-k > ICD.MAXREQSIZE:
+            self.buswrite(ICD.ICD_SRAM_WRITE, maddr+k, data[k:k+ICD.MAXREQSIZE])
+            k = k + ICD.MAXREQSIZE
+        self.buswrite(ICD.ICD_SRAM_WRITE, maddr+k, data[k:])
 
     def sram_blockread(self, maddr, n):
         return self.busread(ICD.ICD_SRAM_READ, maddr, n)

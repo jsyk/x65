@@ -86,7 +86,7 @@ module top (
     output VCS0n,               // VERA
     output VCS1n,               // AURA
     output VCS2n,               // ENET
-    input VIRQn,
+    input VIRQn,            // IRQ from VERA & AURA & ENET, active low.
     input VAUX0,
     input VAUX1,
     input VAUX2,
@@ -189,7 +189,8 @@ module top (
     wire            nora_slv_req_VIA1;
     wire            nora_slv_rwn;
     // Bank parameters from SCRB
-    wire    [7:0]   rambank_mask = 8'hFF;
+    // wire    [7:0]   rambank_mask = 8'hFF;
+    wire    [7:0]   rambank_mask = 8'h7F;       // X16 compatibility: allow only 128 RAM banks after reset
 
     // CPU address bus -virtual internal `input' signal
     // create the 16-bit CPU bus address by concatenating the two bus signals
@@ -440,7 +441,7 @@ module top (
 
 
     assign CRESn = icd_cpu_force_resn;           // CPU reset
-    assign CIRQn = 1'b1;           // CPU IRQ request
+    assign CIRQn = VIRQn;           // CPU IRQ request
     assign CNMIn = 1'b1;           // CPU NMI request
     assign CABORTn = 1'b1;         // CPU ABORT request (16b only)
     assign CRDY = 1'bZ;             // CPU ready signal

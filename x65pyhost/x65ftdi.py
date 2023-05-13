@@ -1,5 +1,7 @@
 import pyftdi.spi
 
+# Documenation pyftdi: SPI API
+# https://eblot.github.io/pyftdi/api/spi.html
 
 class X65Ftdi:
     # Definitions of pins of the FTDI FT2232H in the OpenX65 motherboard.

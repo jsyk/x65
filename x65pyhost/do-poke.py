@@ -7,7 +7,7 @@ icd = ICD(x65ftdi.X65Ftdi())
 
 
 apa = argparse.ArgumentParser(usage="%(prog)s [OPTION] area start length",
-    description="Dump X65 memory."
+    description="Poke X65 memory."
 )
 
 apa.add_argument(

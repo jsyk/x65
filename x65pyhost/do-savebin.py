@@ -6,7 +6,7 @@ from icd import *
 icd = ICD(x65ftdi.X65Ftdi())
 
 apa = argparse.ArgumentParser(usage="%(prog)s [OPTION] area start length",
-    description="Load X65 memory."
+    description="Save X65 memory."
 )
 
 apa.add_argument(
@@ -16,6 +16,7 @@ apa.add_argument(
 apa.add_argument('file')
 apa.add_argument('area')
 apa.add_argument('start')
+apa.add_argument('length')
 
 args = apa.parse_args()
 
@@ -26,20 +27,21 @@ rambank = banks[0]
 rombank = banks[1]
 
 start = int(args.start, 0)
-# length = int(args.length, 0)
+length = int(args.length, 0)
 
-print("LOADBIN file:{} -> area:{} addr:0x{:x}".format(args.file, args.area, start))
+print("SAVEBIN file:{} <- area:{} addr:0x{:x} length:{}".format(args.file, args.area, start, length))
 
 
 # f = open('tests65/microhello.bin', 'rb')
-f = open(args.file, 'rb')
-data = f.read()
-print("Loaded {} B from the file.".format(len(data)))
+f = open(args.file, 'wb')
 
 if args.area == 'sram':
     areasize = ICD.SIZE_2MB
     if start < 0:
         start = areasize + start
-    icd.sram_blockwrite(start, data)
+    data = icd.sram_blockread(start, length)
 else:
     print("Only the SRAM area is supported!")
+
+f.write(data)
+print("Saved {} B to the file.".format(len(data)))
