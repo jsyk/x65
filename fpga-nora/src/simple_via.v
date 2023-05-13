@@ -88,7 +88,10 @@ module simple_via (
                         REG_PCR : //  = 4'hC;
                             slv_datard_o <= 8'h00;      // PCR not implemented!
                         
-                        // REG_IFR : //  = 4'hD;
+                        REG_IFR : //  = 4'hD;
+                            // HACK!!
+                            slv_datard_o <= 8'h20;      // indicate a timeout of T2
+
                         // REG_IER : //  = 4'hE;
                         default: 
                             slv_datard_o <= 8'h00;      // register not implemented!
