@@ -465,57 +465,6 @@ module top (
     //     run_cpu <= 0;
     // end
 
-    reg         ck1us;
-    reg [6:0]   ck1us_counter;
-
-    wire [7:0]  ps2k_code;
-    wire        ps2k_codevalid;
-
-    // generate 1us pulses for PS2 port
-    always @(posedge clk6x) 
-    begin
-        // reset pulse
-        ck1us <= 0;
-        if (!resetn)
-        begin
-            // reset the counter
-            ck1us_counter <= 7'd47;
-        end else begin
-            // is expired?
-            if (ck1us_counter == 0)
-            begin
-                // expired -> generate ck1us pulse
-                ck1us <= 1;
-                // reset the counter
-                ck1us_counter <= 7'd47;
-            end else begin
-                // counting
-                ck1us_counter <= ck1us_counter - 1;
-            end
-        end
-    end
-
-    // PS2 Keyboard Port
-    ps2_port ps2kbd
-    (
-        // Global signals
-        .clk6x (clk6x),      // 48MHz
-        .resetn (resetn),     // sync reset
-        .ck1us (ck1us),      // 1 usec-spaced pulses, 1T long
-        // PS2 port signals
-        .PS2_CLK (PS2K_CLK),        // CLK line state
-        .PS2_DATA (PS2K_DATA),       // DATA line state
-        .PS2_CLKDR0 (PS2K_CLKDR),     // 1=>drive zero on CLK, 0=>HiZ
-        .PS2_DATADR0 (PS2K_DATADR),    // 1=>drive zero on DATA, 0=>HiZ
-        // 
-        .code_rx_o (ps2k_code),       // received scan-code
-        .code_rx_v_o (ps2k_codevalid)       // scan-code valid
-    );
-
-    // HACK
-    // assign nora_slv_datard = (nora_slv_req_SCRB) ? nora_slv_addr[7:0] : via1_slv_datard;
-    assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_code : via1_slv_datard;
-
     // System Management Controller
     smc smc1
     (
@@ -525,7 +474,15 @@ module top (
         // I2C bus
         .I2C_SDA_i (I2C_SDA),
         .I2C_SDADR0_o (smc_i2csda_dr0),
-        .I2C_SCL_i (I2C_SCL)
+        .I2C_SCL_i (I2C_SCL),
+        // PS2 Keyboard port
+        .PS2K_CLK (PS2K_CLK),
+        .PS2K_DATA (PS2K_DATA),
+        .PS2K_CLKDR (PS2K_CLKDR),
+        .PS2K_DATADR (PS2K_DATADR)
     );
+
+    assign nora_slv_datard = via1_slv_datard;
+    // assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_code : via1_slv_datard;
 
 endmodule

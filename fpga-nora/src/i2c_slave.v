@@ -2,7 +2,7 @@
  * I2C Slave Port
  */
 module i2c_slave #(
-    parameter SLAVE_ADDRESS = 8'h42
+    parameter SLAVE_ADDRESS = 8'h84             // shifted
 ) (
     // Global signals
     input           clk6x,      // 48MHz
