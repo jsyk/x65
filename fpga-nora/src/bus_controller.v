@@ -61,7 +61,7 @@ module bus_controller (
     output reg      nora_slv_req_VIA1_o,
     output reg      nora_slv_rwn_o,
     // Bank parameters from SCRB
-    input [7:0]     rambank_mask_i,
+    input [7:0]     rambank_mask_i,         // CPU accesses using RAMBANK reg are limited to this range
     // Trace output
     // output reg [28:0]   cpubus_trace_o,
     // output reg          trace_catch_o
@@ -177,7 +177,7 @@ module bus_controller (
                 else if (cpu_abh_i[15:13] == 3'b101)
                 begin
                     // CPU address 0xA000 - 0xB000 => 8k RAM banks mapped from the bottom of SRAM
-                    mem_abh_o <= { rambank_nr, cpu_abh_i[12] };
+                    mem_abh_o <= { rambank_nr & rambank_mask_i, cpu_abh_i[12] };
                     sram_csn_o <= LOW_ACTIVE;
                     mem_rdn_o <= ~cpu_rw_i;
                     mem_wrn_o <= cpu_rw_i;                    
@@ -265,7 +265,7 @@ module bus_controller (
                         if (!nora_slv_addr_o[0])
                         begin
                             // 0x00 = RAMBANK
-                            rambank_nr <= nora_slv_datawr_o & rambank_mask_i;
+                            rambank_nr <= nora_slv_datawr_o; // & rambank_mask_i;
                         end else begin
                             // 0x01 = ROMBANK
                             rombank_nr <= nora_slv_datawr_o[5:0];

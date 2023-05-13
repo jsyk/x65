@@ -15,3 +15,6 @@ print("CPU Step while in Reset")
 for i in  range(0, 10):
     icd.cpu_ctrl(False, True, True)
     # read_print_trace()
+
+banks = icd.bankregs_read(0, 2)
+print('Active banks: RAMBANK={:2x}  ROMBANK={:2x}'.format(banks[0], banks[1]))

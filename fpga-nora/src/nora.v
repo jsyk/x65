@@ -414,13 +414,15 @@ module top (
         .phi2 (CPHI2)
     );
 
-
+    wire smc_i2csda_dr0;
     assign via1_gpio_ira = { NESDATA0, NESDATA1, 1'b1, 1'b1, NESCLOCK, NESLATCH, I2C_SCL, I2C_SDA };
     assign via1_gpio_irb = { 6'h00, CPULED1, CPULED0 };
     assign NESCLOCK = (via1_gpio_ddra[3]) ? via1_gpio_ora[3] : 1'b0;
     assign NESLATCH = (via1_gpio_ddra[2]) ? via1_gpio_ora[2] : 1'b0;
     assign I2C_SCL = (via1_gpio_ddra[1]) ? via1_gpio_ora[1] : 1'bZ;
-    assign I2C_SDA = (via1_gpio_ddra[0]) ? via1_gpio_ora[0] : 1'bZ;
+    assign I2C_SDA = (via1_gpio_ddra[0]) ? via1_gpio_ora[0] : (
+            (smc_i2csda_dr0) ? 1'b0 : 1'bZ
+        );
 
     assign CPULED0 = (via1_gpio_ddrb[0]) ? via1_gpio_orb[0] : blinkerled;
     assign CPULED1 = (via1_gpio_ddrb[1]) ? via1_gpio_orb[1] : 1'b1;
@@ -514,6 +516,16 @@ module top (
     // assign nora_slv_datard = (nora_slv_req_SCRB) ? nora_slv_addr[7:0] : via1_slv_datard;
     assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_code : via1_slv_datard;
 
-
+    // System Management Controller
+    smc smc1
+    (
+        // Global signals
+        .clk6x (clk6x),      // 48MHz
+        .resetn (resetn),     // sync reset
+        // I2C bus
+        .I2C_SDA_i (I2C_SDA),
+        .I2C_SDADR0_o (smc_i2csda_dr0),
+        .I2C_SCL_i (I2C_SCL)
+    );
 
 endmodule

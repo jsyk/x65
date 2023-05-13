@@ -1,6 +1,21 @@
 #!/usr/bin/python3
 import x65ftdi
 from icd import *
+import argparse
+
+apa = argparse.ArgumentParser(usage="%(prog)s [OPTION] [count]",
+    description="Step the CPU."
+)
+
+apa.add_argument(
+    "-v", "--version", action="version", version = f"{apa.prog} version 1.0.0"
+)
+
+apa.add_argument('count', default=32)
+
+args = apa.parse_args()
+
+step_count = int(args.count, 0)
 
 icd = ICD(x65ftdi.X65Ftdi())
 
@@ -63,7 +78,7 @@ print('Active banks: RAMBANK={:2x}  ROMBANK={:2x}'.format(banks[0], banks[1]))
 
 print("CPU Step:\n")
 # // deactivate the reset, step the cpu
-for i in range(0, 32):
+for i in range(0, step_count):
     icd.cpu_ctrl(False, True, False)
     print("Step #{:3}:  ".format(i), end='')
     read_print_trace()
