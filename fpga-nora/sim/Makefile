@@ -18,6 +18,7 @@ tb_ps2port.vp: ../src/tb_ps2port.v ../src/ps2_port.v
 
 tb_i2c.vp: ../src/tb_i2c.v ../src/i2c_slave.v
 
+tb_fifo.vp: ../src/tb_fifo.v ../src/fifo.v
 
 show_phaser: tb_phaser.vcd
 	gtkwave $^
@@ -29,6 +30,9 @@ show_ps2port: tb_ps2port.vcd
 	gtkwave $^
 
 show_i2c: tb_i2c.vcd
+	gtkwave $^
+
+show_fifo: tb_fifo.vcd
 	gtkwave $^
 
 clean:

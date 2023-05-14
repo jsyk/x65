@@ -43,3 +43,5 @@ if args.area == 'sram':
     icd.sram_blockwrite(start, data)
 else:
     print("Only the SRAM area is supported!")
+
+print("Stored to X65.")

@@ -36,7 +36,8 @@ module smc (
     // output reg      tx_nacked_o         // master NACKed the last byte!
     reg  [1:0]  byteidx;
 
-    i2c_slave i2cslv 
+    i2c_slave #(.SLAVE_ADDRESS(8'h84))
+    i2cslv 
     (
         // Global signals
         .clk6x (clk6x),      // 48MHz
@@ -96,7 +97,30 @@ module smc (
     // assign nora_slv_datard = (nora_slv_req_SCRB) ? nora_slv_addr[7:0] : via1_slv_datard;
     // assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_code : via1_slv_datard;
 
+    wire kbdfifo_full;
+    wire ps2k_enq = ps2k_codevalid & !kbdfifo_full;
+    wire kbdfifo_empty;
+    reg kbdfifo_deq;
+    wire [7:0] kbdfifo_rdata;
 
+    fifo #(
+        .BITWIDTH (8),          // bit-width of one data element
+        .BITDEPTH (3)          // fifo keeps 2**BITDEPTH elements
+    ) kbdfifo
+    (
+        // Global signals
+        .clk6x (clk6x),      // 48MHz
+        .resetn (resetn),     // sync reset
+        // I/O Write port
+        .wport_i (ps2k_code),          // Write Port Data
+        .wenq_i (ps2k_enq),                 // Enqueue data from the write port now; must not assert when full_o=1
+        // I/O read port
+        .rport_o (kbdfifo_rdata),          // Read port data: valid any time empty_o=0
+        .rdeq_i (kbdfifo_deq),                 // Dequeue current data from FIFO
+        // Status signals
+        .full_o (kbdfifo_full),                 // FIFO is full?
+        .empty_o (kbdfifo_empty)                 // FIFO is empty?
+    );    
 
 
     always @(posedge clk6x) 
@@ -106,7 +130,10 @@ module smc (
             txbyte <= 8'hFF;
             byteidx <= 2'b00;
             smc_regnum <= 8'h00;
+            kbdfifo_deq <= 0;
         end else begin
+            // clear one-off signals
+            kbdfifo_deq <= 0;
 
             if (devsel)
             begin
@@ -129,7 +156,12 @@ module smc (
                     case (smc_regnum)
                         SMCREG_READ_KBD_BUF:
                         begin
-                            txbyte <= ps2k_code;
+                            if (kbdfifo_empty)
+                            begin
+                                txbyte <= 8'h00;
+                            end else begin
+                                txbyte <= kbdfifo_rdata;
+                            end
                         end
 
                         SMCREG_READ_PS2_KBD_STAT:
@@ -141,6 +173,10 @@ module smc (
                     if (txbyte_deq)
                     begin
                         byteidx <= byteidx + 1;
+                        if ((smc_regnum == SMCREG_READ_KBD_BUF) && (txbyte != 8'h00))
+                        begin
+                            kbdfifo_deq <= 1;
+                        end
                     end
                 end
             end else begin
