@@ -56,3 +56,24 @@ The video-audio (*va-bo*) PCB has (rev01):
 * SD-card slot handled by VERA
 * audio FPGA called "AURA" (ICE5LP2K-SG48) that should implement the Yamaha FM synthesizer YM2151 probably using the jt51 project.
 * 10/100Mbps Ethernet port RJ45 realized by Wiznet W6100.
+
+
+Photos:
+--------
+
+Overview photos (2023-05-08):
+
+![Overview photo](Photos/20230508_200647-overview.jpg)
+
+![Motherboard photo](Photos/20230508_200750-mobo-top.jpg)
+
+![Video/Audio Board photo](Photos/20230508_200722-vabo-top.jpg)
+
+Running X16 ROM and BASIC program:
+
+![X16 Booted](Photos/20230514_200930_ready_print.jpg)
+
+![MAZE BASIC Program typed in](Photos/20230514_201322-mazeprog.jpg)
+
+![MAZE BASIC Program run](Photos/20230514_201336-mazerun.jpg)
+
