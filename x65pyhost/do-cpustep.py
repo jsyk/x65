@@ -46,7 +46,7 @@ w65c02_dismap = [
     "CPY #", "CMP (zp,X)", "?", "?", "CPY zp", "CMP zp", "DEC zp", "SMB4 zp", "INY i", "CMP #", "DEX i", "WAI i", "CPY a", "CMP a", "DEC a", "BBS4 r",
     "BNE r", "CMP (zp),Y", "CMP (zp)", "?", "?", "CMP zp,X", "DEC zp,X", "SMB5 zp", "CLD i", "CMP a,Y", "PHX s", "STP i", "?","CMP a,X", "DEC a,X", "BBS5 r",
     "CPX #", "SBC (zp,X)", "?", "?", "CPX zp", "SBC zp", "INC zp", "SMB6 zp", "INX i", "SBC #", "NOP i", "?", "CPX a", "SBC a", "INC a", "BBS6 r", 
-    "BEQ r", "SBC (zp),Y", "?", "?", "SBC zp,X", "INC zp,X", "SMB7 zp", "SED i", "SBC a,Y", "PLX s", "?", "?", "SBC a,X", "INC a,X", "BBS7 r"
+    "BEQ r", "SBC (zp),Y", "SBC (zp)", "?", "?", "SBC zp,X", "INC zp,X", "SMB7 zp", "SED i", "SBC a,Y", "PLX s", "?", "?", "SBC a,X", "INC a,X", "BBS7 r"
 ]
 
 

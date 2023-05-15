@@ -36,3 +36,7 @@ if args.area == 'sram':
 if args.area == 'io':
     areasize = 256
     icd.ioregs_write(addr, [data])
+
+if args.area == 'banks':
+    areasize = 2
+    icd.bankregs_write(addr, [data])
