@@ -13,3 +13,6 @@ Step #  1:  TraceBuf: V:* O:-  CA:e482  CD: 1  ctr: f  sta:1b:r---
 Step #  2:  TraceBuf: V:* O:-  CA:e483  CD:9f  ctr: f  sta:1b:r---     
 Step #  3:  TraceBuf: V:* O:-  CA:9f01  CD:30  ctr: f  sta:1b:r---     
 
+
+
+./do-loadbin.py testroms/banktest.bin sram 0x180000

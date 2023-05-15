@@ -3,6 +3,7 @@ Commander_X16
 https://www.c64-wiki.com/wiki/Commander_X16
 https://github.com/commanderx16
 file:///home/jara/ownCloud/hw-devkit-boards/Commander%20X16%20VERA/docs/X16%20Reference%20-%2007%20-%20Memory%20Map.html
+https://www.reddit.com/r/CommanderX16/
 
 
 Address Range 	Size 	Description

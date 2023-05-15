@@ -1,12 +1,13 @@
-# Open-X65
-==========
+Open-X65
+=========
 
 The 65c02 and 65c816-based modern retro computer.
 
 ----------------------------------------------------------------------------
+
 *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* 
 
-     Stop, read and think:
+Stop, read and think:
 
 THIS HARDWARE PROJECT IS A WORK-IN-PROGRESS!
 
@@ -15,11 +16,11 @@ THAT ARE INTENTIONALLY NOT FIXED IN THE SCHEMATIC OR THE PCB LAYOUT!
 (Explanation: as soon a schematic+layout revision gets produced in a fab,
 the document must never change. Changes are allowed only in new revisions!)
 
-    ... YOU HAVE BEEN WARNED ...
+... YOU HAVE BEEN WARNED ...
 
-----------------------------------------------------------------------------
 *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* 
 
+----------------------------------------------------------------------------
 
 
 Features:
