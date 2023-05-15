@@ -160,7 +160,7 @@ module smc (
             // clear one-off signals
             kbdfifo_deq <= 0;
 
-            if (!busy)
+            if (!ps2k_busy)
             begin
                 ps2k_txcodevalid <= 0;
             end

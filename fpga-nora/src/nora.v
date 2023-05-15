@@ -485,4 +485,14 @@ module top (
     assign nora_slv_datard = via1_slv_datard;
     // assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_code : via1_slv_datard;
 
+
+    // define unused output signals
+    assign VIACS = 1'b1;
+    assign UART_TX = 1'b1;
+    assign UART_CTS = 1'b1;
+    assign TCSn = 1'b1;
+    assign PERIRESn = 1'b1;
+    assign ILIDC = 1'b0;
+    assign ILICSn = 1'b1;
+
 endmodule

@@ -105,6 +105,7 @@ module bus_controller (
 
     // Current Banks - remap
     reg   [7:0]   rambank_nr;
+    reg   [7:0]   rambank_masked_nr;
     reg   [5:0]   rombank_nr;
 
     // BANKREGs are handled directly in this module
@@ -133,7 +134,7 @@ module bus_controller (
             mem_rdn_o <= HIGH_INACTIVE;
             mem_wrn_o <= HIGH_INACTIVE;
             sram_csn_o <= HIGH_INACTIVE;
-            via_csn_o <= HIGH_INACTIVE;
+            // via_csn_o <= HIGH_INACTIVE;
             vera_csn_o <= HIGH_INACTIVE;
             aura_csn_o <= HIGH_INACTIVE;
             enet_csn_o <= HIGH_INACTIVE;
@@ -177,6 +178,7 @@ module bus_controller (
                 else if (cpu_abh_i[15:13] == 3'b101)
                 begin
                     // CPU address 0xA000 - 0xB000 => 8k RAM banks mapped from the bottom of SRAM
+                    // mem_abh_o <= { rambank_masked_nr, cpu_abh_i[12] };
                     mem_abh_o <= { rambank_nr & rambank_mask_i, cpu_abh_i[12] };
                     sram_csn_o <= LOW_ACTIVE;
                     mem_rdn_o <= ~cpu_rw_i;
@@ -278,7 +280,7 @@ module bus_controller (
                 mem_wrn_o <= HIGH_INACTIVE;
                     // disable all CS
                 sram_csn_o <= HIGH_INACTIVE;
-                via_csn_o <= HIGH_INACTIVE;
+                // via_csn_o <= HIGH_INACTIVE;
                 vera_csn_o <= HIGH_INACTIVE;
                 aura_csn_o <= HIGH_INACTIVE;
                 enet_csn_o <= HIGH_INACTIVE;
@@ -450,6 +452,9 @@ module bus_controller (
 
 
             endcase
+
+            // DEBUG
+            // enet_csn_o <= nora_slv_req_BANKREG;
         end
     end
 
@@ -478,6 +483,9 @@ module bus_controller (
             // internal slave reading
             cpu_db_o <= nora_slv_data_i;
         end
+
+        // pre-compute the masked rambank
+        rambank_masked_nr <= rambank_nr & rambank_mask_i;
     end
 
 endmodule
