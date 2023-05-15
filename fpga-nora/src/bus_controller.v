@@ -178,8 +178,8 @@ module bus_controller (
                 else if (cpu_abh_i[15:13] == 3'b101)
                 begin
                     // CPU address 0xA000 - 0xB000 => 8k RAM banks mapped from the bottom of SRAM
-                    // mem_abh_o <= { rambank_masked_nr, cpu_abh_i[12] };
-                    mem_abh_o <= { rambank_nr & rambank_mask_i, cpu_abh_i[12] };
+                    mem_abh_o <= { rambank_masked_nr, cpu_abh_i[12] };
+                    // mem_abh_o <= { rambank_nr & rambank_mask_i, cpu_abh_i[12] };
                     sram_csn_o <= LOW_ACTIVE;
                     mem_rdn_o <= ~cpu_rw_i;
                     mem_wrn_o <= cpu_rw_i;                    
