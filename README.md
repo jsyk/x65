@@ -77,3 +77,14 @@ Running X16 ROM and BASIC program:
 
 ![MAZE BASIC Program run](Photos/20230514_201336-mazerun.jpg)
 
+
+Structure of the GIT repository:
+---------------------------------
+
+* `fpga-nora' --> verilog code for the NORA FPGA on the motherboard.
+* `fpga-vera' --> VERA FPGA bitstream (100% derived from https://github.com/fvdhoef/vera-module)
+* `pcb' --> hardware projects in Kicad:
+  - `mobo-rev01' --> Motherboard rev01
+  - `vabo-rev01' --> Video/Audio board rev01
+* `x65prog' --> linux software to program the on-board SPI flash memories from a host Linux PC via the USB link.
+* `x65pyhost' --> python scripts for accessing/debugging the X65 from a host PC via the USB link.
