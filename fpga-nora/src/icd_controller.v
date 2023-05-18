@@ -152,7 +152,7 @@ module icd_controller #(
                 begin
                     // store the bus address, LSB first
                     nora_mst_addr_o <= { rx_byte_i, nora_mst_addr_o[23:8] };
-                    counter <= counter + 1;
+                    counter <= counter + 4'd1;
 
                     tx_byte_o <= rx_byte_i;
                     tx_en_o <= 1;
@@ -230,7 +230,7 @@ module icd_controller #(
                 // increment bus address?
                 if (icd_cmd[ADR_INC_BIT])
                 begin
-                    nora_mst_addr_o <= nora_mst_addr_o + 1;
+                    nora_mst_addr_o <= nora_mst_addr_o + 24'd1;
                 end
             end
 

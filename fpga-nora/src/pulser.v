@@ -29,7 +29,7 @@ module pulser
                 ck1us_counter <= 7'd47;
             end else begin
                 // counting
-                ck1us_counter <= ck1us_counter - 1;
+                ck1us_counter <= ck1us_counter - 7'd1;
             end
         end
     end

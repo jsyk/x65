@@ -104,7 +104,7 @@ module i2c_slave #(
             // handle the timer
             if (stimer_run)
             begin
-                stimer_cnt <= stimer_cnt - 1;
+                stimer_cnt <= stimer_cnt - 5'd1;
                 if (stimer_cnt - 1 == 0)
                 begin
                     // reaching zero -> expired -> stop
@@ -155,7 +155,7 @@ module i2c_slave #(
                             end
                         end else begin
                             // continue with the next bit
-                            datbitnum <= datbitnum + 1;
+                            datbitnum <= datbitnum + 4'd1;
                             state <= R_WR_SCL;              // wait for next SCL rising
                         end
                     end
@@ -250,7 +250,7 @@ module i2c_slave #(
                     begin
                         // output delay fulfilled; release SDA
                         I2C_SDADR0_o <= 0;
-                        datbitnum <= datbitnum + 1;
+                        datbitnum <= datbitnum + 4'd1;
                         // all bits done?
                         if (datbitnum == 4'd7)
                         begin

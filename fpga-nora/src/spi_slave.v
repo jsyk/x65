@@ -94,7 +94,7 @@ module spi_slave (
                     // MOSI: store the incoming SI bit to RX shift register, MSB first
                     rx_data_shift <= { rx_data_shift[6:0], smosi_r };
                     // inc the bit counter
-                    counter_r <= counter_r + 1;
+                    counter_r <= counter_r + 4'd1;
                     // MISO: update the output bit register (SO) from TX shift register, MSB:
                     spi_miso_o <= tx_data_shift[6];
                     // ... and shift the TX register; LSB: pull bit from user TX buffer, 

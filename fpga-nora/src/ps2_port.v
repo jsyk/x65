@@ -119,7 +119,7 @@ module ps2_port
             // handle the timer
             if (stimer_run && ck1us)
             begin
-                stimer_cnt <= stimer_cnt - 1;
+                stimer_cnt <= stimer_cnt - 8'd1;
                 if (stimer_cnt - 1 == 0)
                 begin
                     // reaching zero -> expired -> stop
@@ -196,7 +196,7 @@ module ps2_port
                             state <= R_CHECKPAR;
                         end else begin
                             // continue with the next bit
-                            datbitnum <= datbitnum + 1;
+                            datbitnum <= datbitnum + 4'd1;
                             state <= R_WF_DATA;
                         end
                     end
@@ -331,7 +331,7 @@ module ps2_port
                             state <= T_WF_DATA;
                         end
                         // next bit counter
-                        datbitnum <= datbitnum + 1;
+                        datbitnum <= datbitnum + 4'd1;
                     end                    
                 end
 

@@ -24,7 +24,7 @@ module resetgen (
             if (counter[3] != 1'b1)
             begin
                 // counting
-                counter <= counter + 1;
+                counter <= counter + 4'd1;
                 // keep reset output
                 reset <= 1'b1;
                 resetn <= 1'b0;
