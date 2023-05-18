@@ -26,16 +26,17 @@ module smc (
     // IMPLEMENTATION
 
     // SMC / I2C registers
-    parameter SMCREG_READ_KBD_BUF = 8'h07;
-    parameter SMCREG_READ_PS2_KBD_STAT = 8'h18;
-    parameter SMCREG_SEND_PS2_KBD_CMD = 8'h19;          // Send 1B command
+    localparam SMCREG_READ_KBD_BUF = 8'h07;
+    localparam SMCREG_READ_PS2_KBD_STAT = 8'h18;
+    localparam SMCREG_SEND_PS2_KBD_CMD = 8'h19;          // Send 1B command
+    localparam SMCREG_SEND_PS2_KBD_2BCMD = 8'h1A;        // Send two-byte command
 
     
     // PS2_CMD_STATUS : uint8_t
-    parameter PS2_CMD_STAT_IDLE = 8'h00;
-    parameter PS2_CMD_STAT_PENDING = 8'h01;
-    parameter PS2_CMD_STAT_ACK = 8'hFA;
-    parameter PS2_CMD_STAT_ERR = 8'hFE;
+    localparam PS2_CMD_STAT_IDLE = 8'h00;
+    localparam PS2_CMD_STAT_PENDING = 8'h01;
+    localparam PS2_CMD_STAT_ACK = 8'hFA;
+    localparam PS2_CMD_STAT_ERR = 8'hFE;
 
     reg [7:0]   smc_regnum;         // SMC register address
 
@@ -84,6 +85,9 @@ module smc (
 
     reg [7:0]   ps2k_txcode;
     reg         ps2k_txcodevalid;
+
+    reg [7:0]   ps2k_txcode_2nd;
+    reg         ps2k_txcode2valid;
 
     wire  ps2k_busy;
     wire  ps2k_acked;
@@ -155,6 +159,8 @@ module smc (
             kbdfifo_deq <= 0;
             ps2k_txcode <= 8'h00;
             ps2k_txcodevalid <= 0;
+            ps2k_txcode_2nd <= 8'h00;
+            ps2k_txcode2valid <= 0;
             kbd_stat <= PS2_CMD_STAT_IDLE;
         end else begin
             // clear one-off signals
@@ -163,6 +169,13 @@ module smc (
             if (!ps2k_busy)
             begin
                 ps2k_txcodevalid <= 0;
+                
+                if (ps2k_txcodevalid)
+                begin
+                    ps2k_txcodevalid <= 1;
+                    ps2k_txcode2valid <= 0;
+                    ps2k_txcode <= ps2k_txcode_2nd;
+                end
             end
 
             if (ps2k_acked)
@@ -187,12 +200,35 @@ module smc (
                     end else if (byteidx == 2'b01)
                     begin
                         case (smc_regnum)
-                            SMCREG_SEND_PS2_KBD_CMD:
+                            SMCREG_SEND_PS2_KBD_CMD, SMCREG_SEND_PS2_KBD_2BCMD:
                             begin
                                 ps2k_txcode <= rxbyte;
                                 ps2k_txcodevalid <= 1;
                             end
+
+                            // SMCREG_SEND_PS2_KBD_2BCMD:
+                            // begin
+                            //     ps2k_txcode <= rxbyte;
+                            //     ps2k_txcodevalid <= 1;
+                            // end
                         endcase
+                    end else if (byteidx == 2'b10)
+                    begin
+                        // case (smc_regnum)
+                        //     SMCREG_SEND_PS2_KBD_2BCMD:
+                        if (smc_regnum == SMCREG_SEND_PS2_KBD_2BCMD)
+                            begin
+                                ps2k_txcode2valid <= 1;
+                                ps2k_txcode_2nd <= rxbyte;
+                                // if (ps2k_txcodevalid)
+                                // begin
+                                //     ps2k_txcode2valid <= 1;
+                                // end else begin
+                                //     ps2k_txcode <= rxbyte;
+                                //     ps2k_txcodevalid <= 1;
+                                // end
+                            end
+                        // endcase
                     end
                     
                     byteidx <= byteidx + 2'd1;
