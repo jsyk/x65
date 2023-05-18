@@ -28,7 +28,7 @@ module smc (
     // SMC / I2C registers
     parameter SMCREG_READ_KBD_BUF = 8'h07;
     parameter SMCREG_READ_PS2_KBD_STAT = 8'h18;
-    parameter SMCREG_SEND_PS2_KBD_CMD = 8'h19;
+    parameter SMCREG_SEND_PS2_KBD_CMD = 8'h19;          // Send 1B command
 
     
     // PS2_CMD_STATUS : uint8_t
@@ -195,7 +195,7 @@ module smc (
                         endcase
                     end
                     
-                    byteidx <= byteidx + 1;
+                    byteidx <= byteidx + 2'd1;
                 end
 
                 if (rw_bit)         // I2C Read?
@@ -220,7 +220,7 @@ module smc (
 
                     if (txbyte_deq)
                     begin
-                        byteidx <= byteidx + 1;
+                        byteidx <= byteidx + 2'd1;
                         if ((smc_regnum == SMCREG_READ_KBD_BUF) && (txbyte != 8'h00))
                         begin
                             kbdfifo_deq <= 1;
