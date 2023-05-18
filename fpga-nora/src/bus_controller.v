@@ -61,7 +61,7 @@ module bus_controller (
     output reg      nora_slv_req_VIA1_o,
     output reg      nora_slv_rwn_o,
     // Bank parameters from SCRB
-    input [7:0]     rambank_mask_i,         // CPU accesses using RAMBANK reg are limited to this range
+    input [7:0]     rambank_mask_i         // CPU accesses using RAMBANK reg are limited to this range
     // Trace output
     // output reg [28:0]   cpubus_trace_o,
     // output reg          trace_catch_o
@@ -144,7 +144,7 @@ module bus_controller (
             nora_slv_req_BOOTROM_o <= 0;
             nora_slv_req_SCRB_o <= 0;
             nora_slv_req_VIA1_o <= 0;
-            rambank_nr <= 0;
+            rambank_nr <= 8'h00;
             // rombank_nr <= 6'b011111;        // rombank 31 - starts at 0x1F_0000
             rombank_nr <= 6'b000000;        // rombank 0 - starts at 0x18_0000
             nora_slv_req_BANKREG <= 0;
@@ -160,7 +160,12 @@ module bus_controller (
                 nora_slv_rwn_o <= cpu_rw_i;
 
                 // decode CPU address space regions
-                if (cpu_abh_i[15:14] == 2'b11)
+                if (cpu_ab_i[15:1] == 15'b000000000000000)
+                begin
+                    // registers 0x0000 RAMBANK and 0x0001 ROMBANK
+                    nora_slv_req_BANKREG <= 1;
+                end
+                else if (cpu_abh_i[15:14] == 2'b11)
                 begin
                     // CPU address 0xC000 - 0xF000 => 16k ROM banks mapped at the top of SRAM
                     if (rombank_nr[5] == 1'b1)
@@ -221,12 +226,8 @@ module bus_controller (
                         mem_wrn_o <= cpu_rw_i;
                     end
                 end
-                else if (cpu_ab_i[15:1] == 15'b000000000000000)
+                else 
                 begin
-                    // registers 0x0000 RAMBANK and 0x0001 ROMBANK
-                    nora_slv_req_BANKREG <= 1;
-                end
-                else begin
                     // rest: base low memory of CPU mapped to SRAM pages 184-191
                     mem_abh_o <= { 5'h17, cpu_abh_i[15:12] };
                     sram_csn_o <= LOW_ACTIVE;
