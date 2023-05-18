@@ -106,6 +106,7 @@ Schematics in PDF:
 ------------------
 
 [Motherboard, rev01](pcb/mobo-rev01/scm-print/openX65-mobo-rev01-schematic.pdf)
+
 [Video/Audio board, rev01](pcb/vabo-rev01/scm-prints/openX65-vabo-rev01-schematic.pdf)
 
 

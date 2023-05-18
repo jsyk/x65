@@ -3,7 +3,7 @@
 ./do-cpureset.py
 ./do-loadbin.py ~/c65/x16-rom/build/x16/rom.bin sram 0x180000
 ./do-cpurun.py
-./do-cpustep.py
+./do-cpustep.py 10
 
 [jara@megalit x65pyhost]$ ./do-cpustep.py 
 CPU Step:

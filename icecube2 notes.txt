@@ -1,0 +1,6 @@
+lattice icecube2 -> for ICE40HX/LP
+
+https://vhdlwhiz.com/lattice-icecube2-ubuntu-20-04-icestick/#recipe
+
+
+https://unix.stackexchange.com/questions/81834/how-can-i-change-the-default-ens33-network-device-to-old-eth0-on-fedora-19

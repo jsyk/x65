@@ -1,0 +1,10 @@
+
+Radiant -> only for ICE40UP (VERA)
+
+Edited the license.dat -> fix nodenames, fix daemon path.
+
+Must run the lmgrd first:
+export LM_LICENSE_FILE=/home/jara/lscc/radiant/2022.1/license/license.dat
+cd /home/jara/lscc/radiant/2022.1/ispfpga/bin/lin64
+./lmgrd
+
