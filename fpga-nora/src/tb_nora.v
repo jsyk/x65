@@ -1,10 +1,16 @@
+`timescale 1ns/100ps
+
 module tb_nora ();
 
     reg FPGACLK;
 
 // CPU interface
-    wire [7:0] CD;         // CPU data bus
-    wire [15:12] CA;       // CPU address bus
+    // reg [15:12] CA;       // CPU address bus
+    reg [15:0] cpuCA;
+    reg [7:0]  cpuCD;
+
+// SRAM interface
+    reg [7:0] sramMD;
 
     wire CRESn;           // CPU reset
     wire CIRQn;           // CPU IRQ request
@@ -13,21 +19,22 @@ module tb_nora ();
     wire CPHI2;           // CPU clock
     wire CBE;             // CPU bus-enable
 
-    wire CRDY;             // CPU ready signal
-    wire CSOB_MX;          // CPU SOB (set overflow - 8b) / MX (16b)
+    wire CRDY = 1;             // CPU ready signal
+    wire CSOB_MX = 1;          // CPU SOB (set overflow - 8b) / MX (16b)
 
-    wire CSYNC_VPA;        // CPU SYNC (8b) / VPA (16b) signal
+    reg CSYNC_VPA;        // CPU SYNC (8b) / VPA (16b) signal
     wire CMLn = 1;             // CPU memory lock
     wire CVPn = 1;             // CPU vector pull signal
     wire CVDA = 1;             // CPU VDA (16b only)
     wire CEF = 1;              // CPU EF (16b only)
-    wire CRWn;             // CPU R/W signal
+    reg CRWn;             // CPU R/W signal
 
+    wire [7:0] CD = (CBE && !CRWn) ? cpuCD : 8'hZZ;         // CPU data bus
 
 // Memory bus
     wire [20:12] MAH;      // memory address high bits 12-20: private to FPGA = output
-    wire [11:0] MAL;      // memory address low bits 0-11: shared with CPU = bidi
-    wire [7:0] MD;         // Memory data bus
+    wire [11:0] MAL = (CBE) ? cpuCA[11:0] : 12'hZZZ;      // memory address low bits 0-11: shared with CPU = bidi
+    wire [7:0] MD = (!M1CSn && !MRDn) ? sramMD : 8'hZZ;         // Memory data bus
     wire M1CSn;           // SRAM chip-select
     wire MRDn;            // Memory Read
     wire MWRn;            // Memory Write
@@ -37,7 +44,7 @@ module tb_nora ();
 
     wire ICD_CSn = 1'b1;
     wire ICD_MOSI = 1'b1;
-    wire ICD_MISO;
+    wire ICD_MISO = 1'b1;
     wire ICD_SCK = 1'b1;
 
 
@@ -47,7 +54,7 @@ module tb_nora ();
 
     // CPU interface
         .CD (CD),         // CPU data bus
-        .CA (CA),       // CPU address bus
+        .CA (cpuCA[15:12]),       // CPU address bus
 
         .CRESn (CRESn),           // CPU reset
         .CIRQn (CIRQn),           // CPU IRQ request
@@ -78,14 +85,14 @@ module tb_nora ();
     // VIA interface
         // output VIAPHI2,
         // output VIACS,
-        .VIAIRQ (1'b1),
+        // .VIAIRQ (1'b1),
         // output PERIRESn,
 
-        .I2C_SCL (1'b1),
-        .I2C_SDA (1'b1),
+        // .I2C_SCL (1'b1),
+        // .I2C_SDA (1'b1),
 
-        .NESLATCH (1'b1),
-        .NESCLOCK (1'b1),
+        // .NESLATCH (1'b1),
+        // .NESCLOCK (1'b1),
         .NESDATA1 (1'b1),
         .NESDATA0 (1'b1),
 
@@ -145,6 +152,108 @@ module tb_nora ();
         // output FLASHCSn
     );
 
+    // Clock Generator
+    initial FPGACLK = 1'b0;
+    always #(20)
+    begin
+        FPGACLK = ~FPGACLK;
+    end
+
+    reg [7:0] tb_cpuDataRead;
+
+    task cpu_read;
+        input [15:0] addr;
+        begin
+            #40;        // wait tADS=40ns max.
+            cpuCA = addr;
+            cpuCD = 8'hZZ;
+            CRWn = 1'b1;
+            CSYNC_VPA = 1'b0;
+            @(posedge CPHI2);
+            #(60-15);       // tDSR=15ns min before posedge CPHI2
+            tb_cpuDataRead = CD;
+            @(negedge CPHI2);
+        end
+    endtask
+
+    task cpu_write;
+        input [15:0] addr;
+        input [7:0] wdata;
+        begin
+            #40;        // wait tADS=40ns max.
+            cpuCA = addr;
+            cpuCD = 8'hXX;
+            CRWn = 1'b0;
+            CSYNC_VPA = 1'b0;
+            @(posedge CPHI2);
+            #40;       // tMDS=40ns max after posedge CPHI2
+            cpuCD = wdata;
+            @(negedge CPHI2);
+            cpuCD = #10 16'hXX;
+            CRWn = #10 1'b1;
+        end
+    endtask
+
+    initial
+    begin
+        // define initial values of inputs to NORA
+        cpuCA = 16'hFFFF;
+        cpuCD = 8'hZZ;
+        // MAL = 12'hFFF;
+        // CD = 8'h00;
+        // CRDY = 1'b1;
+        CRWn = 1'b1;
+        // CSOB_MX = 1'b1;
+        CSYNC_VPA = 1'b0;
+        // ICD_MISO = 1'b1;
+
+        @(negedge CPHI2);
+        @(negedge CPHI2);
+
+        cpu_write(16'h0010, 8'h12);
+        cpu_write(16'h0011, 8'h34);
+        cpu_write(16'h0012, 8'h56);
+        cpu_write(16'h0013, 8'h78);
+        cpu_read(16'h0010);
+        cpu_read(16'h0011);
+        cpu_read(16'h0012);
+        cpu_read(16'h0013);
+
+        cpu_write(16'h0000, 8'hAB);         // RAMBANK
+        cpu_write(16'h0001, 8'h0C);         // ROMBANK
+
+
+        #1000;
+        $finish;
+    end
+
+
+    reg [7:0] sram_block [255:0];
+
+    always @(MRDn, M1CSn)
+    begin
+        if ((MRDn == 0) && (M1CSn == 0))
+        begin
+            sramMD <= #20 sram_block[MAL[7:0]];
+        end else begin
+            sramMD <= 8'hXX;
+        end
+    end
+
+    always @(posedge MWRn)
+    begin
+        if (M1CSn == 0)
+        begin
+            sram_block[MAL[7:0]] <= MD;
+        end
+    end
+
+    // Do this in your test bench to generate VCD waves
+    initial
+    begin
+        $dumpfile("tb_nora.vcd");
+        $dumpvars(0,tb_nora);
+    end
 
 
 endmodule

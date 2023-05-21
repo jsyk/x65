@@ -1,11 +1,17 @@
 
+SYNSRC = ../src/phaser.v ../src/blinker.v ../src/resetgen.v ../src/fifo.v \
+	../src/pulser.v ../src/simple_via.v ../src/spi_slave.v ../src/i2c_slave.v \
+	../src/ps2_port.v ../src/icd_controller.v ../src/bus_controller.v \
+	../src/smc.v ../src/nora.v
+
+
 # generic rules
 
 %.vcd: %.vp
 	vvp $^ -lxt2
 
 %.vp: ../src/%.v
-	iverilog -o $@ $^
+	iverilog -D SIMULATION -o $@ $^
 
 
 # tb_phaser.vcd: tb_phaser.vp
@@ -20,6 +26,8 @@ tb_i2c.vp: ../src/tb_i2c.v ../src/i2c_slave.v
 
 tb_fifo.vp: ../src/tb_fifo.v ../src/fifo.v
 
+tb_nora.vp: $(SYNSRC) ../src/tb_nora.v
+
 show_phaser: tb_phaser.vcd
 	gtkwave $^
 
@@ -33,6 +41,9 @@ show_i2c: tb_i2c.vcd
 	gtkwave $^
 
 show_fifo: tb_fifo.vcd
+	gtkwave $^
+
+show_nora: tb_nora.vcd
 	gtkwave $^
 
 clean:

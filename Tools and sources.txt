@@ -7,7 +7,8 @@ Assembler:
 * ca65 / ld65 -- used in vera at least, in C16 ROMs
     https://cc65.github.io/doc/
     https://cc65.github.io/doc/ca65.html#ss1.1
-* cc65 - in C16 ROMs
+* cc65 - eg in C16 ROMs
+    https://github.com/cc65/cc65/tree/master
 * ACME - used in some examples
 
 YosysHQ/IceStorm

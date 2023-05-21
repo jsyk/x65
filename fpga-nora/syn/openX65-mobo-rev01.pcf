@@ -69,9 +69,9 @@ set_io MAH[16]          76
 set_io MAH[15]          78
 set_io MRDn         79
 set_io MAH[19]          80
-set_io VIAPHI2      81
-set_io VIACS        82
-set_io VIAIRQ       83
+#set_io VIAPHI2      81
+#set_io VIACS        82
+#set_io VIAIRQ       83
 set_io MWRn         84
 set_io I2C_SCL      85
 set_io I2C_SDA      87

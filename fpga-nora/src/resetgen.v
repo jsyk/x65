@@ -9,7 +9,7 @@ module resetgen (
     output reg  resetn
 );
 
-    reg [3:0] counter;
+    reg [3:0] counter = 4'd0;
 
     always @(posedge clk)
     begin

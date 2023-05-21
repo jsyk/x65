@@ -111,7 +111,11 @@ module icd_controller #(
             // nora_mst_req_VIA_o <= 0;
             // nora_mst_req_VERA_o <= 0;
             nora_mst_rwn_o <= 1;
+`ifdef SIMULATION
+            run_cpu <= 1;                   // sim starts in run!!
+`else
             run_cpu <= 0;                   // TBD: this starts in stop!!
+`endif
             cpu_force_resn_o <= 0;          // TBD: this will force reset!!
             single_step_cpu <= 0;
             tracereg_valid <= 0;

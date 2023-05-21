@@ -38,21 +38,21 @@ module top (
     output MWRn,            // Memory Write
 
 // VIA interface
-    output VIAPHI2,         // TBD remove
-    output VIACS,           // TBD remove
-    input VIAIRQ,           // TBD remove
+    // output VIAPHI2,         // TBD remove
+    // output VIACS,           // TBD remove
+    // input VIAIRQ,           // TBD remove
     output PERIRESn,        // TBD maybe remove
 
     inout I2C_SCL,
     inout I2C_SDA,
 
-    inout NESLATCH,
-    inout NESCLOCK,
-    inout NESDATA1,
-    inout NESDATA0,
+    output NESLATCH,
+    output NESCLOCK,
+    input NESDATA1,
+    input NESDATA0,
 
-    inout CPULED0,
-    inout CPULED1,
+    output CPULED0,
+    output CPULED1,
 
 // additional ILI SPI ports
     output ILICSn,
