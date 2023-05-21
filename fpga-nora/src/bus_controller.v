@@ -251,11 +251,6 @@ module bus_controller (
                 // write latch is sensitive: to have some hold time, release it now
                 // before the CS gets released next.
                 mem_wrn_o <= HIGH_INACTIVE;
-            end
-
-            if (release_cs || (mst_state == MST_FIN_ACC))
-            begin
-                // end of CPU or MST access;
 
                 // perform the internal BANKREG slave operation
                 if (nora_slv_req_BANKREG)
@@ -275,6 +270,11 @@ module bus_controller (
                         end
                     end
                 end
+            end
+
+            if (release_cs || (mst_state == MST_FIN_ACC))
+            begin
+                // end of CPU or MST access;
 
                     // disable memorybus rd/wr flags
                 mem_rdn_o <= HIGH_INACTIVE;
