@@ -75,7 +75,9 @@ Photos:
 
 Overview photos (2023-05-08):
 
-![Overview photo](Photos/20230508_200647-overview.jpg)
+![Front view photo](Photos/frontview.jpg)
+
+![Rear view photo](Photos/rearview.jpg)
 
 ![Motherboard photo](Photos/20230508_200750-mobo-top.jpg)
 
@@ -126,7 +128,7 @@ Long term, there are multiple good options, for example:
 * port of the [MEGA65 OPEN-ROMs](https://github.com/MEGA65/open-roms), which are true free open-source,
 * port of the [FastBasic](https://github.com/dmsc/fastbasic)
 * port of the [GeckOS](http://www.6502.org/users/andre/osa/index.html)
-* ...
+* ... ???
 
 Compared to the 8-bit 65C02 CPU, the 16-bit 65C816 CPU offers a linear 24-bit address space, so a bigger OS with GUI should be
-more easily possible. At minimum, something like the GEOS. (PC/GEOS is a free software, but it is for X86).
+more easier possible. At minimum, something like the GEOS. (PC/GEOS is a free software, but it is for X86).
