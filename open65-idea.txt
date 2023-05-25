@@ -29,6 +29,15 @@ RTC Battery-backed Microchip MCP7940N real-time-clock chip on I2C
 
 DIP switches?
 
+UEXT interface
+    https://en.wikipedia.org/wiki/UEXT
+    2x5pin --> width cca 15mm
+    -> 3V3/GND
+        UART TXD/RXD
+        I2C SCL/SDA
+        SPI MISO/MOSI/SCK/SS
+
+
 original "VIA" W65C22, tbd implemented inside of FPGA
     https://github.com/mikestir/fpga-bbc
     https://github.com/mikestir/fpga-bbc/blob/master/m6522.vhd
