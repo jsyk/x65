@@ -48,23 +48,23 @@ module i2c_slave #(
     wire    start_cond = sda_falling && scl_d3;
     wire    stop_cond = sda_rising && scl_d3;
 
-    parameter SAMPLING_DELAY = 5'd30;           // 30T at 48MHz (21ns) = 630ns
-    parameter OUTPUT_DELAY = 5'd10;             // 10T at 48MHz (21ns) = 210ns
+    localparam SAMPLING_DELAY = 5'd30;           // 30T at 48MHz (21ns) = 630ns
+    localparam OUTPUT_DELAY = 5'd10;             // 10T at 48MHz (21ns) = 210ns
 
     // FSM states enum:
-    parameter R_IGNORE = 4'h0;            // idle - no transfer, or ignoring the ongoing transfer (address no match)
-    parameter R_WR_SCL = 4'h1;          // waiting for SCL rising edge
-    parameter R_DATABIT = 4'h2;
-    parameter R_CHECK_ADDR = 4'h3;      // received the first byte (slave address and r/w) -> check it
-    parameter T_ACK = 4'h4;             // will transmit the ACK bit; wait for the SCL to fall
-    parameter T_ACKOUT = 4'h5;          // will transmit the ACK bit; SCL has falle, wait the OUTPUT_DELAY time, then drive 0
-    parameter T_ACKDONE = 4'h6;         // has trasmitted the ACK bit; SCL has fallen again, wait OUTPUT_DELAY time, then deassert.
-    parameter T_WF_SCL = 4'h7;
-    parameter T_NEXTBIT = 4'h8;
-    parameter TR_WR_SCL = 4'h9;
-    parameter TR_GETACK = 4'hA;
-    parameter T_WF_SCL_FIRST = 4'hB;
-    parameter T_WF_SCL_FIRST_DEL = 4'hC;
+    localparam R_IGNORE = 4'h0;            // idle - no transfer, or ignoring the ongoing transfer (address no match)
+    localparam R_WR_SCL = 4'h1;          // waiting for SCL rising edge
+    localparam R_DATABIT = 4'h2;
+    localparam R_CHECK_ADDR = 4'h3;      // received the first byte (slave address and r/w) -> check it
+    localparam T_ACK = 4'h4;             // will transmit the ACK bit; wait for the SCL to fall
+    localparam T_ACKOUT = 4'h5;          // will transmit the ACK bit; SCL has falle, wait the OUTPUT_DELAY time, then drive 0
+    localparam T_ACKDONE = 4'h6;         // has trasmitted the ACK bit; SCL has fallen again, wait OUTPUT_DELAY time, then deassert.
+    localparam T_WF_SCL = 4'h7;
+    localparam T_NEXTBIT = 4'h8;
+    localparam TR_WR_SCL = 4'h9;
+    localparam TR_GETACK = 4'hA;
+    localparam T_WF_SCL_FIRST = 4'hB;
+    localparam T_WF_SCL_FIRST_DEL = 4'hC;
 
     // FSM:
     reg [3:0]   state;

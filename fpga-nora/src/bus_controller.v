@@ -68,19 +68,19 @@ module bus_controller (
 );
 //// IMPLEMENTATION ////
 
-    parameter HIGH_INACTIVE = 1'b1;
-    parameter HIGH_ACTIVE = 1'b1;
-    parameter LOW_ACTIVE = 1'b0;
-    parameter LOW_INACTIVE = 1'b0;
+    localparam HIGH_INACTIVE = 1'b1;
+    localparam HIGH_ACTIVE = 1'b1;
+    localparam LOW_ACTIVE = 1'b0;
+    localparam LOW_INACTIVE = 1'b0;
 
-    parameter MST_IDLE = 3'o0;
-    parameter MST_WAIT_CPU_STOP = 3'o1;
-    parameter MST_DISABLE_CPU_BUS = 3'o2;
-    parameter MST_SETUP_ACC = 3'o3;
-    parameter MST_EXT_ACC = 3'o4;
-    parameter MST_EXT_ACC2 = 3'o5;
-    parameter MST_DATA_ACC = 3'o6;
-    parameter MST_FIN_ACC = 3'o7;
+    localparam MST_IDLE = 3'o0;
+    localparam MST_WAIT_CPU_STOP = 3'o1;
+    localparam MST_DISABLE_CPU_BUS = 3'o2;
+    localparam MST_SETUP_ACC = 3'o3;
+    localparam MST_EXT_ACC = 3'o4;
+    localparam MST_EXT_ACC2 = 3'o5;
+    localparam MST_DATA_ACC = 3'o6;
+    localparam MST_FIN_ACC = 3'o7;
 
     // master request state machine
     reg [2:0]       mst_state;
