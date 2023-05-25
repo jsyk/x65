@@ -34,6 +34,7 @@ module ps2_port
     // Host-to-Device (TX) interface
     input [7:0]     cmd_tx_i,         // command byte to send   
     input           cmd_tx_v_i,         // send the command byte; recognized only when busy=0
+    output reg      cmd_tx_deq_o,       // acknowledge that the tx code has been consumed for sending
     output reg      busy,             // ongoing RX/TX (not accepting a new command now)
     output reg      tx_acked_o,         // our TX commend byte was ACKed by device
     output reg      tx_errd_o           // we got a NACK at the end of command sending
@@ -59,28 +60,28 @@ module ps2_port
     assign clk_falling = !ps2_clk_d2 && ps2_clk_d3;
 
     // times in microseconds
-    parameter SAMPLING_DELAY = 15;
-    parameter INHIBIT_TIMEOUT = 120;
-    parameter REQ_SEND1_TIME = 110;
-    parameter REQ_SEND2_TIME = 15;
-    parameter OUTPUT_DELAY = 10;
+    localparam SAMPLING_DELAY = 15;
+    localparam INHIBIT_TIMEOUT = 120;
+    localparam REQ_SEND1_TIME = 110;
+    localparam REQ_SEND2_TIME = 15;
+    localparam OUTPUT_DELAY = 10;
 
     // enum for 'state' reg:
-    parameter R_IDLE = 4'h0;
-    parameter R_START = 4'h1;           // receiving the start condition
-    parameter R_WF_DATA = 4'h2;         // waiting for a falling CLK edge, then receive a data bit
-    parameter R_DATABIT = 4'h3;         // receiving a DATA bit
-    parameter R_CHECKPAR = 4'h4;        // check recevied data vs parity bit
-    parameter R_WF_STOP = 4'h5;         // wait for the falling clock of the STOP bit
-    parameter R_STOP = 4'h6;            // receiving the STOP bit (should be 1)
-    parameter R_WAIT_IDLE = 4'h7;       // waiting for line IDLE state after a STOP bit
-    parameter R_GENERATE_INHIBIT = 4'h8;    // pull CLK low for >100us to signalize parity error
-    parameter T_REQ_SEND1 = 4'h9;                // generate send request by pulling CLK low for 100us
-    parameter T_REQ_SEND2 = 4'hA;                // generate send request by pulling CLK low for 100us
-    parameter T_WF_DATA = 4'hB;         // waiting for clk fall from device
-    parameter T_DATABIT = 4'hC;         // sending the DATA bit
-    parameter T_WF_ACK = 4'hD;          // waiting for ACK 
-    parameter T_RXACK = 4'hE;            // receive ACK, should be 0
+    localparam R_IDLE = 4'h0;
+    localparam R_START = 4'h1;           // receiving the start condition
+    localparam R_WF_DATA = 4'h2;         // waiting for a falling CLK edge, then receive a data bit
+    localparam R_DATABIT = 4'h3;         // receiving a DATA bit
+    localparam R_CHECKPAR = 4'h4;        // check recevied data vs parity bit
+    localparam R_WF_STOP = 4'h5;         // wait for the falling clock of the STOP bit
+    localparam R_STOP = 4'h6;            // receiving the STOP bit (should be 1)
+    localparam R_WAIT_IDLE = 4'h7;       // waiting for line IDLE state after a STOP bit
+    localparam R_GENERATE_INHIBIT = 4'h8;    // pull CLK low for >100us to signalize parity error
+    localparam T_REQ_SEND1 = 4'h9;                // generate send request by pulling CLK low for 100us
+    localparam T_REQ_SEND2 = 4'hA;                // generate send request by pulling CLK low for 100us
+    localparam T_WF_DATA = 4'hB;         // waiting for clk fall from device
+    localparam T_DATABIT = 4'hC;         // sending the DATA bit
+    localparam T_WF_ACK = 4'hD;          // waiting for ACK 
+    localparam T_RXACK = 4'hE;            // receive ACK, should be 0
 
     reg [3:0]   state;                  // overall FSM state
     reg [4:0]   datbitnum;              // receiving data bit number
@@ -109,12 +110,14 @@ module ps2_port
             tdata <= 8'h00;
             tx_acked_o <= 0;
             tx_errd_o <= 0;
+            cmd_tx_deq_o <= 0;
         end else begin
             // clear one-off signals
             code_rx_v_o <= 0;
             busy <= 1;
             tx_acked_o <= 0;
             tx_errd_o <= 0;
+            cmd_tx_deq_o <= 0;
 
             // handle the timer
             if (stimer_run && ck1us)
@@ -131,6 +134,8 @@ module ps2_port
             case (state)
                 R_IDLE:
                 begin
+                    busy <= 0;
+
                     if (clk_falling)
                     begin
                         state <= R_START;
@@ -141,12 +146,14 @@ module ps2_port
                     begin
                         // send command byte to the device
                         tdata <= cmd_tx_i;
+                        cmd_tx_deq_o <= 1;
                         state <= T_REQ_SEND1;
                         stimer_cnt <= REQ_SEND1_TIME;
                         stimer_run <= 1;
-                    end else begin
-                        // really idle
-                        busy <= 0;
+                    // end else 
+                    // end else begin
+                    //     // really idle
+                    //     busy <= 0;
                     end
                 end
                 

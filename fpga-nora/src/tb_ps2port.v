@@ -16,6 +16,7 @@ module tb_ps2port ( );
     // 
     wire [7:0]  code_rx_o;       // received scan-code
     wire        code_rx_v_o;       // scan-code valid
+    wire        cmd_tx_deq_o;       // acknowledge that the tx code has been consumed for sending
     // Host-to-Device (TX) interface
     reg [7:0]     cmd_tx_i;         // command byte to send   
     reg           cmd_tx_v_i;         // send the command byte
@@ -63,6 +64,7 @@ module tb_ps2port ( );
         // 
         .code_rx_o,       // received scan-code
         .code_rx_v_o,       // scan-code valid
+        .cmd_tx_deq_o,       // acknowledge that the tx code has been consumed for sending
         //
         .cmd_tx_i,         // command byte to send   
         .cmd_tx_v_i,         // send the command byte
