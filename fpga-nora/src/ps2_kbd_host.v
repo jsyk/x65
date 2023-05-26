@@ -1,10 +1,5 @@
 /**
  * Host controller for PS2 keyboard.
- * It provides these registers for the SMC on I2C:
- *      0x07		Read from keyboard buffer
- *      0x18		Read ps2 (keyboard) status
- *      0x19	    00..FF	Send ps2 command
- *      0x21		Read from mouse buffer     <- TBD, not implemented yet here!!
  *
  */
 module ps2_kbd_host (
@@ -12,7 +7,7 @@ module ps2_kbd_host (
     input           clk6x,      // 48MHz
     input           resetn,     // sync reset
     input           ck1us,      // 1us pulses
-    // SMC interface:
+    // Generic Host interface:
     // Read from keyboard buffer (from RX FIFO)
     output [7:0]    kbd_rdata_o,      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
     output          kbd_rvalid_o,     // RX FIFO byte is valid? (= FIFO not empty?)
@@ -27,13 +22,6 @@ module ps2_kbd_host (
     input [7:0]     kbd_wcmddata_i,           // byte for TX FIFO to send into PS2 keyboard
     input           kbd_enq_cmd1_i,           // enqueu 1Byte command
     input           kbd_enq_cmd2_i,           // enqueu 2Byte command+data
-
-    // input           devsel_i,           // the device is selected, ongoing transmission for the SLAVE_ADDRESS
-    // input           rw_bit_i,           // Read/nWrite bit, only valid when devsel_i=1
-    // input [7:0]     rxbyte_i,          // the received byte for device
-    // input           rxbyte_v_i,         // valid received byte (for 1T) for Write transfers
-    // output reg [7:0] txbyte_o,           // the next byte to transmit from device; shall be valid anytime devsel_i=1 && rw_bit_i=1
-    // input           txbyte_deq_i,       // the txbyte has been consumed (1T)
     // PS2 Keyboard port - FPGA pins
     input           PS2K_CLK,           // pin value
     input           PS2K_DATA,          // pin value
@@ -42,22 +30,11 @@ module ps2_kbd_host (
 );
     // IMPLEMENTATION
 
-    // // SMC / I2C registers
-    // localparam SMCREG_READ_KBD_BUF = 8'h07;
-    // localparam SMCREG_READ_PS2_KBD_STAT = 8'h18;
-    // localparam SMCREG_SEND_PS2_KBD_CMD = 8'h19;          // Send 1B command
-    // localparam SMCREG_SEND_PS2_KBD_2BCMD = 8'h1A;        // Send two-byte command
-
-    
     // values for output reg kbd_stat: (from PS2_CMD_STATUS : uint8_t):
     localparam PS2_CMD_STAT_IDLE = 8'h00;
     localparam PS2_CMD_STAT_PENDING = 8'h01;
     localparam PS2_CMD_STAT_ACK = 8'hFA;
     localparam PS2_CMD_STAT_ERR = 8'hFE;
-
-    // // SMC
-    // reg [7:0]   smc_regnum;         // SMC register address; TBD move up the hierarchy
-    // reg  [1:0]  byteidx;            // SMC command/data stream - position index
 
     // PS2 port
     wire [7:0]  ps2k_rxcode;        // received byte from PS2 port
@@ -187,6 +164,16 @@ module ps2_kbd_host (
             if (kbd_stat_o == PS2_CMD_STAT_PENDING)
             begin
                 // yes; 
+                
+                // is there error in sending - missing ack bit from device?
+                // if (ps2k_errd)
+                // begin
+                //     // yes -> cancel
+                //     kbd_stat_o <= PS2_CMD_STAT_ERR;
+                //     txfifo_clear <= 1;
+                //     fsm_state <= TX_DEFAULT;
+                // end
+
                 // are we receiving a reply?
                 if (ps2k_rxcodevalid)
                 begin
@@ -194,13 +181,13 @@ module ps2_kbd_host (
                     // is the reply an error code or ack code?
                     if (ps2k_rxcode == PS2_CMD_STAT_ERR)
                     begin
-                        // error code -> set status and clear any further tx-bytes in the TX FIFO
+                        // anything else | error code -> set status and clear any further tx-bytes in the TX FIFO
                         kbd_stat_o <= PS2_CMD_STAT_ERR;
                         txfifo_clear <= 1;
                         fsm_state <= TX_DEFAULT;
                     end else if (ps2k_rxcode == PS2_CMD_STAT_ACK)
                     begin
-                        // ack reply code;
+                        // ack reply code - OK;
                         // are there any more bytes in the TX FIFO ?
                         if (fsm_state == TX_2B_WAIT_FIRST_REPLY)
                         begin
