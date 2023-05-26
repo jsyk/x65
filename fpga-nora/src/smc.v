@@ -81,13 +81,13 @@ module smc (
     reg             kbd_enq_cmd1;           // enqueu 1Byte command
     reg             kbd_enq_cmd2;           // enqueu 2Byte command+data
 
-
+    // Keyboard
     ps2_kbd_host kbd (
         // Global signals
         .clk6x (clk6x),      // 48MHz
         .resetn (resetn),     // sync reset
         .ck1us (ck1us),      // 1us pulses
-        // SMC interface
+        // Generic host interface
         // Read from keyboard buffer (from RX FIFO)
         .kbd_rdata_o (kbd_rdata),      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
         .kbd_rvalid_o (kbd_rvalid),     // RX FIFO byte is valid? (= FIFO not empty?)
@@ -102,13 +102,6 @@ module smc (
         .kbd_wcmddata_i (kbd_wcmddata),           // byte for TX FIFO to send into PS2 keyboard
         .kbd_enq_cmd1_i (kbd_enq_cmd1),           // enqueu 1Byte command
         .kbd_enq_cmd2_i (kbd_enq_cmd2),           // enqueu 2Byte command+data
-
-        // .devsel_i (devsel),           // the device is selected, ongoing transmission for the SLAVE_ADDRESS
-        // .rw_bit_i (rw_bit),           // Read/nWrite bit, only valid when devsel_i=1
-        // .rxbyte_i (rxbyte),          // the received byte for device
-        // .rxbyte_v_i (rxbyte_v),         // valid received byte (for 1T) for Write transfers
-        // .txbyte_o (txbyte),           // the next byte to transmit from device; shall be valid anytime devsel_i=1 && rw_bit_i=1
-        // .txbyte_deq_i (txbyte_deq),       // the txbyte has been consumed (1T)
         // PS2 Keyboard port - FPGA pins
         .PS2K_CLK (PS2K_CLK),
         .PS2K_DATA (PS2K_DATA),
@@ -138,16 +131,8 @@ module smc (
             // txbyte_o <= 8'hFF;
             byteidx <= 2'b00;
             smc_regnum <= 8'h00;
-            // rxfifo_deq <= 0;
-            // txfifo_wdata <= 8'h00;
-            // txfifo_enq <= 0;
-            // kbd_stat <= PS2_CMD_STAT_IDLE;
-            // txfifo_clear <= 0;
         end else begin
             // clear one-off signals
-            // rxfifo_deq <= 0;
-            // txfifo_enq <= 0;
-            // txfifo_clear <= 0;
             kbd_rdeq <= 0;
             kbd_enq_cmd1 <= 0;           // enqueu 1Byte command
             kbd_enq_cmd2 <= 0;
