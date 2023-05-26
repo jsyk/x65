@@ -13,27 +13,27 @@ module ps2_kbd_host (
     input           resetn,     // sync reset
     input           ck1us,      // 1us pulses
     // SMC interface:
-    // // Read from keyboard buffer (from RX FIFO)
-    // output [7:0]    kbd_rdata,      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
-    // output          kbd_rvalid,     // RX FIFO byte is valid? (= FIFO not empty?)
-    // input           kbd_rdeq,       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
-    // // Keyboard reply status register, values:
-    // //      0x00 => idle (no transmission started)
-    // //      0x01 => transmission pending
-    // //      0xFA => ACK received
-    // //      0xFE => ERR received
-    // output reg [7:0] kbd_stat,
-    // // Write to keyboard:
-    // input [7:0]     kbd_wcmddata,           // byte for TX FIFO to send into PS2 keyboard
-    // input           kbd_enq_cmd1,           // enqueu 1Byte command
-    // input           kbd_enq_cmd2,           // enqueu 2Byte command+data
+    // Read from keyboard buffer (from RX FIFO)
+    output [7:0]    kbd_rdata_o,      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
+    output          kbd_rvalid_o,     // RX FIFO byte is valid? (= FIFO not empty?)
+    input           kbd_rdeq_i,       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
+    // Keyboard reply status register, values:
+    //      0x00 => idle (no transmission started)
+    //      0x01 => transmission pending
+    //      0xFA => ACK received
+    //      0xFE => ERR received
+    output reg [7:0] kbd_stat_o,
+    // Write to keyboard:
+    input [7:0]     kbd_wcmddata_i,           // byte for TX FIFO to send into PS2 keyboard
+    input           kbd_enq_cmd1_i,           // enqueu 1Byte command
+    input           kbd_enq_cmd2_i,           // enqueu 2Byte command+data
 
-    input           devsel_i,           // the device is selected, ongoing transmission for the SLAVE_ADDRESS
-    input           rw_bit_i,           // Read/nWrite bit, only valid when devsel_i=1
-    input [7:0]     rxbyte_i,          // the received byte for device
-    input           rxbyte_v_i,         // valid received byte (for 1T) for Write transfers
-    output reg [7:0] txbyte_o,           // the next byte to transmit from device; shall be valid anytime devsel_i=1 && rw_bit_i=1
-    input           txbyte_deq_i,       // the txbyte has been consumed (1T)
+    // input           devsel_i,           // the device is selected, ongoing transmission for the SLAVE_ADDRESS
+    // input           rw_bit_i,           // Read/nWrite bit, only valid when devsel_i=1
+    // input [7:0]     rxbyte_i,          // the received byte for device
+    // input           rxbyte_v_i,         // valid received byte (for 1T) for Write transfers
+    // output reg [7:0] txbyte_o,           // the next byte to transmit from device; shall be valid anytime devsel_i=1 && rw_bit_i=1
+    // input           txbyte_deq_i,       // the txbyte has been consumed (1T)
     // PS2 Keyboard port - FPGA pins
     input           PS2K_CLK,           // pin value
     input           PS2K_DATA,          // pin value
@@ -42,11 +42,11 @@ module ps2_kbd_host (
 );
     // IMPLEMENTATION
 
-    // SMC / I2C registers
-    localparam SMCREG_READ_KBD_BUF = 8'h07;
-    localparam SMCREG_READ_PS2_KBD_STAT = 8'h18;
-    localparam SMCREG_SEND_PS2_KBD_CMD = 8'h19;          // Send 1B command
-    localparam SMCREG_SEND_PS2_KBD_2BCMD = 8'h1A;        // Send two-byte command
+    // // SMC / I2C registers
+    // localparam SMCREG_READ_KBD_BUF = 8'h07;
+    // localparam SMCREG_READ_PS2_KBD_STAT = 8'h18;
+    // localparam SMCREG_SEND_PS2_KBD_CMD = 8'h19;          // Send 1B command
+    // localparam SMCREG_SEND_PS2_KBD_2BCMD = 8'h1A;        // Send two-byte command
 
     
     // values for output reg kbd_stat: (from PS2_CMD_STATUS : uint8_t):
@@ -55,17 +55,17 @@ module ps2_kbd_host (
     localparam PS2_CMD_STAT_ACK = 8'hFA;
     localparam PS2_CMD_STAT_ERR = 8'hFE;
 
-    // SMC
-    reg [7:0]   smc_regnum;         // SMC register address; TBD move up the hierarchy
-    reg  [1:0]  byteidx;            // SMC command/data stream - position index
+    // // SMC
+    // reg [7:0]   smc_regnum;         // SMC register address; TBD move up the hierarchy
+    // reg  [1:0]  byteidx;            // SMC command/data stream - position index
 
     // PS2 port
     wire [7:0]  ps2k_rxcode;        // received byte from PS2 port
     wire        ps2k_rxcodevalid;   // validity flag of the PS2 port received byte
 
     // TX FIFO
-    reg [7:0]   txfifo_wdata;        // byte to write into the TX FIFO
-    reg         txfifo_enq;         // enqueue byte to the TX FIFO 
+    // reg [7:0]   txfifo_wdata;        // byte to write into the TX FIFO
+    wire        txfifo_enq;         // enqueue byte to the TX FIFO 
     reg         txfifo_clear;       // clear (reset) the TX FIFO buffer
 
     wire [7:0]  txfifo_rdata;           // TX FIFO output (rdata) byte, for PS2 port transmission
@@ -75,7 +75,7 @@ module ps2_kbd_host (
     // Status signals
     wire        txfifo_full;                 // TX FIFO is full?
     wire        txfifo_empty;                 // TX FIFO is empty?
-    wire        ps2k_txcodevalid = !txfifo_empty;
+    reg         ps2k_txcodevalid;           // pass a byte from TX FIFO into PS2 port for sending?
 
     wire        ps2k_busy;              // PS2 port line is busy?
     wire        ps2k_acked;             // PS2 device has acked our transmission?
@@ -112,10 +112,10 @@ module ps2_kbd_host (
 
     // RX FIFO
     wire        rxfifo_full;               // RX FIFO is full?
-    wire        rxfifo_enq = ps2k_rxcodevalid & !rxfifo_full;          // insert PS2 RX byte into the RX FIFO, only if not full.
+    wire        rxfifo_enq;                 // insert PS2 RX byte into the RX FIFO
     wire        rxfifo_empty;              // RX FIFO is empty?
     wire [7:0]  rxfifo_rdata;               // RX FIFO output byte (rdata); valid iff !rxfifo_empty
-    reg         rxfifo_deq;                 // de-queue the RX FIFO rdata
+    wire        rxfifo_deq;                 // de-queue the RX FIFO rdata
 
     // RX FIFO to store incoming bytes from PS2 device (keyboard)
     fifo #(
@@ -147,7 +147,7 @@ module ps2_kbd_host (
         .clk6x (clk6x),      // 48MHz
         .resetn (resetn  && !txfifo_clear),     // sync reset
         // I/O Write port
-        .wport_i (txfifo_wdata),          // Write Port Data
+        .wport_i (kbd_wcmddata_i),          // Write Port Data
         .wenq_i (txfifo_enq),                 // Enqueue data from the write port now; must not assert when full_o=1
         // I/O read port
         .rport_o (txfifo_rdata),          // Read port data: valid any time empty_o=0
@@ -157,103 +157,113 @@ module ps2_kbd_host (
         .empty_o (txfifo_empty)                 // FIFO is empty?
     );    
 
-    // current keyboard status byte for SMC read of register SMCREG_READ_PS2_KBD_STAT
-    reg [7:0]  kbd_stat;
+
+    // FSM state enum
+    localparam TX_DEFAULT = 3'o0;                   // no TX ongoing, maybe just RX, or simple 1B command or data.
+    localparam TX_2B_SEND_FIRST = 3'o1;             // 2B command+data sending: wait for the first byte being consumed (start sending)
+    localparam TX_2B_WAIT_FIRST_REPLY = 3'o2;       // 2B command+data sending: the cmd byte has been sent, now waiting for a reply
+
+    // FSM state
+    reg [2:0]   fsm_state;
 
     always @(posedge clk6x) 
     begin
         if (!resetn)
         begin
-            txbyte_o <= 8'hFF;
-            byteidx <= 2'b00;
-            smc_regnum <= 8'h00;
-            rxfifo_deq <= 0;
-            txfifo_wdata <= 8'h00;
-            txfifo_enq <= 0;
-            kbd_stat <= PS2_CMD_STAT_IDLE;
+            fsm_state <= TX_DEFAULT;
+            kbd_stat_o <= PS2_CMD_STAT_IDLE;
+            // txfifo_wdata <= 8'h00;
+            // txfifo_enq <= 0;
             txfifo_clear <= 0;
+            ps2k_txcodevalid <= 0;          // pass a byte from TX FIFO into PS2 port?
+            // rxfifo_deq <= 0;
         end else begin
             // clear one-off signals
-            rxfifo_deq <= 0;
-            txfifo_enq <= 0;
+            // txfifo_enq <= 0;
             txfifo_clear <= 0;
+            ps2k_txcodevalid <= !txfifo_empty;
 
-            if (ps2k_acked && txfifo_empty)
+            // have we sent something and waiting for a reply?
+            if (kbd_stat_o == PS2_CMD_STAT_PENDING)
             begin
-                kbd_stat <= PS2_CMD_STAT_ACK;
-            end else if (ps2k_errd)
-            begin
-                kbd_stat <= PS2_CMD_STAT_ERR;
-                txfifo_clear <= 1;
-            end else if (ps2k_txcodevalid)
-            begin
-                kbd_stat <= PS2_CMD_STAT_PENDING;
-            end
-
-
-            if (devsel_i)
-            begin
-                // the device is selected by master
-                if (rxbyte_v_i)
+                // yes; 
+                // are we receiving a reply?
+                if (ps2k_rxcodevalid)
                 begin
-                    // received a byte from master
-                    if (byteidx == 2'b00)
+                    // yes;
+                    // is the reply an error code or ack code?
+                    if (ps2k_rxcode == PS2_CMD_STAT_ERR)
                     begin
-                        // it is the first i2c data byte after address: the register number
-                        smc_regnum <= rxbyte_i;
-                    end else //if ((byteidx == 2'b01) || (byteidx == 2'b10))
+                        // error code -> set status and clear any further tx-bytes in the TX FIFO
+                        kbd_stat_o <= PS2_CMD_STAT_ERR;
+                        txfifo_clear <= 1;
+                        fsm_state <= TX_DEFAULT;
+                    end else if (ps2k_rxcode == PS2_CMD_STAT_ACK)
                     begin
-                        case (smc_regnum)
-                            SMCREG_SEND_PS2_KBD_CMD, SMCREG_SEND_PS2_KBD_2BCMD:
-                            begin
-                                if (!txfifo_full)
-                                begin
-                                    ps2k_txcode <= rxbyte_i;
-                                    txfifo_enq <= 1;
-                                end
-                            end
-                        endcase
-                    end
-                    
-                    byteidx <= byteidx + 2'd1;
-                end
-
-                if (rw_bit_i)         // I2C Read?
-                begin
-                    // reading from the slave -> we will transmit
-                    case (smc_regnum)
-                        SMCREG_READ_KBD_BUF:
+                        // ack reply code;
+                        // are there any more bytes in the TX FIFO ?
+                        if (fsm_state == TX_2B_WAIT_FIRST_REPLY)
                         begin
-                            if (rxfifo_empty)
-                            begin
-                                txbyte_o <= 8'h00;
-                            end else begin
-                                txbyte_o <= rxfifo_rdata;
-                            end
-                        end
-
-                        SMCREG_READ_PS2_KBD_STAT:
-                        begin
-                            txbyte_o <= kbd_stat;
-                        end
-                    endcase
-
-                    if (txbyte_deq_i)
-                    begin
-                        byteidx <= byteidx + 2'd1;
-                        if ((smc_regnum == SMCREG_READ_KBD_BUF) && (txbyte_o != 8'h00))
-                        begin
-                            rxfifo_deq <= 1;
+                            // yes, there should be one more (data) byte in TX FIFO;
+                            // this ACK is noted internally, but thrown away (not reported to CPU).
+                            // Go back to the default state, this unblocks sending of the remaining data 
+                            // byte from TX FIFO, and normal processing of the reply, when it arrives.
+                            fsm_state <= TX_DEFAULT;
+                        end else begin
+                            // no, this is the last reply in sequence -> remember
+                            kbd_stat_o <= PS2_CMD_STAT_ACK;
                         end
                     end
                 end
-            end else begin
-                // I2C device not selected -> reset
-                byteidx <= 2'b00;
             end
+
+            case (fsm_state)
+                TX_DEFAULT:
+                begin
+                    if (kbd_enq_cmd1_i)
+                    begin
+                        // enqueue 1-byte command (recommended flow)
+                        kbd_stat_o <= PS2_CMD_STAT_PENDING;
+                    end else if (kbd_enq_cmd2_i)
+                    begin
+                        // enqueuing 2-byte command & data
+                        kbd_stat_o <= PS2_CMD_STAT_PENDING;
+                        fsm_state <= TX_2B_SEND_FIRST;
+                    end
+                end
+
+                TX_2B_SEND_FIRST:           // 2B command+data sending: wait for the first byte being consumed (start sending)
+                begin
+                    if (txfifo_deq)
+                    begin
+                        // TX FIFO byte consumed by PS2 port
+                        fsm_state <= TX_2B_WAIT_FIRST_REPLY;
+                    end
+                end
+
+                TX_2B_WAIT_FIRST_REPLY:     // 2B command+data sending: the cmd byte has been sent, now waiting for a reply
+                begin
+                    // block any further sending from TX FIFO until we get a reply
+                    ps2k_txcodevalid <= 0;
+                    // TBD: check for timeout!!
+                end
+            endcase
         end
         
     end
+
+    // generate simple outputs
+    assign kbd_rdata_o = rxfifo_empty ? 8'h00 : rxfifo_rdata;      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
+    assign kbd_rvalid_o = !rxfifo_empty;     // RX FIFO byte is valid? (= FIFO not empty?)
+    assign rxfifo_deq = kbd_rdeq_i && !rxfifo_empty;
+    
+    // assign txfifo_wdata = kbd_wcmddata_i;
+    assign txfifo_enq = kbd_enq_cmd1_i | kbd_enq_cmd2_i;
+
+    // insert PS2 RX byte into the RX FIFO, only if not full and not waiting for the first reply in a 2-byte sequence.
+    // If it is the first reply in a 2-byte sequence, then it should be ACK, and that gets noted but NOT inserted in the FIFO.
+    // However, if it is anything else than ACK, then we should process in the FIFO as usual.
+    assign rxfifo_enq = ps2k_rxcodevalid & !rxfifo_full & ((fsm_state != TX_2B_WAIT_FIRST_REPLY) | (ps2k_rxcode != PS2_CMD_STAT_ACK));
 
 endmodule
 
