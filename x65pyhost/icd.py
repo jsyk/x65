@@ -78,6 +78,9 @@ class ICD:
     def iopoke(self, addr, data):
         return self.ioregs_write(addr, [data])
 
+    def iopeek(self, addr):
+        data = self.ioregs_read(addr, 1)
+        return data[0]
 
     def sram_blockwrite(self, maddr, data):
         k = 0
