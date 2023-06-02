@@ -6,7 +6,21 @@
  *      0x18		Read ps2 (keyboard) status
  *      0x19	    00..FF	Send ps2 command
  *      0x21		Read from mouse buffer     <- TBD, not implemented yet here!!
- *
+ * 
+ * Keyboard initialization sequence:
+ *      After power-up, a keyboard runs a built-in self-test routine (BAT) and flashes all three LED.
+ *      Then the keyboard sends the code 0xAA = test sucessful (or 0xFC = error).
+ *      After that, a PS2 keyboard is in normal mode: it acceps commands, and sends scan-codes
+ *      as keys are pressed.
+ *      However, if this is a keyboard with a dual USB and PS2 interface, then more is needed.
+ *      After a power up and a sucessful BAT, they keyboard oscillates between USB mode and PS2 mode.
+ *      Always when it enters the PS2 mode for a while, it sends the 0xAA code and waits for any
+ *      PS2 command from the host. If none is received within a short time, it goes to USB mode
+ *      to try the USB protocol. But if a PS2 command is received, the keyboard knows that the host
+ *      is PS2 and will stay in the PS2 mode indefinitely.
+ *      This hardware will recognize the 0xAA code and respond with a two-byte command: 0xED 0x00.
+ *      The command will just disable all LEDs.
+ *      This was tested with AMEITEC AM-K2001W.
  */
 module smc (
     // Global signals
@@ -32,8 +46,6 @@ module smc (
     wire        rxbyte_v;         // valid received byte (for 1T) for Write transfers
     wire [7:0]  txbyte;           // the next byte to transmit from device; shall be valid anytime devsel_o=1 && rw_bit_o=1
     wire        txbyte_deq;       // the txbyte has been consumed (1T)
-    // output reg      tx_nacked_o         // master NACKed the last byte!
-    // reg  [1:0]  byteidx;
 
     i2c_slave #(.SLAVE_ADDRESS(8'h84))
     i2cslv 
@@ -81,6 +93,9 @@ module smc (
     reg             kbd_enq_cmd1;           // enqueu 1Byte command
     reg             kbd_enq_cmd2;           // enqueu 2Byte command+data
 
+    wire            kbd_bat_ok;
+    reg             init_insert_second;     // kbd init second step flag
+
     // Keyboard
     ps2_kbd_host kbd (
         // Global signals
@@ -97,7 +112,8 @@ module smc (
         //      0x01 => transmission pending
         //      0xFA => ACK received
         //      0xFE => ERR received
-        .kbd_stat_o,
+        .kbd_stat_o (kbd_stat),
+        .kbd_bat_ok_o (kbd_bat_ok),      // received the BAT OK code (0xAA) from the keyboard
         // Write to keyboard:
         .kbd_wcmddata_i (kbd_wcmddata),           // byte for TX FIFO to send into PS2 keyboard
         .kbd_enq_cmd1_i (kbd_enq_cmd1),           // enqueu 1Byte command
@@ -131,23 +147,12 @@ module smc (
             // txbyte_o <= 8'hFF;
             byteidx <= 2'b00;
             smc_regnum <= 8'h00;
+            init_insert_second <= 0;
         end else begin
             // clear one-off signals
             kbd_rdeq <= 0;
             kbd_enq_cmd1 <= 0;           // enqueu 1Byte command
             kbd_enq_cmd2 <= 0;
-
-            // if (ps2k_acked && txfifo_empty)
-            // begin
-            //     kbd_stat <= PS2_CMD_STAT_ACK;
-            // end else if (ps2k_errd)
-            // begin
-            //     kbd_stat <= PS2_CMD_STAT_ERR;
-            //     txfifo_clear <= 1;
-            // end else if (ps2k_txcodevalid)
-            // begin
-            //     kbd_stat <= PS2_CMD_STAT_PENDING;
-            // end
 
 
             if (devsel)
@@ -206,6 +211,31 @@ module smc (
             end else begin
                 // I2C device not selected -> reset
                 byteidx <= 2'b00;
+            end
+
+            // keyboard initialization:
+            // received the keyboard Succesful BAT code 0xAA ?
+            // if ((kbd_rdata == 8'hAA) && (kbd_rvalid))
+            if (kbd_bat_ok)
+            begin
+                // yes; remove 0xAA from the queue
+                // kbd_rdeq <= 1;
+                // send back the 0xED 0xXX -> Turn On/Off the LEDs
+                kbd_wcmddata <= 8'hED;
+                kbd_enq_cmd2 <= 1;
+                // flag the next step
+                init_insert_second <= 1;
+            end
+
+            // is this the second init step?
+            if (init_insert_second)
+            begin
+                // yes, send the 0x02 - second part of the 0xED command:
+                // kbd_wcmddata <= 8'h02;            /// 0x02 => turn-on the NumLock LED
+                kbd_wcmddata <= 8'h00;              // 0x00 => turn off all LED
+                kbd_enq_cmd2 <= 1;
+                // init done.
+                init_insert_second <= 0;
             end
         end
         

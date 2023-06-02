@@ -18,6 +18,7 @@ module ps2_kbd_host (
     //      0xFA => ACK received
     //      0xFE => ERR received
     output reg [7:0] kbd_stat_o,
+    output          kbd_bat_ok_o,      // received the BAT OK code (0xAA) from the keyboard
     // Write to keyboard:
     input [7:0]     kbd_wcmddata_i,           // byte for TX FIFO to send into PS2 keyboard
     input           kbd_enq_cmd1_i,           // enqueu 1Byte command
@@ -31,10 +32,13 @@ module ps2_kbd_host (
     // IMPLEMENTATION
 
     // values for output reg kbd_stat: (from PS2_CMD_STATUS : uint8_t):
-    localparam PS2_CMD_STAT_IDLE = 8'h00;
-    localparam PS2_CMD_STAT_PENDING = 8'h01;
-    localparam PS2_CMD_STAT_ACK = 8'hFA;
-    localparam PS2_CMD_STAT_ERR = 8'hFE;
+    localparam [7:0] PS2_CMD_STAT_IDLE = 8'h00;
+    localparam [7:0] PS2_CMD_STAT_PENDING = 8'h01;
+    localparam [7:0] PS2_CMD_STAT_ACK = 8'hFA;
+    localparam [7:0] PS2_CMD_STAT_ERR = 8'hFE;
+
+    // BAT OK code recived from a keyboard after power-up
+    localparam [7:0] PS2_BAT_OK = 8'hAA;
 
     // PS2 port
     wire [7:0]  ps2k_rxcode;        // received byte from PS2 port
@@ -178,14 +182,9 @@ module ps2_kbd_host (
                 if (ps2k_rxcodevalid)
                 begin
                     // yes;
+
                     // is the reply an error code or ack code?
-                    if (ps2k_rxcode == PS2_CMD_STAT_ERR)
-                    begin
-                        // anything else | error code -> set status and clear any further tx-bytes in the TX FIFO
-                        kbd_stat_o <= PS2_CMD_STAT_ERR;
-                        txfifo_clear <= 1;
-                        fsm_state <= TX_DEFAULT;
-                    end else if (ps2k_rxcode == PS2_CMD_STAT_ACK)
+                    if (ps2k_rxcode == PS2_CMD_STAT_ACK)
                     begin
                         // ack reply code - OK;
                         // are there any more bytes in the TX FIFO ?
@@ -200,7 +199,16 @@ module ps2_kbd_host (
                             // no, this is the last reply in sequence -> remember
                             kbd_stat_o <= PS2_CMD_STAT_ACK;
                         end
-                    end
+                    end //else 
+
+                    if (ps2k_rxcode == PS2_CMD_STAT_ERR)
+                    begin
+                        // anything else | error code -> set status and clear any further tx-bytes in the TX FIFO
+                        kbd_stat_o <= PS2_CMD_STAT_ERR;
+                        txfifo_clear <= 1;
+                        fsm_state <= TX_DEFAULT;
+                    end 
+
                 end
             end
 
@@ -245,12 +253,15 @@ module ps2_kbd_host (
     assign rxfifo_deq = kbd_rdeq_i && !rxfifo_empty;
     
     // assign txfifo_wdata = kbd_wcmddata_i;
-    assign txfifo_enq = kbd_enq_cmd1_i | kbd_enq_cmd2_i;
+    assign txfifo_enq = kbd_enq_cmd1_i || kbd_enq_cmd2_i;
 
     // insert PS2 RX byte into the RX FIFO, only if not full and not waiting for the first reply in a 2-byte sequence.
     // If it is the first reply in a 2-byte sequence, then it should be ACK, and that gets noted but NOT inserted in the FIFO.
     // However, if it is anything else than ACK, then we should process in the FIFO as usual.
-    assign rxfifo_enq = ps2k_rxcodevalid & !rxfifo_full & ((fsm_state != TX_2B_WAIT_FIRST_REPLY) | (ps2k_rxcode != PS2_CMD_STAT_ACK));
+    assign rxfifo_enq = ps2k_rxcodevalid && !rxfifo_full && ((fsm_state != TX_2B_WAIT_FIRST_REPLY) || (ps2k_rxcode != PS2_CMD_STAT_ACK));
+
+    // recognize the BAT OK code from keyboard
+    assign kbd_bat_ok_o = (ps2k_rxcode == PS2_BAT_OK) && ps2k_rxcodevalid;
 
 endmodule
 
