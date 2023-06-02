@@ -2,16 +2,16 @@
  * Phaser generates CPU and VIA phased clocks CPHI2, VPHI2
  * and supporting signals for control of the cpu and memory bus.
  *
- * clk6x - 48MHz:
+ * clk6x - 48MHz (1T = 20ns):
  *     ____      ____      ____      ____      ____      ____      ____
  * ___|    |____|    |____|    |____|    |____|    |____|    |____|
  *      S0L       S1L       S2L       S3H       S4H       S5H
  *     release_cs          setup_cs                      release_wr
  *               (stopped)
  *
- * cphi2 - 8MHz:
- * ___                               ________________________
- *    |_____________________________|                        |__________
+ * cphi2 - 8MHz for the 65CPU:
+ * ___                               _____________________________
+ *    |_____________________________|                             |__________
  *
  *
  */
