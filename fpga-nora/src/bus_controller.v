@@ -5,17 +5,19 @@ module bus_controller (
     // Global signals
     input           clk6x,      // 48MHz
     input           resetn,     // sync reset
+    //
     // CPU bus signals - address and data
     output reg [7:0] cpu_db_o,           // output to cpu data bus
     input   [7:0]   cpu_db_i,
     input   [15:12] cpu_abh_i,
-    // CPU bus control
-    output reg      cpu_be_o,
-    input           cpu_sync_vpa_i,
-    input           cpu_vpu_i,
-    input           cpu_vda_i,
-    input           cpu_cef_i,
-    input           cpu_rw_i,
+    // CPU bus control output
+    output reg      cpu_be_o,           // CPU Bus Enable (active high)
+    // CPU bus status input
+    input           cpu_sync_vpa_i,     // 65C02: SYNC, 65C816: VPA (Valid Program Address)
+    input           cpu_vpu_i,          // Vector Pull
+    input           cpu_vda_i,          // 65C816: Valid Data Address
+    input           cpu_cef_i,          // 65C816: C/E flag
+    input           cpu_rw_i,           // CPU read (1) / write (0)
     // Memory bus address and data signals
     output reg [20:12] mem_abh_o,      // memory address high bits 12-20: private to FPGA = output
     output reg [11:0]  memcpu_abl_o,      // memory address low bits 0-11: shared with CPU = bidi
@@ -26,45 +28,44 @@ module bus_controller (
     output reg      mem_rdn_o,            // Memory Read external
     output reg      mem_wrn_o,            // Memory Write external
     output reg      sram_csn_o,           // SRAM chip-select
-    // output reg      via_csn_o,             // VIA chip-select
     output reg      vera_csn_o,              // VERA chip-select
-    output reg      aura_csn_o,             // AURA chip-select
+    output reg      aio_csn_o,             // AURA and IO chip-select
     output reg      enet_csn_o,             // e-net LAN chip-select
-    // Phaser for CPU clock
+    //
+    // Phaser for CPU clock: phase status inputs
     input           setup_cs,
     input           release_wr,
     input           release_cs,
+    // Phase CPU clock control i/o
     output reg      run_cpu,
     input           stopped_cpu,
-    output reg      stretching_viaphi,      // TBD!!!
-    // NORA master interface - internal debug controller
-    input   [23:0]  nora_mst_addr_i,
-    input   [7:0]   nora_mst_data_i,
-    output reg [7:0] nora_mst_datard_o,
-    // output          nora_mst_datard_valid,      // flags nora_mst_datard_o to be valid
+    output reg      strech_cphi,      // TBD!!!
+    //
+    // NORA master interface (sink) - addressing from the internal debug controller.
+    //      Any access from the master interface will pause the CPU in the S1L state
+    //      before servicing the master request.
+    input   [23:0]  nora_mst_addr_i,            // 24-bit master request address 
+    input   [7:0]   nora_mst_data_i,            // master write data in
+    output reg [7:0] nora_mst_datard_o,         // master read data out
     output reg      nora_mst_ack_o,                 // end of access, also nora_mst_datard_o is valid now.
-    // input           nora_mst_req_BOOTROM_i,
-    // input           nora_mst_req_BANKREG_i,
-    // input           nora_mst_req_SCRB_i,
-    input           nora_mst_req_SRAM_i,
-    input           nora_mst_req_OTHER_i,
-    // input           nora_mst_req_VIA_i,
-    // input           nora_mst_req_VERA_i,
-    input           nora_mst_rwn_i,
-    // NORA slave interface - internal devices
-    output reg [15:0]  nora_slv_addr_o,
-    output  [7:0]   nora_slv_datawr_o,     // write data = available just at the end of cycle!!
+    input           nora_mst_req_SRAM_i,        // master request to SRAM
+    input           nora_mst_req_OTHER_i,       // master request to all other devices:
+                                                //   nora_mst_addr_i[19]  => to BANKREGS
+                                                //   nora_mst_addr_i[18]  => to IOREGS
+    input           nora_mst_rwn_i,             // master is reading (1) or writing (0)
+    //
+    // NORA slave interface (source) - addressing to internal devices implemented inside of NORA
+    output reg [15:0]  nora_slv_addr_o,         // requested 16-bit slave address
+    output  [7:0]   nora_slv_datawr_o,          // write data = available just at the end of cycle!!
     output          nora_slv_datawr_valid,      // flags nora_slv_datawr_o to be valid
-    input   [7:0]   nora_slv_data_i,
-    output reg      nora_slv_req_BOOTROM_o,
-    output reg      nora_slv_req_SCRB_o,
-    output reg      nora_slv_req_VIA1_o,
-    output reg      nora_slv_rwn_o,
+    input   [7:0]   nora_slv_data_i,            // read data from slave
+    // output reg      nora_slv_req_BOOTROM_o,
+    output reg      nora_slv_req_SCRB_o,        // a request to the SCRB at 0x9F50
+    output reg      nora_slv_req_VIA1_o,        // a request to VIA1 at 0x9F00
+    output reg      nora_slv_rwn_o,             // reading (1) or writing (0) to the slave
+    //
     // Bank parameters from SCRB
     input [7:0]     rambank_mask_i         // CPU accesses using RAMBANK reg are limited to this range
-    // Trace output
-    // output reg [28:0]   cpubus_trace_o,
-    // output reg          trace_catch_o
 );
 //// IMPLEMENTATION ////
 
@@ -73,14 +74,15 @@ module bus_controller (
     localparam LOW_ACTIVE = 1'b0;
     localparam LOW_INACTIVE = 1'b0;
 
-    localparam MST_IDLE = 3'o0;
-    localparam MST_WAIT_CPU_STOP = 3'o1;
-    localparam MST_DISABLE_CPU_BUS = 3'o2;
-    localparam MST_SETUP_ACC = 3'o3;
-    localparam MST_EXT_ACC = 3'o4;
-    localparam MST_EXT_ACC2 = 3'o5;
-    localparam MST_DATA_ACC = 3'o6;
-    localparam MST_FIN_ACC = 3'o7;
+    // Master Service FSM states
+    localparam MST_IDLE = 3'o0;                 // no master request, normal CPU runs
+    localparam MST_WAIT_CPU_STOP = 3'o1;        // waiting for CPU to be stopped in S1L by phaser
+    localparam MST_DISABLE_CPU_BUS = 3'o2;      // disabling the CPU bus (BE=0)
+    localparam MST_SETUP_ACC = 3'o3;            // setting up the access on the bus
+    localparam MST_EXT_ACC = 3'o4;              // access cycle
+    localparam MST_EXT_ACC2 = 3'o5;             // access cycle
+    localparam MST_DATA_ACC = 3'o6;             // data access cycle: read/write data is valid
+    localparam MST_FIN_ACC = 3'o7;              // end of master access, deasserting.
 
     // master request state machine
     reg [2:0]       mst_state;
@@ -95,7 +97,7 @@ module bus_controller (
                         nora_mst_req_OTHER_i
                         | nora_mst_req_SRAM_i /*| nora_mst_req_VIA_i | nora_mst_req_VERA_i*/;
 
-    wire nora_mst_req_OTHER_BOOTROM_i = nora_mst_req_OTHER_i && nora_mst_addr_i[20];
+    // wire nora_mst_req_OTHER_BOOTROM_i = nora_mst_req_OTHER_i && nora_mst_addr_i[20];
     wire nora_mst_req_OTHER_BANKREG_i = nora_mst_req_OTHER_i && nora_mst_addr_i[19];
     wire nora_mst_req_OTHER_IOREGS = nora_mst_req_OTHER_i && nora_mst_addr_i[18];
     // wire nora_mst_req_OTHER_SCRB_i = nora_mst_req_OTHER_i && nora_mst_addr_i[18];
@@ -116,11 +118,11 @@ module bus_controller (
     assign mem_db_o = (nora_mst_driving_memdb) ? nora_mst_data_i :  cpu_db_i;
 
     /* Handling of CPU write data to a NORA slave: the problem is that the write
-     * data is available on the CPU bus just at the end of bus cycle.
-     * End of cycle is indicated by the release_cs flag.
+     * data is available on the CPU bus just at the end of bus cycle - PHI2 falling.
+     * Imminent end of cycle is indicated by the release_wr flag.
      */
     assign nora_slv_datawr_o = (nora_mst_driving_memdb) ? nora_mst_data_i : cpu_db_i;                // pass CPU data write-through
-    assign nora_slv_datawr_valid = release_cs || nora_mst_ack_o;
+    assign nora_slv_datawr_valid = release_wr || nora_mst_ack_o;
 
 
     always @( posedge clk6x )
@@ -136,12 +138,12 @@ module bus_controller (
             sram_csn_o <= HIGH_INACTIVE;
             // via_csn_o <= HIGH_INACTIVE;
             vera_csn_o <= HIGH_INACTIVE;
-            aura_csn_o <= HIGH_INACTIVE;
+            aio_csn_o <= HIGH_INACTIVE;
             enet_csn_o <= HIGH_INACTIVE;
             run_cpu <= 0;
-            stretching_viaphi <= 0;
+            strech_cphi <= 0;
             nora_mst_ack_o <= 0;
-            nora_slv_req_BOOTROM_o <= 0;
+            // nora_slv_req_BOOTROM_o <= 0;
             nora_slv_req_SCRB_o <= 0;
             nora_slv_req_VIA1_o <= 0;
             rambank_nr <= 8'h00;
@@ -168,17 +170,17 @@ module bus_controller (
                 else if (cpu_abh_i[15:14] == 2'b11)
                 begin
                     // CPU address 0xC000 - 0xF000 => 16k ROM banks mapped at the top of SRAM
-                    if (rombank_nr[5] == 1'b1)
-                    begin
-                        // special PBL ROM bank in FPGA
-                        nora_slv_req_BOOTROM_o <= 1;
-                    end else begin
+                    // if (rombank_nr[5] == 1'b1)
+                    // begin
+                    //     // special PBL ROM bank in FPGA
+                    //     nora_slv_req_BOOTROM_o <= 1;
+                    // end else begin
                         // normal ROM bank in SRAM
                         mem_abh_o <= { 2'b11, rombank_nr[4:0], cpu_abh_i[13:12] };
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
                         mem_wrn_o <= HIGH_INACTIVE;         // never allow writing to the ROM bank!
-                    end
+                    // end
                 end 
                 else if (cpu_abh_i[15:13] == 3'b101)
                 begin
@@ -209,7 +211,7 @@ module bus_controller (
                     else if (cpu_ab_i[7:4] == 4'h4)
                     begin
                         // 0x9F40 AURA audio controller
-                        aura_csn_o <= LOW_ACTIVE;
+                        aio_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
                         mem_wrn_o <= cpu_rw_i;
                     end
@@ -283,9 +285,9 @@ module bus_controller (
                 sram_csn_o <= HIGH_INACTIVE;
                 // via_csn_o <= HIGH_INACTIVE;
                 vera_csn_o <= HIGH_INACTIVE;
-                aura_csn_o <= HIGH_INACTIVE;
+                aio_csn_o <= HIGH_INACTIVE;
                 enet_csn_o <= HIGH_INACTIVE;
-                nora_slv_req_BOOTROM_o <= 0;
+                // nora_slv_req_BOOTROM_o <= 0;
                 nora_slv_req_BANKREG <= 0;
                 nora_slv_req_SCRB_o <= 0;
                 nora_slv_req_VIA1_o <= 0;
@@ -354,10 +356,10 @@ module bus_controller (
                     //     vera_csn_o <= LOW_ACTIVE;
                     // end
 
-                    if (nora_mst_req_OTHER_BOOTROM_i)
-                    begin
-                        nora_slv_req_BOOTROM_o <= 1;
-                    end
+                    // if (nora_mst_req_OTHER_BOOTROM_i)
+                    // begin
+                    //     nora_slv_req_BOOTROM_o <= 1;
+                    // end
 
                     if (nora_mst_req_OTHER_BANKREG_i)
                     begin
@@ -389,7 +391,7 @@ module bus_controller (
                         else if (nora_mst_addr_i[7:4] == 4'h4)
                         begin
                             // 0x9F40 AURA audio controller
-                            aura_csn_o <= LOW_ACTIVE;
+                            aio_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~nora_mst_rwn_i;
                             mem_wrn_o <= nora_mst_rwn_i;
                         end
@@ -479,7 +481,7 @@ module bus_controller (
                 cpu_db_o <= { 3'b000, rombank_nr };
             end
         end
-        else if (nora_slv_req_BOOTROM_o || nora_slv_req_SCRB_o || nora_slv_req_VIA1_o)
+        else if (nora_slv_req_SCRB_o || nora_slv_req_VIA1_o)
         begin
             // internal slave reading
             cpu_db_o <= nora_slv_data_i;

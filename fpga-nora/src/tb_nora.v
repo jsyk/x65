@@ -2,6 +2,12 @@
 
 module tb_nora ();
 
+`define assert(signal, value) \
+        if (signal !== value) begin \
+            $display("ASSERTION FAILED in %m: signal != value"); \
+            $finish; \
+        end
+
     reg FPGACLK;
 
 // CPU interface
@@ -41,6 +47,10 @@ module tb_nora ();
 
     wire CPULED0;
     wire CPULED1;
+
+    wire VCS0n_VERA;
+    wire VCS1n_AIO;
+    wire VCS2n_ENET;
 
     wire ICD_CSn = 1'b1;
     wire ICD_MOSI = 1'b1;
@@ -128,9 +138,9 @@ module tb_nora ();
         .VERAFCSn (1'b1),
         .ICD2VERAROM (1'b1),
 
-        // output VCS0n,
-        // output VCS1n,
-        // output VCS2n,
+        .VCS0n (VCS0n_VERA),
+        .VCS1n (VCS1n_AIO),
+        .VCS2n (VCS2n_ENET),
         .VIRQn (1'b1),
         .VAUX0 (1'b1),
         .VAUX1 (1'b1),
@@ -159,8 +169,10 @@ module tb_nora ();
         FPGACLK = ~FPGACLK;
     end
 
+    // data that the CPU has read from NORA/SRAM
     reg [7:0] tb_cpuDataRead;
 
+    // generate CPU read transaction
     task cpu_read;
         input [15:0] addr;
         begin
@@ -170,12 +182,15 @@ module tb_nora ();
             CRWn = 1'b1;
             CSYNC_VPA = 1'b0;
             @(posedge CPHI2);
-            #(60-15);       // tDSR=15ns min before posedge CPHI2
-            tb_cpuDataRead = CD;
+            #(60-15);       // tDSR=15ns min before negedge CPHI2
+            // tb_cpuDataRead = CD;
             @(negedge CPHI2);
+            #10;            // tDHR=10ns max after negedge CPHI2
+            tb_cpuDataRead = CD;
         end
     endtask
 
+    // generate CPU write transaction
     task cpu_write;
         input [15:0] addr;
         input [7:0] wdata;
@@ -210,26 +225,47 @@ module tb_nora ();
         @(negedge CPHI2);
         @(negedge CPHI2);
 
+        // test-writes CPU->SRAM
         cpu_write(16'h0010, 8'h12);
         cpu_write(16'h0011, 8'h34);
         cpu_write(16'h0012, 8'h56);
         cpu_write(16'h0013, 8'h78);
-        cpu_read(16'h0010);
-        cpu_read(16'h0011);
-        cpu_read(16'h0012);
-        cpu_read(16'h0013);
+        
+        // test-reads SRAM->CPU
+        cpu_read(16'h0010);  `assert(tb_cpuDataRead, 8'h12);
+        cpu_read(16'h0011);  `assert(tb_cpuDataRead, 8'h34);
+        cpu_read(16'h0012);  `assert(tb_cpuDataRead, 8'h56);
+        cpu_read(16'h0013);  `assert(tb_cpuDataRead, 8'h78);
 
+        // write to bank regs
         cpu_write(16'h0000, 8'hAB);         // RAMBANK
         cpu_write(16'h0001, 8'h0C);         // ROMBANK
 
+        // read from bank regs
+        cpu_read(16'h0000);  `assert(tb_cpuDataRead, 8'hAB);
+        cpu_read(16'h0001);  `assert(tb_cpuDataRead, 8'h0C);
+
+        // write to VIA
+        cpu_write(16'h9F02, 8'h03);         // VIA1/DDRB [1:0] config to outputs
+        cpu_write(16'h9F00, 8'h00);         // VIA1/ORB set to 00
+        cpu_read(16'h9F02);     `assert(tb_cpuDataRead, 8'h03);
+        cpu_write(16'h9F00, 8'h01);         // VIA1/ORB set to 01
+        cpu_write(16'h9F00, 8'h02);         // VIA1/ORB set to 01
+        cpu_read(16'h9F00);     `assert(tb_cpuDataRead, 8'hC2);         // fixed upper signal's levels
+
+        // write to VERA
+        cpu_write(16'h9F20, 8'h12);
 
         #1000;
+        $display("=== TESTBENCH OK ===");
         $finish;
     end
 
-
+    // ------------------------------------------------------
+    // simulation of SRAM
     reg [7:0] sram_block [255:0];
 
+    // SRAM read
     always @(MRDn, M1CSn)
     begin
         if ((MRDn == 0) && (M1CSn == 0))
@@ -240,6 +276,7 @@ module tb_nora ();
         end
     end
 
+    // SRAM write
     always @(posedge MWRn)
     begin
         if (M1CSn == 0)
@@ -247,6 +284,7 @@ module tb_nora ();
             sram_block[MAL[7:0]] <= MD;
         end
     end
+    // ------------------------------------------------------
 
     // Do this in your test bench to generate VCD waves
     initial

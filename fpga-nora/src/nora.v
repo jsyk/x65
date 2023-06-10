@@ -140,21 +140,22 @@ module top (
     wire  ph_run_cpu;
     wire  busct_run_cpu;
     wire  stopped_cpu;
-    wire  setup_cs;   // catch CPU address and setup the CSx signals
+    wire  latch_ad;     // address bus shall be registered; also, in the 24-bit mode, latch the upper 8b on the data bus
+    wire  setup_cs;   // (catch CPU address and) setup the CSx signals
     wire  release_wr;  // release write signal now, to have a hold before the cs-release
     wire  release_cs;  // CPU access is complete, release the CS
 
     /* 
-    * Phaser generates CPU and VIA phased clocks CPHI2, VPHI2
+    * Phaser generates CPU phased clock CPHI2
     * and supporting signals for control of the cpu and memory bus.
     */
     phaser ph0 ( 
-        .clk6x  (clk6x),
+        .clk  (clk6x),
         .resetn   (resetn),
         .run    (ph_run_cpu),
         .stopped (stopped_cpu),
         .cphi2  (CPHI2),
-        .vphi2  (VIAPHI2),
+        .latch_ad  (latch_ad),
         .setup_cs (setup_cs),
         .release_wr (release_wr),
         .release_cs (release_cs)
@@ -184,7 +185,7 @@ module top (
     wire    [7:0]   nora_slv_datawr;     // write data = available just at the end of cycle!!
     wire            nora_slv_datawr_valid;      // flags nora_slv_datawr_o to be valid
     wire    [7:0]   nora_slv_datard;
-    wire            nora_slv_req_BOOTROM;
+    // wire            nora_slv_req_BOOTROM;
     wire            nora_slv_req_SCRB;
     wire            nora_slv_req_VIA1;
     wire            nora_slv_rwn;
@@ -341,7 +342,7 @@ module top (
         .sram_csn_o (M1CSn),           // SRAM chip-select
         // .via_csn_o (VIACS),             // VIA chip-select
         .vera_csn_o (VCS0n),              // VERA chip-select
-        .aura_csn_o (VCS1n),
+        .aio_csn_o (VCS1n),
         .enet_csn_o (VCS2n),
         // Phaser for CPU clock
         .setup_cs (setup_cs),
@@ -349,7 +350,7 @@ module top (
         .release_cs (release_cs),
         .run_cpu (busct_run_cpu),
         .stopped_cpu (stopped_cpu),
-        //.stretching_viaphi (open),      // TBD!!!
+        //.stretch_cphi (open),      // TBD!!!
         // NORA master interface - internal debug controller
         .nora_mst_addr_i (nora_mst_addr),
         .nora_mst_data_i (nora_mst_datawr),
@@ -369,7 +370,7 @@ module top (
         .nora_slv_datawr_o (nora_slv_datawr),     // write data = available just at the end of cycle!!
         .nora_slv_datawr_valid (nora_slv_datawr_valid),      // flags nora_slv_datawr_o to be valid
         .nora_slv_data_i (nora_slv_datard),
-        .nora_slv_req_BOOTROM_o (nora_slv_req_BOOTROM),
+        // .nora_slv_req_BOOTROM_o (nora_slv_req_BOOTROM),
         .nora_slv_req_SCRB_o (nora_slv_req_SCRB),
         .nora_slv_req_VIA1_o (nora_slv_req_VIA1),
         .nora_slv_rwn_o (nora_slv_rwn),

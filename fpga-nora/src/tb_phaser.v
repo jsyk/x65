@@ -13,7 +13,7 @@ module tb_phaser ();
     wire  release_cs;  // CPU access is complete, release the CS
 
     phaser ph0 ( 
-        .clk6x  (clk6x),
+        .clk  (clk6x),
         .resetn   (rstn),
         .run    (run),
         .stopped (stopped),

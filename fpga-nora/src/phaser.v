@@ -1,12 +1,13 @@
 /* 
- * Phaser generates CPU and VIA phased clocks CPHI2, VPHI2
+ * Phaser generates CPU phased clock CPHI2
  * and supporting signals for control of the cpu and memory bus.
  *
- * clk6x - 48MHz (1T = 20ns):
+ * clk - 48MHz (1T = 20ns):
  *     ____      ____      ____      ____      ____      ____      ____
  * ___|    |____|    |____|    |____|    |____|    |____|    |____|
  *      S0L       S1L       S2L       S3H       S4H       S5H
- *     release_cs          setup_cs                      release_wr
+ *    .release_cs.        .setup_cs .                   .release_wr.
+ *    .release_cs.        .latch_ad .setup_cs .         .release_wr.
  *               (stopped)
  *
  * cphi2 - 8MHz for the 65CPU:
@@ -16,40 +17,46 @@
  *
  */
 module phaser (
-    input   clk6x,          // system clock, 6x faster than the 65C02 clock -> NORA has 6 microcycles (@48MHz) per one CPU cycle (@8MHz)
+    // Global signals
+    input   clk,          // system clock, 6x faster than the 65C02 clock -> NORA has 6 microcycles (@48MHz) per one CPU cycle (@8MHz)
     input   resetn,           // system reset, low-active sync.
-    input   run,            // allows the CPU to run
-    output reg  stopped,    // indicates that the CPU is stopped (in a safe phase)
+    // RUN/STOP signal for the generated CPU clock (cphi2).
+    // The CPHI2 is stopped just always in the S1L phase!
+    input   run,            // allows the CPU to run (1), or stops (0) it on S1L
+    output reg  stopped,    // indicates that the CPU is stopped (in the safe phase S1L)
+    // generated CPU clock for 65C02
     output reg  cphi2,      // generated 65C02 PHI2 clock
-    output reg  vphi2,      // generated 65C22 PHI2 clock, which is shifted by +60deg (21ns)
+    // state signals for controlling the bus cycle in the FPGA. See diagram above.
+    output reg  latch_ad,   // address bus shall be registered; also, in the 24-bit mode, latch the upper 8b on the data bus
     output reg  setup_cs,   // catch CPU address and setup the CSx signals
-    output reg  release_wr, // release write signal now, to have a hold before the cs-release
-    output reg  release_cs  // CPU access is complete, release the CS
+    output reg  release_wr, // release write signal by the next rising edge, to have a hold before the cs-release
+    output reg  release_cs  // CPU access is complete, release the CS by the next rising edge
 );
+// IMPLEMENTATION
+    localparam S0L = 3'b000;
+    localparam S1L = 3'b001;
+    localparam S2L = 3'b010;
+    localparam S3H = 3'b011;
+    localparam S4H = 3'b100;
+    localparam S5H = 3'b101;
 
-    parameter S0L = 3'b000;
-    parameter S1L = 3'b001;
-    parameter S2L = 3'b010;
-    parameter S3H = 3'b011;
-    parameter S4H = 3'b100;
-    parameter S5H = 3'b101;
-
-    reg [2:0]   state_reg;
+    reg [2:0]   state_reg;      // FSM state
 
     // Phasing State Machine
-    always @(posedge clk6x)
+    always @(posedge clk)
     begin
         if (!resetn) 
         begin
             state_reg <= S0L;
             cphi2 <= 1'b0;
-            vphi2 <= 1'b1;
+            latch_ad <= 1'b0;
             setup_cs <= 1'b0;
             release_wr <= 1'b0;
             release_cs <= 1'b0;
             stopped <= 1'b0;
         end else begin
             // default outputs:
+            latch_ad <= 1'b0;
             setup_cs <= 1'b0;
             release_wr <= 1'b0;
             release_cs <= 1'b0;
@@ -60,7 +67,6 @@ module phaser (
                     begin
                         state_reg <= S1L;
                         cphi2 <= 1'b0;
-                        vphi2 <= 1'b0;          // falling edge vphi2
                     end
 
                 S1L:
@@ -69,8 +75,8 @@ module phaser (
                         begin
                             state_reg <= S2L;
                             cphi2 <= 1'b0;
-                            vphi2 <= 1'b0;
                             setup_cs <= 1'b1;       // catch address in the next microcycle
+                            latch_ad <= 1'b1;       // catch address in the next microcycle
                         end else begin
                             stopped <= 1'b1;
                         end
@@ -80,21 +86,18 @@ module phaser (
                     begin
                         state_reg <= S3H;
                         cphi2 <= 1'b1;      // rising edge cphi2
-                        vphi2 <= 1'b0;
                     end
                 
                 S3H:
                     begin
                         state_reg <= S4H;
                         cphi2 <= 1'b1;
-                        vphi2 <= 1'b1;      // rising edge vphi2
                     end
 
                 S4H:
                     begin
                         state_reg <= S5H;
                         cphi2 <= 1'b1;
-                        vphi2 <= 1'b1;
                         release_wr <= 1'b1;     // release MWR signals in the next microcycle
                     end
 
@@ -102,7 +105,6 @@ module phaser (
                     begin
                         state_reg <= S0L;
                         cphi2 <= 1'b0;          // falling edge cphi2
-                        vphi2 <= 1'b1;
                         release_cs <= 1'b1;     // release CS signals in the next microcycle
                     end
 
@@ -110,7 +112,6 @@ module phaser (
                     begin
                         state_reg <= S0L;
                         cphi2 <= 1'b0;
-                        vphi2 <= 1'b1;
                     end
             endcase
         end

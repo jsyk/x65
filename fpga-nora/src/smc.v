@@ -44,7 +44,7 @@ module smc (
     wire        rw_bit;           // Read/nWrite bit, only valid when devsel_o=1
     wire [7:0]  rxbyte;          // the received byte for device
     wire        rxbyte_v;         // valid received byte (for 1T) for Write transfers
-    wire [7:0]  txbyte;           // the next byte to transmit from device; shall be valid anytime devsel_o=1 && rw_bit_o=1
+    reg  [7:0]  txbyte;           // the next byte to transmit from device; shall be valid anytime devsel_o=1 && rw_bit_o=1
     wire        txbyte_deq;       // the txbyte has been consumed (1T)
 
     i2c_slave #(.SLAVE_ADDRESS(8'h84))
@@ -144,7 +144,7 @@ module smc (
             kbd_wcmddata <= 8'h00;           // byte for TX FIFO to send into PS2 keyboard
             kbd_enq_cmd1 <= 0;           // enqueu 1Byte command
             kbd_enq_cmd2 <= 0;
-            // txbyte_o <= 8'hFF;
+            txbyte <= 8'hFF;
             byteidx <= 2'b00;
             smc_regnum <= 8'h00;
             init_insert_second <= 0;
