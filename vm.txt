@@ -1,0 +1,15 @@
+Ideas how to do a VM with 65C816
+===================================
+
+CPU address space: 2*24 = 16MB
+Page Size would be min. 12-bit 4096 B ==> phys page index max 12 b
+                    max. 13-bit 8192 B ==> phys page index max 11 b
+        (but we have just 2MB physical memory, so 8-9b is sufficient)
+
+VM tables need min. 2B / virtual page
+    11-12 bits for physical page index (min 8-9b)
+    Present Bit - if the virtual page is valid
+    R/W bit - if the virtual page is writable
+    Tag/ProcessId - 2-3bits - to distinguish between VM pages belonging to different processes, inside of table cache
+
+=> in 4096 Bytes, we could fit 2048 page descriptors => to cover 8MB (in case of 4kB pages) or 16MB (in case of 8kB pages) of virtual memory.

@@ -7,16 +7,11 @@ The 65c02 and 65c816-based modern computer with a retro feel.
 
 *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* 
 
-Stop, read and think:
-
 THIS HARDWARE PROJECT IS A WORK-IN-PROGRESS AND NOT "RELEASED"!
 
-Some parts are untested yet, and some parts may even contain *known* bugs 
-THAT ARE INTENTIONALLY NOT FIXED IN THE SCHEMATIC OR THE PCB LAYOUT!
-(Explanation: as soon a schematic+layout revision gets produced in a fab,
-the document must never change. Changes are allowed only in new revisions!)
-
-... YOU HAVE BEEN WARNED ...
+Some parts are untested yet, and some parts may even contain known bugs 
+that have not been fixed yet.
+See the section `Status of hardware testing' below.
 
 *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* *STOP* 
 
@@ -35,15 +30,18 @@ Features:
 * DIY and hobby-builders friendly.
 * Low-cost to build in small quantities by individual hackers.
 
-The current architecture:
---------------------------
+Architecture:
+--------------
+
 * A two-PCB stacked construction: Motherboard (mo-bo) at the bottom and Video-Audio board (va-bo) at the top,
   connected by two 20-pin headers. Each board is exactly 100x100mm and just 2-layers. 
   This construction has following advantages:
+
   * the PCB stack can be placed inside Eurocard housings
   * 100x100mm / 2-layers is cheaply manufactured by many PCB vendors in small quantities
 
 In detail, the motherboard PCB has (*mo-bo* rev01):
+
 * CPU: W65C02 (or W65C816) in the QFP-44 package.
 * Memory: 2MB asynchronous SRAM.
 * NORA FPGA: Lattice FPGA iCE40HX4K (TQFP-144) to handle address decoding, glue logic, PS/2 interfaces. 
@@ -60,6 +58,7 @@ In detail, the motherboard PCB has (*mo-bo* rev01):
   The entire computer can be powered from a host-PC USB port, or standalone from a common USB charger with 5V output.
 
 The video-audio PCB has (*va-bo* rev01):
+
 * VERA FPGA: the Video Embedded Retro Adapter implemented in Lattice iCE40UP5K. The same is used in Commander X16.
 * VGA and S-Video video output ports, optional composite (requires a passive adapter on S-Video).
 * SD-card slot handled by VERA FPGA.
@@ -125,6 +124,7 @@ Therefore, the ROMs shall not be loaded into the Open-X65 HW in production use (
 We use them just for compatibility testing with X16 and we make sure there is (almost) no fun going on while the ROM is loaded :-o
 
 Long term, there are multiple good options, for example:
+
 * port of the [MEGA65 OPEN-ROMs](https://github.com/MEGA65/open-roms), which are true free open-source,
 * port of the [FastBasic](https://github.com/dmsc/fastbasic)
 * port of the [GeckOS](http://www.6502.org/users/andre/osa/index.html)
@@ -132,3 +132,30 @@ Long term, there are multiple good options, for example:
 
 Compared to the 8-bit 65C02 CPU, the 16-bit 65C816 CPU offers a linear 24-bit address space, so a bigger OS with GUI should be
 more easier possible. At minimum, something like the GEOS. (PC/GEOS is a free software, but it is for X86).
+
+
+Status of hardware testing
+----------------------------
+
+(last update 14.6.2023):
+
+* Motherboard ('mobo') rev01:
+  * CPU W65C02, SRAM 2MB, FPGA NORA -- works OK!
+  * original VIA -- not tested, will be removed from the design!
+  * SNES controller ports -- not tested yet.
+  * RTC -- not tested yet.
+  * USB, FTDI debugger -- works OK!
+  * PS2 Keyboard -- works OK! (but the circuit will be changed to simplify)
+  * PS2 Mouse -- not tested.
+  * TFT LCD -- not tested, will be removed.
+  * Power supply -- works OK, but the PCB layout is suboptimal, needs improvements.
+
+* Video/Audio board ('vabo') rev01:
+  * VERA FPGA, VGA out -- works OK!
+  * S-Video out -- not tested yet.
+  * SDC interface -- not tested yet.
+  * I/O LEDS and DIP -- not tested yet.
+  * AURA FPGA -- not tested yet.
+  * Audio DAC -- tested partly.
+  * Built-in speaker -- tested, the volume control switch needs improvements.
+  * 10/100 LAN -- not tested yet.
