@@ -458,8 +458,8 @@ module top (
 
     // assign PS2K_CLKDR = 1'b0;
     // assign PS2K_DATADR = 1'b0;
-    assign PS2M_CLKDR = 1'b0;
-    assign PS2M_DATADR = 1'b0;
+    // assign PS2M_CLKDR = 1'b0;
+    // assign PS2M_DATADR = 1'b0;
 
     // always @( posedge clk6x )
     // begin
@@ -480,7 +480,13 @@ module top (
         .PS2K_CLK (PS2K_CLK),
         .PS2K_DATA (PS2K_DATA),
         .PS2K_CLKDR (PS2K_CLKDR),
-        .PS2K_DATADR (PS2K_DATADR)
+        .PS2K_DATADR (PS2K_DATADR),
+        // PS2 Mouse port
+        .PS2M_CLK (PS2M_CLK),
+        .PS2M_DATA (PS2M_DATA),
+        .PS2M_CLKDR0 (PS2M_CLKDR),
+        .PS2M_DATADR0 (PS2M_DATADR)
+
     );
 
     assign nora_slv_datard = via1_slv_datard;

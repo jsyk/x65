@@ -1,3 +1,5 @@
+/* Copyright (c) 2023 Jaroslav Sykora.
+ * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
  * System Management Controller defined by CX16.
  * It primarily responds on I2C bus as the slave device at address 0x42.
@@ -34,12 +36,16 @@ module smc (
     input           PS2K_CLK,
     input           PS2K_DATA,
     output          PS2K_CLKDR,
-    output          PS2K_DATADR
-
+    output          PS2K_DATADR,
+    // PS2 Mouse port
+    input           PS2M_CLK,
+    input           PS2M_DATA,
+    output          PS2M_CLKDR0,
+    output          PS2M_DATADR0
 );
-    // IMPLEMENTATION
+    // IMPLEMENTATION ----------------------------------------------------------------------------
 
-    // I2C bus interface signals
+    // I2C bus interface signals ---------------------------------------------------------
     wire        devsel;           // the device is selected, ongoing transmission for the SLAVE_ADDRESS
     wire        rw_bit;           // Read/nWrite bit, only valid when devsel_o=1
     wire [7:0]  rxbyte;          // the received byte for device
@@ -68,6 +74,7 @@ module smc (
     );
 
 
+    // Pulser --------------------------------------------------------------------------
     // generate 1us pulses for PS2 port
     wire         ck1us;
     
@@ -78,6 +85,7 @@ module smc (
         .ck1us (ck1us)
     );
 
+    // KEYBOARD HOST ------------------------------------------------------------------
     // Read from keyboard buffer (from RX FIFO)
     wire [7:0]      kbd_rdata;      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
     wire            kbd_rvalid;     // RX FIFO byte is valid? (= FIFO not empty?)
@@ -94,7 +102,7 @@ module smc (
     reg             kbd_enq_cmd2;           // enqueu 2Byte command+data
 
     wire            kbd_bat_ok;
-    reg             init_insert_second;     // kbd init second step flag
+    reg             kbd_init_insert_second;     // kbd init second step flag
 
     // Keyboard
     ps2_kbd_host kbd (
@@ -125,11 +133,73 @@ module smc (
         .PS2K_DATADR (PS2K_DATADR)         // 1=drive PS2K_DATA to zero (L)
     );
 
+
+    // MOUSE HOST ------------------------------------------------------------------
+    // Read from mouse buffer (from RX FIFO)
+    wire [7:0]      ms_rdata;      // RX FIFO byte from PS2 mouse, or 0x00 in case !ms_rvalid
+    wire            ms_rvalid;     // RX FIFO byte is valid? (= FIFO not empty?)
+    reg             ms_rdeq;       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
+    // Mouse reply status register, values:
+    //      0x00 => idle (no transmission started)
+    //      0x01 => transmission pending
+    //      0xFA => ACK received
+    //      0xFE => ERR received
+    wire [7:0]      ms_stat;
+    // Write to mouse:
+    reg [7:0]       ms_wcmddata;           // byte for TX FIFO to send into PS2 mouse
+    reg             ms_enq_cmd1;           // enqueu 1Byte command
+    reg             ms_enq_cmd2;           // enqueu 2Byte command+data
+    wire            ms_bat_ok;
+
+
+    localparam MS_BAT_WAIT = 4'h0;          // waiting for BAT from the mouse
+    localparam MS_ID_WAIT = 4'h1;           // waiting for mouse ID (0x00) to be received
+    localparam MS_START_RESET = 4'h2;       // sending the reset command
+    localparam MS_RESET_ACK_WAIT = 4'h3;     // waiting for reset ACK
+    localparam MS_SAMPLERATECMD_ACK_WAIT = 4'h4;
+    localparam MS_SAMPLERATEDATA_ACK_WAIT = 4'h5;
+    localparam MS_ENABLE_ACK_WAIT = 4'h6;
+    localparam MS_READY = 4'h7;
+
+
+    reg [3:0]       ms_init_state;
+
+    // Mouse. reuse of kbd_host
+    ps2_kbd_host mouse (
+        // Global signals
+        .clk6x (clk6x),      // 48MHz
+        .resetn (resetn),     // sync reset
+        .ck1us (ck1us),      // 1us pulses
+        // Generic host interface
+        // Read from keyboard buffer (from RX FIFO)
+        .kbd_rdata_o (ms_rdata),      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
+        .kbd_rvalid_o (ms_rvalid),     // RX FIFO byte is valid? (= FIFO not empty?)
+        .kbd_rdeq_i (ms_rdeq),       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
+        // Keyboard reply status register -- not used for the mouse
+        .kbd_stat_o (ms_stat),
+        .kbd_bat_ok_o (ms_bat_ok),      // received the BAT OK code (0xAA) from the keyboard
+        // Write to keyboard:
+        .kbd_wcmddata_i (ms_wcmddata),           // byte for TX FIFO to send into PS2 keyboard
+        .kbd_enq_cmd1_i (ms_enq_cmd1),           // enqueu 1Byte command
+        .kbd_enq_cmd2_i (ms_enq_cmd2),           // enqueu 2Byte command+data
+        // PS2 Keyboard port - FPGA pins
+        .PS2K_CLK (PS2M_CLK),
+        .PS2K_DATA (PS2M_DATA),
+        .PS2K_CLKDR (PS2M_CLKDR0),         // 1=drive PS2K_CLK to zero (L)
+        .PS2K_DATADR (PS2M_DATADR0)         // 1=drive PS2K_DATA to zero (L)
+    );
+
+
+    // SMC -----------------------------------------------------------------------
     // SMC / I2C registers
     localparam SMCREG_READ_KBD_BUF = 8'h07;
     localparam SMCREG_READ_PS2_KBD_STAT = 8'h18;
     localparam SMCREG_SEND_PS2_KBD_CMD = 8'h19;          // Send 1B command
     localparam SMCREG_SEND_PS2_KBD_2BCMD = 8'h1A;        // Send two-byte command
+
+    localparam [7:0] PS2_CMD_BAT_OK = 8'hAA;
+    localparam [7:0] PS2_CMD_STAT_ACK = 8'hFA;
+    localparam [7:0] PS2_CMD_ENABLE = 8'hF4;
 
     // SMC
     reg [7:0]   smc_regnum;         // I2C SMC register address; TBD move up the hierarchy
@@ -140,19 +210,32 @@ module smc (
     begin
         if (!resetn)
         begin
+            // KBD
             kbd_rdeq <= 0;
             kbd_wcmddata <= 8'h00;           // byte for TX FIFO to send into PS2 keyboard
             kbd_enq_cmd1 <= 0;           // enqueu 1Byte command
             kbd_enq_cmd2 <= 0;
+            // SMC
             txbyte <= 8'hFF;
             byteidx <= 2'b00;
             smc_regnum <= 8'h00;
-            init_insert_second <= 0;
+            // KBD init fsm
+            kbd_init_insert_second <= 0;
+            // Mouse
+            ms_rdeq <= 0;
+            ms_wcmddata <= 8'h00;           // byte for TX FIFO to send into PS2 keyboard
+            ms_enq_cmd1 <= 0;           // enqueu 1Byte command
+            ms_enq_cmd2 <= 0;
+            ms_init_state <= MS_BAT_WAIT;
+
         end else begin
             // clear one-off signals
             kbd_rdeq <= 0;
             kbd_enq_cmd1 <= 0;           // enqueu 1Byte command
             kbd_enq_cmd2 <= 0;
+            ms_rdeq <= 0;
+            ms_enq_cmd1 <= 0;           // enqueu 1Byte command
+            ms_enq_cmd2 <= 0;
 
 
             if (devsel)
@@ -224,19 +307,109 @@ module smc (
                 kbd_wcmddata <= 8'hED;
                 kbd_enq_cmd2 <= 1;
                 // flag the next step
-                init_insert_second <= 1;
+                kbd_init_insert_second <= 1;
             end
 
             // is this the second init step?
-            if (init_insert_second)
+            if (kbd_init_insert_second)
             begin
                 // yes, send the 0x02 - second part of the 0xED command:
                 // kbd_wcmddata <= 8'h02;            /// 0x02 => turn-on the NumLock LED
                 kbd_wcmddata <= 8'h00;              // 0x00 => turn off all LED
                 kbd_enq_cmd2 <= 1;
                 // init done.
-                init_insert_second <= 0;
+                kbd_init_insert_second <= 0;
             end
+
+            case (ms_init_state)
+                MS_BAT_WAIT:        // = 4'h0;          // waiting for BAT from the mouse
+                    begin
+                        // did mouse send the BAT OK 0xAA ?
+                        if ((ms_rdata == PS2_CMD_BAT_OK) && (ms_rvalid))
+                        begin
+                            // yes! remove it and continue to expect the MOUSE ID code
+                            ms_rdeq <= 1;
+                            ms_init_state <= MS_ID_WAIT;
+                        end
+                        // TBD else check watchdog!
+                    end
+                
+                MS_ID_WAIT:         // = 4'h1;           // waiting for mouse ID (0x00) to be received
+                    begin
+                        // did mouse send the MOUSE ID 0x00 ?
+                        if ((ms_rdata == 8'h00) && (ms_rvalid))
+                        begin
+                            // yes! remove it and send the SAMPLERATE COMMAND
+                            ms_rdeq <= 1;
+                            ms_init_state <= MS_SAMPLERATECMD_ACK_WAIT;
+                            // SAMPLERATE CMD
+                            ms_wcmddata <= 8'hF3;       // SET SAMPLE RATE COMMAND
+                            ms_enq_cmd1 <= 1;
+                        end
+                        // TBD else check watchdog!
+                        
+                    end
+
+                MS_START_RESET:     // = 4'h2;       // sending the reset command
+                    begin
+                        
+                    end
+
+                MS_RESET_ACK_WAIT:      // = 4'h3;     // waiting for reset ACK
+                    begin
+                        
+                    end
+                    
+                MS_SAMPLERATECMD_ACK_WAIT:      // = 4'h4;
+                    begin
+                        // did mouse send the ack for our command?
+                        if ((ms_rdata == PS2_CMD_STAT_ACK) && (ms_rvalid))
+                        begin
+                            // yes! remove it and send the SAMPLERATE COMMAND'S DATA
+                            ms_rdeq <= 1;
+                            ms_init_state <= MS_SAMPLERATEDATA_ACK_WAIT;
+                            // SAMPLERATE DATA
+                            ms_wcmddata <= 8'd60;       // SET SAMPLE RATE DATA
+                            ms_enq_cmd1 <= 1;
+                        end
+                        // TBD else check watchdog!
+
+                    end
+
+                MS_SAMPLERATEDATA_ACK_WAIT:     // = 4'h5;
+                    begin
+                        // did mouse send the ack for our data?
+                        if ((ms_rdata == PS2_CMD_STAT_ACK) && (ms_rvalid))
+                        begin
+                            // yes! remove it and send the ENABLE command
+                            ms_rdeq <= 1;
+                            ms_init_state <= MS_ENABLE_ACK_WAIT;
+                            // SAMPLERATE DATA
+                            ms_wcmddata <= PS2_CMD_ENABLE;
+                            ms_enq_cmd1 <= 1;
+                        end
+                        // TBD else check watchdog!
+
+                    end
+                
+                MS_ENABLE_ACK_WAIT:         // = 4'h6;
+                    begin
+                        // did mouse send the ack for our enable command?
+                        if ((ms_rdata == PS2_CMD_STAT_ACK) && (ms_rvalid))
+                        begin
+                            // yes! remove it and be done
+                            ms_rdeq <= 1;
+                            ms_init_state <= MS_READY;
+                        end
+                        // TBD else check watchdog!
+
+                    end
+                
+                MS_READY:               // = 4'h7;
+                    begin
+                        
+                    end                
+            endcase
         end
         
     end
