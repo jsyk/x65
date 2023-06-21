@@ -138,6 +138,7 @@ module smc (
     // Read from mouse buffer (from RX FIFO)
     wire [7:0]      ms_rdata;      // RX FIFO byte from PS2 mouse, or 0x00 in case !ms_rvalid
     wire            ms_rvalid;     // RX FIFO byte is valid? (= FIFO not empty?)
+    wire [3:0]      ms_rcount;       // RX FIFO count of bytes currently
     reg             ms_rdeq;       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
     // Mouse reply status register, values:
     //      0x00 => idle (no transmission started)
@@ -174,6 +175,7 @@ module smc (
         // Read from keyboard buffer (from RX FIFO)
         .kbd_rdata_o (ms_rdata),      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
         .kbd_rvalid_o (ms_rvalid),     // RX FIFO byte is valid? (= FIFO not empty?)
+        .kbd_rcount_o (ms_rcount),      // RX FIFO count
         .kbd_rdeq_i (ms_rdeq),       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
         // Keyboard reply status register -- not used for the mouse
         .kbd_stat_o (ms_stat),
@@ -196,6 +198,7 @@ module smc (
     localparam SMCREG_READ_PS2_KBD_STAT = 8'h18;
     localparam SMCREG_SEND_PS2_KBD_CMD = 8'h19;          // Send 1B command
     localparam SMCREG_SEND_PS2_KBD_2BCMD = 8'h1A;        // Send two-byte command
+    localparam SMCREG_READ_MOUSE_BUF = 8'h21;           // Read from PS2 mouse buffer
 
     localparam [7:0] PS2_CMD_BAT_OK = 8'hAA;
     localparam [7:0] PS2_CMD_STAT_ACK = 8'hFA;
@@ -204,6 +207,8 @@ module smc (
     // SMC
     reg [7:0]   smc_regnum;         // I2C SMC register address; TBD move up the hierarchy
     reg  [1:0]  byteidx;            // I2C SMC command/data stream - position index
+    reg         smc_msbuf_squashing;        // read from mouse buffer must be squashed entirely, because the first byte from mouse was wrong!
+    reg         smc_msbuf_skipping;
 
     // Main process
     always @(posedge clk6x) 
@@ -227,6 +232,8 @@ module smc (
             ms_enq_cmd1 <= 0;           // enqueu 1Byte command
             ms_enq_cmd2 <= 0;
             ms_init_state <= MS_BAT_WAIT;
+            smc_msbuf_squashing <= 0;
+            smc_msbuf_skipping <= 0;
 
         end else begin
             // clear one-off signals
@@ -279,21 +286,88 @@ module smc (
                         begin
                             txbyte <= kbd_stat;
                         end
+
+                        SMCREG_READ_MOUSE_BUF:
+                        begin
+                            // txbyte <= ms_rdata;
+                            // verify the first byte from mouse buffer
+                            if (byteidx == 2'd1)
+                            begin
+                                // first byte from the buffer -> check!
+                                if (ms_rcount < 4'd3)
+                                begin
+                                    // not enough bytes in the RX FIFO -> send zero, don't touch the FIFO
+                                    txbyte <= 8'h00;
+                                    smc_msbuf_skipping <= 1;
+                                end else begin
+                                    // bytes enough; check if the first is correct according to the mouse protocol
+                                    if ((ms_rdata & 8'hC8) == 8'h08)
+                                    begin
+                                        // correct first byte from mouse -> pass on
+                                        txbyte <= ms_rdata;
+                                    end else begin
+                                        // wrong first byte from the mouse -> squash it!
+                                        txbyte <= 8'h00;
+                                        smc_msbuf_squashing <= 1;
+                                    end
+                                end
+                            end else begin
+                                // not the first byte
+                                // we assume the host accesses past the first data byte on I2C just
+                                // if the byte was ok (non-zero)
+
+                                // if (!smc_msbuf_squashing)
+                                // begin
+                                    // not squashing, all ok:
+                                    // return normal data from the mouse buffer
+                                    txbyte <= ms_rdata;
+                                // end else begin
+                                    // returning 0 till end of this i2c transaction
+                                    // txbyte <= 8'h00;
+                                // end
+
+                            end
+                        end
                     endcase
+
+                    // reading from the mouse buffer?
+                    // if ((smc_regnum == SMCREG_READ_MOUSE_BUF))
+                    // begin
+                    //     // verify the first byte from mouse buffer
+                    //     if ((byteidx == 2'd1) && ((txbyte & 8'hC8) != 8'h08))
+                    //     begin
+                    //         // the first data byte from mouse is NOT valid => squash it
+                    //         txbyte <= 8'h00;
+                    //     end
+                    // end
 
                     if (txbyte_deq)
                     begin
-                        byteidx <= byteidx + 2'd1;
                         // dequed from keyboard buffer?
                         if ((smc_regnum == SMCREG_READ_KBD_BUF) && (txbyte != 8'h00))
                         begin
                             kbd_rdeq <= 1;
                         end
+                        // dequed from mouse buffer?
+                        if ((smc_regnum == SMCREG_READ_MOUSE_BUF))
+                        begin
+                            // if ((byteidx == 2'd1) || !smc_msbuf_squashing)
+                            // begin
+                                if (!smc_msbuf_skipping)
+                                begin
+                                    ms_rdeq <= 1;
+                                end
+                            // end
+                        end
+                        // next byte to host
+                        byteidx <= byteidx + 2'd1;
                     end
                 end
             end else begin
-                // I2C device not selected -> reset
+                // I2C device not selected -> reset variables
                 byteidx <= 2'b00;
+                smc_msbuf_squashing <= 0;
+                smc_msbuf_skipping <= 0;
             end
 
             // keyboard initialization:

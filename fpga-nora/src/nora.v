@@ -66,10 +66,10 @@ module top (
     output PS2K_CLKDR,
     output PS2K_DATADR,
     
-    input PS2M_CLK,
-    input PS2M_DATA,
-    output PS2M_CLKDR,
-    output PS2M_DATADR,
+    inout PS2M_CLK,         // via bidi level-shifter
+    inout PS2M_DATA,        // via bidi level-shifter
+    output PS2M_CLKDR,      // not used on the PCB
+    output PS2M_DATADR,     // not used on the PCB
 
 // UART port
     output UART_CTS,
@@ -458,13 +458,10 @@ module top (
 
     // assign PS2K_CLKDR = 1'b0;
     // assign PS2K_DATADR = 1'b0;
-    // assign PS2M_CLKDR = 1'b0;
-    // assign PS2M_DATADR = 1'b0;
-
-    // always @( posedge clk6x )
-    // begin
-    //     run_cpu <= 0;
-    // end
+    assign PS2M_CLKDR = 1'b0;           // unused
+    assign PS2M_DATADR = 1'b0;          // unused
+    wire ps2m_clkdr0;
+    wire ps2m_datadr0;
 
     // System Management Controller
     smc smc1
@@ -484,10 +481,13 @@ module top (
         // PS2 Mouse port
         .PS2M_CLK (PS2M_CLK),
         .PS2M_DATA (PS2M_DATA),
-        .PS2M_CLKDR0 (PS2M_CLKDR),
-        .PS2M_DATADR0 (PS2M_DATADR)
+        .PS2M_CLKDR0 (ps2m_clkdr0),
+        .PS2M_DATADR0 (ps2m_datadr0)
 
     );
+
+    assign PS2M_CLK = (ps2m_clkdr0) ? 1'b0 : 1'bZ;
+    assign PS2M_DATA = (ps2m_datadr0) ? 1'b0 : 1'bZ;
 
     assign nora_slv_datard = via1_slv_datard;
     // assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_code : via1_slv_datard;
