@@ -17,7 +17,8 @@ module fifo #(
     input           rdeq_i,                 // Dequeue current data from FIFO
     // Status signals
     output reg      full_o,                 // FIFO is full?
-    output reg      empty_o                 // FIFO is empty?
+    output reg      empty_o,                // FIFO is empty?
+    output reg [BITDEPTH:0]   count_o       // count of elements in the FIFO now; mind the width of the reg!
 );
     // IMPLEMENTATION
 
@@ -37,6 +38,7 @@ module fifo #(
             wptr <= 0;
             full_o <= 0;
             empty_o <= 1;
+            count_o <= 0;
         end else begin
             // Enqueue write data
             if (wenq_i)
@@ -47,9 +49,11 @@ module fifo #(
                 wptr <= wptr_next;
                 if (!rdeq_i)            // special case: enq & deq concurrent -> no state change
                 begin
-                    // check if full now
+                    // not the special case (just enq): 
+                    //   check if full now
                     full_o <= ((wptr_next) == rptr);
                     empty_o <= 0;
+                    count_o <= count_o + 1;
                 end
             end
 
@@ -60,9 +64,11 @@ module fifo #(
                 rptr <= rptr_next;
                 if (!wenq_i)            // special case: enq & deq concurrent -> no state change
                 begin
-                    // check if empty now
+                    // not the special case (just deq):
+                    //   check if empty now
                     empty_o <= (rptr_next) == wptr;
                     full_o <= 0;
+                    count_o <= count_o - 1;
                 end
             end
         end

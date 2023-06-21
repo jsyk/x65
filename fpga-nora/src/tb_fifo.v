@@ -17,6 +17,7 @@ module tb_fifo ( );
     // Status signals
     wire      full_o;                 // FIFO is full?
     wire      empty_o;                 // FIFO is empty?
+    wire [BITDEPTH:0]   count_o;       // count of elements in the FIFO now; mind the width of the reg!
 
 
     fifo #(
@@ -35,7 +36,8 @@ module tb_fifo ( );
         rdeq_i,                 // Dequeue current data from FIFO
         // Status signals
         full_o,                 // FIFO is full?
-        empty_o                 // FIFO is empty?
+        empty_o,                 // FIFO is empty?
+        count_o
     );
 
     // Clock Generator
