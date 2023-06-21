@@ -11,6 +11,7 @@ module ps2_kbd_host (
     // Read from keyboard buffer (from RX FIFO)
     output [7:0]    kbd_rdata_o,      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
     output          kbd_rvalid_o,     // RX FIFO byte is valid? (= FIFO not empty?)
+    output [3:0]    kbd_rcount_o,       // RX FIFO count of bytes currently
     input           kbd_rdeq_i,       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
     // Keyboard reply status register, values:
     //      0x00 => idle (no transmission started)
@@ -95,6 +96,7 @@ module ps2_kbd_host (
     wire        rxfifo_full;               // RX FIFO is full?
     wire        rxfifo_enq;                 // insert PS2 RX byte into the RX FIFO
     wire        rxfifo_empty;              // RX FIFO is empty?
+    wire [3:0]  rxfifo_count;
     wire [7:0]  rxfifo_rdata;               // RX FIFO output byte (rdata); valid iff !rxfifo_empty
     wire        rxfifo_deq;                 // de-queue the RX FIFO rdata
 
@@ -115,7 +117,8 @@ module ps2_kbd_host (
         .rdeq_i (rxfifo_deq),                 // Dequeue current data from FIFO
         // Status signals
         .full_o (rxfifo_full),                 // FIFO is full?
-        .empty_o (rxfifo_empty)                 // FIFO is empty?
+        .empty_o (rxfifo_empty),                 // FIFO is empty?
+        .count_o (rxfifo_count)
     );    
 
     // TX FIFO to store outgoing bytes for transmission to PS2 device
@@ -250,6 +253,7 @@ module ps2_kbd_host (
     // generate simple outputs
     assign kbd_rdata_o = rxfifo_empty ? 8'h00 : rxfifo_rdata;      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
     assign kbd_rvalid_o = !rxfifo_empty;     // RX FIFO byte is valid? (= FIFO not empty?)
+    assign kbd_rcount_o = rxfifo_count;
     assign rxfifo_deq = kbd_rdeq_i && !rxfifo_empty;
     
     // assign txfifo_wdata = kbd_wcmddata_i;
