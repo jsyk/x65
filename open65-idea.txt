@@ -1,7 +1,7 @@
 
 MAIN-BOARD PCB, 10x10cm 2-L
 ===============================
-CPU = W64C02, and pcb-compatible with W65C816S
+CPU = W65C02, and pcb-compatible with W65C816S
 https://eu.mouser.com/ProductDetail/Western-Design-Center-WDC/W65C816S6TQG-14?qs=9lcNTSmDlCpDFNJ8GRf7eQ%3D%3D
 in 44-pin TQFP
 
