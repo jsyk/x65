@@ -2,7 +2,9 @@
  * Host controller for PS2 keyboard.
  *
  */
-module ps2_kbd_host (
+module ps2_kbd_host #(
+    parameter RXBUF_DEPTH_BITS = 3
+) (
     // Global signals
     input           clk6x,      // 48MHz
     input           resetn,     // sync reset
@@ -11,7 +13,7 @@ module ps2_kbd_host (
     // Read from keyboard buffer (from RX FIFO)
     output [7:0]    kbd_rdata_o,      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
     output          kbd_rvalid_o,     // RX FIFO byte is valid? (= FIFO not empty?)
-    output [3:0]    kbd_rcount_o,       // RX FIFO count of bytes currently
+    output [RXBUF_DEPTH_BITS:0]    kbd_rcount_o,       // RX FIFO count of bytes currently
     input           kbd_rdeq_i,       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
     // Keyboard reply status register, values:
     //      0x00 => idle (no transmission started)
@@ -96,14 +98,14 @@ module ps2_kbd_host (
     wire        rxfifo_full;               // RX FIFO is full?
     wire        rxfifo_enq;                 // insert PS2 RX byte into the RX FIFO
     wire        rxfifo_empty;              // RX FIFO is empty?
-    wire [3:0]  rxfifo_count;
+    wire [RXBUF_DEPTH_BITS:0]  rxfifo_count;
     wire [7:0]  rxfifo_rdata;               // RX FIFO output byte (rdata); valid iff !rxfifo_empty
     wire        rxfifo_deq;                 // de-queue the RX FIFO rdata
 
     // RX FIFO to store incoming bytes from PS2 device (keyboard)
     fifo #(
         .BITWIDTH (8),          // bit-width of one data element = 8 bits = 1 byte
-        .BITDEPTH (3)          // fifo keeps 2**BITDEPTH elements = 8 bytes deep
+        .BITDEPTH (RXBUF_DEPTH_BITS)          // fifo keeps 2**BITDEPTH elements = 8 bytes deep
     ) kbdrxfifo
     (
         // Global signals

@@ -138,7 +138,7 @@ module smc (
     // Read from mouse buffer (from RX FIFO)
     wire [7:0]      ms_rdata;      // RX FIFO byte from PS2 mouse, or 0x00 in case !ms_rvalid
     wire            ms_rvalid;     // RX FIFO byte is valid? (= FIFO not empty?)
-    wire [3:0]      ms_rcount;       // RX FIFO count of bytes currently
+    wire [4:0]      ms_rcount;       // RX FIFO count of bytes currently
     reg             ms_rdeq;       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
     // Mouse reply status register, values:
     //      0x00 => idle (no transmission started)
@@ -166,7 +166,8 @@ module smc (
     reg [3:0]       ms_init_state;
 
     // Mouse. reuse of kbd_host
-    ps2_kbd_host mouse (
+    ps2_kbd_host #(.RXBUF_DEPTH_BITS (4)) mouse
+    (
         // Global signals
         .clk6x (clk6x),      // 48MHz
         .resetn (resetn),     // sync reset
@@ -273,7 +274,7 @@ module smc (
                     byteidx <= byteidx + 2'd1;
                 end
 
-                if (rw_bit)         // I2C Read?
+                if (rw_bit)         // I2C Read? (so we shall send - tx)
                 begin
                     // reading from the slave -> we will transmit
                     case (smc_regnum)
@@ -291,20 +292,24 @@ module smc (
                         begin
                             // txbyte <= ms_rdata;
                             // verify the first byte from mouse buffer
-                            if (byteidx == 2'd1)
+                            if (byteidx == 2'd0)
                             begin
                                 // first byte from the buffer -> check!
-                                if (ms_rcount < 4'd3)
+                                if (ms_rcount < 5'd3)
                                 begin
                                     // not enough bytes in the RX FIFO -> send zero, don't touch the FIFO
                                     txbyte <= 8'h00;
                                     smc_msbuf_skipping <= 1;
+                                    smc_msbuf_squashing <= 0;
                                 end else begin
-                                    // bytes enough; check if the first is correct according to the mouse protocol
+                                    // bytes enough; 
+                                    smc_msbuf_skipping <= 0;
+                                    // check if the first is correct according to the mouse protocol
                                     if ((ms_rdata & 8'hC8) == 8'h08)
                                     begin
                                         // correct first byte from mouse -> pass on
                                         txbyte <= ms_rdata;
+                                        smc_msbuf_squashing <= 0;
                                     end else begin
                                         // wrong first byte from the mouse -> squash it!
                                         txbyte <= 8'h00;
@@ -321,12 +326,19 @@ module smc (
                                     // not squashing, all ok:
                                     // return normal data from the mouse buffer
                                     txbyte <= ms_rdata;
+                                    smc_msbuf_skipping <= 0;
+                                    smc_msbuf_squashing <= 0;
                                 // end else begin
                                     // returning 0 till end of this i2c transaction
                                     // txbyte <= 8'h00;
                                 // end
 
                             end
+                        end
+
+                        default:
+                        begin
+                            // none
                         end
                     endcase
 
