@@ -317,22 +317,14 @@ module smc (
                                     end
                                 end
                             end else begin
-                                // not the first byte
+                                // not the first byte;
                                 // we assume the host accesses past the first data byte on I2C just
                                 // if the byte was ok (non-zero)
 
-                                // if (!smc_msbuf_squashing)
-                                // begin
-                                    // not squashing, all ok:
-                                    // return normal data from the mouse buffer
-                                    txbyte <= ms_rdata;
-                                    smc_msbuf_skipping <= 0;
-                                    smc_msbuf_squashing <= 0;
-                                // end else begin
-                                    // returning 0 till end of this i2c transaction
-                                    // txbyte <= 8'h00;
-                                // end
-
+                                // return normal data from the mouse buffer
+                                txbyte <= ms_rdata;
+                                smc_msbuf_skipping <= 0;
+                                smc_msbuf_squashing <= 0;
                             end
                         end
 
@@ -341,17 +333,6 @@ module smc (
                             // none
                         end
                     endcase
-
-                    // reading from the mouse buffer?
-                    // if ((smc_regnum == SMCREG_READ_MOUSE_BUF))
-                    // begin
-                    //     // verify the first byte from mouse buffer
-                    //     if ((byteidx == 2'd1) && ((txbyte & 8'hC8) != 8'h08))
-                    //     begin
-                    //         // the first data byte from mouse is NOT valid => squash it
-                    //         txbyte <= 8'h00;
-                    //     end
-                    // end
 
                     if (txbyte_deq)
                     begin
@@ -363,13 +344,11 @@ module smc (
                         // dequed from mouse buffer?
                         if ((smc_regnum == SMCREG_READ_MOUSE_BUF))
                         begin
-                            // if ((byteidx == 2'd1) || !smc_msbuf_squashing)
-                            // begin
-                                if (!smc_msbuf_skipping)
-                                begin
-                                    ms_rdeq <= 1;
-                                end
-                            // end
+                            // allowed to dequeu byte from mouse rx buffer?
+                            if (!smc_msbuf_skipping)
+                            begin
+                                ms_rdeq <= 1;
+                            end
                         end
                         // next byte to host
                         byteidx <= byteidx + 2'd1;
