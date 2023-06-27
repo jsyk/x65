@@ -38,7 +38,7 @@ UEXT interface
         SPI MISO/MOSI/SCK/SS
 
 
-original "VIA" W65C22, tbd implemented inside of FPGA
+original "VIA" 65C22 --> implemented inside of FPGA
     https://github.com/mikestir/fpga-bbc
     https://github.com/mikestir/fpga-bbc/blob/master/m6522.vhd
 
@@ -52,7 +52,7 @@ PS/2 kbd and mouse
     https://eu.mouser.com/ProductDetail/TE-Connectivity/5749180-1?qs=XlZqES4cpWZV2xh%2FjR2Ukw%3D%3D
 
 
-SNES inputs
+SNES inputs 2X
 
 Debug = FT2232H
     FT2232HL        LQFP64, no stock

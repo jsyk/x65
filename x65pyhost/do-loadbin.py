@@ -5,7 +5,7 @@ from icd import *
 
 icd = ICD(x65ftdi.X65Ftdi())
 
-apa = argparse.ArgumentParser(usage="%(prog)s [OPTION] area start length",
+apa = argparse.ArgumentParser(usage="%(prog)s [OPTION] file area start",
     description="Load X65 memory."
 )
 

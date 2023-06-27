@@ -17,4 +17,8 @@ YosysHQ/IceStorm
     http://forum.6502.org/viewtopic.php?f=2&t=7573
     https://github.com/lcc-816
     https://github.com/hth313/Calypsi-tool-chains
-    
+    http://forum.6502.org/viewtopic.php?f=2&t=6717
+    https://github.com/nArnoSNES/tcc-65816
+    https://www.calypsi.cc/
+
+https://llvm-mos.org/wiki/Welcome
