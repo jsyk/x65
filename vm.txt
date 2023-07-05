@@ -13,3 +13,8 @@ VM tables need min. 2B / virtual page
     Tag/ProcessId - 2-3bits - to distinguish between VM pages belonging to different processes, inside of table cache
 
 => in 4096 Bytes, we could fit 2048 page descriptors => to cover 8MB (in case of 4kB pages) or 16MB (in case of 8kB pages) of virtual memory.
+
+
+See IRQ tutorials:
+http://6502.org/tutorials/
+

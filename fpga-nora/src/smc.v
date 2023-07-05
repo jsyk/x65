@@ -105,7 +105,8 @@ module smc (
     reg             kbd_init_insert_second;     // kbd init second step flag
 
     // Keyboard
-    ps2_kbd_host kbd (
+    ps2_kbd_host #(.XLAT_KEYCODE (1))
+    kbd (
         // Global signals
         .clk6x (clk6x),      // 48MHz
         .resetn (resetn),     // sync reset

@@ -3,7 +3,8 @@
  *
  */
 module ps2_kbd_host #(
-    parameter RXBUF_DEPTH_BITS = 3
+    parameter RXBUF_DEPTH_BITS = 3,
+    parameter XLAT_KEYCODE = 0
 ) (
     // Global signals
     input           clk6x,      // 48MHz
@@ -46,6 +47,10 @@ module ps2_kbd_host #(
     // PS2 port
     wire [7:0]  ps2k_rxcode;        // received byte from PS2 port
     wire        ps2k_rxcodevalid;   // validity flag of the PS2 port received byte
+
+    // Translated Keycode
+    wire [7:0]  ps2k_keycode;        // received keycode
+    wire        ps2k_keycodevalid;   // validity flag of the keycode
 
     // TX FIFO
     // reg [7:0]   txfifo_wdata;        // byte to write into the TX FIFO
@@ -90,9 +95,29 @@ module ps2_kbd_host #(
         .tx_errd_o (ps2k_errd)           // we got a NACK at the end of command sending
     );
 
-    // HACK
-    // assign nora_slv_datard = (nora_slv_req_SCRB) ? nora_slv_addr[7:0] : via1_slv_datard;
-    // assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_rxcode : via1_slv_datard;
+    generate
+        if (XLAT_KEYCODE == 0)
+        begin
+            // no translation from scancode to keycode on this port
+            assign ps2k_keycode = ps2k_rxcode;
+            assign ps2k_keycodevalid = ps2k_rxcodevalid;
+        end else begin
+            // implement scancode to keycode translation in HW. Uff...
+            ps2_scancode_to_keycode sc2kc
+            (
+                // Global signals
+                .clk (clk6x),        // 48MHz
+                .resetn (resetn),     // sync reset
+                // PS2 scancode from the keyboard ps2_port
+                .ps2k_scancode_i (ps2k_rxcode),        // received byte from PS2 port
+                .ps2k_scodevalid_i (ps2k_rxcodevalid),   // validity flag of the PS2 port received byte
+                // PS2 key code
+                .ps2k_keycode_o (ps2k_keycode),       // translated keycode
+                .ps2k_kcvalid_o (ps2k_keycodevalid)          // validity flag of keycode
+            );
+        end
+    endgenerate
+
 
     // RX FIFO
     wire        rxfifo_full;               // RX FIFO is full?
@@ -112,7 +137,7 @@ module ps2_kbd_host #(
         .clk6x (clk6x),      // 48MHz
         .resetn (resetn && !txfifo_clear),     // sync reset
         // I/O Write port
-        .wport_i (ps2k_rxcode),          // Write Port Data
+        .wport_i (ps2k_keycode),          // Write Port Data
         .wenq_i (rxfifo_enq),                 // Enqueue data from the write port now; must not assert when full_o=1
         // I/O read port
         .rport_o (rxfifo_rdata),          // Read port data: valid any time empty_o=0
@@ -244,6 +269,7 @@ module ps2_kbd_host #(
                 TX_2B_WAIT_FIRST_REPLY:     // 2B command+data sending: the cmd byte has been sent, now waiting for a reply
                 begin
                     // block any further sending from TX FIFO until we get a reply
+                    // (reply is detected and the state exit in the IF-ps2k_rxcodevalid block above)
                     ps2k_txcodevalid <= 0;
                     // TBD: check for timeout!!
                 end
@@ -264,7 +290,7 @@ module ps2_kbd_host #(
     // insert PS2 RX byte into the RX FIFO, only if not full and not waiting for the first reply in a 2-byte sequence.
     // If it is the first reply in a 2-byte sequence, then it should be ACK, and that gets noted but NOT inserted in the FIFO.
     // However, if it is anything else than ACK, then we should process in the FIFO as usual.
-    assign rxfifo_enq = ps2k_rxcodevalid && !rxfifo_full && ((fsm_state != TX_2B_WAIT_FIRST_REPLY) || (ps2k_rxcode != PS2_CMD_STAT_ACK));
+    assign rxfifo_enq = ps2k_keycodevalid && !rxfifo_full && ((fsm_state != TX_2B_WAIT_FIRST_REPLY) || (ps2k_rxcode != PS2_CMD_STAT_ACK));
 
     // recognize the BAT OK code from keyboard
     assign kbd_bat_ok_o = (ps2k_rxcode == PS2_BAT_OK) && ps2k_rxcodevalid;
