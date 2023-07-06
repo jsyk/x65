@@ -14,7 +14,7 @@ module bus_controller (
     output reg      cpu_be_o,           // CPU Bus Enable (active high)
     // CPU bus status input
     input           cpu_sync_vpa_i,     // 65C02: SYNC, 65C816: VPA (Valid Program Address)
-    input           cpu_vpu_i,          // Vector Pull
+    input           cpu_vpu_i,          // Vector Pull (active low!)
     input           cpu_vda_i,          // 65C816: Valid Data Address
     input           cpu_cef_i,          // 65C816: C/E flag
     input           cpu_rw_i,           // CPU read (1) / write (0)
@@ -175,8 +175,16 @@ module bus_controller (
                     //     // special PBL ROM bank in FPGA
                     //     nora_slv_req_BOOTROM_o <= 1;
                     // end else begin
-                        // normal ROM bank in SRAM
-                        mem_abh_o <= { 2'b11, rombank_nr[4:0], cpu_abh_i[13:12] };
+                        // normal ROM bank in SRAM.
+                        // Check if this is a Vector Pull cycle?
+                        if (!cpu_vpu_i)
+                        begin
+                            // Vector Pull cycle (cpu_vpu_i is active low) -> must access the rombank 0x00 always!
+                            mem_abh_o <= { 2'b11, 5'b00000, cpu_abh_i[13:12] };
+                        end else begin
+                            // normal access through the active rombank
+                            mem_abh_o <= { 2'b11, rombank_nr[4:0], cpu_abh_i[13:12] };
+                        end
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
                         mem_wrn_o <= HIGH_INACTIVE;         // never allow writing to the ROM bank!

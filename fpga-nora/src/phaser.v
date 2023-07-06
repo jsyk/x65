@@ -6,8 +6,8 @@
  *     ____      ____      ____      ____      ____      ____      ____
  * ___|    |____|    |____|    |____|    |____|    |____|    |____|
  *      S0L       S1L       S2L       S3H       S4H       S5H
- *    .release_cs.        .setup_cs .                   .release_wr.
- *    .release_cs.        .latch_ad .setup_cs .         .release_wr.
+ *    .release_cs.        .setup_cs .                   .release_wr.      <=  CURRENT
+ *    .release_cs.        .latch_ad .setup_cs .         .release_wr.      <= TBD !!
  *               (stopped)
  *
  * cphi2 - 8MHz for the 65CPU:
