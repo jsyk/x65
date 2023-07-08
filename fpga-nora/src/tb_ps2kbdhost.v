@@ -2,6 +2,12 @@
 
 module tb_ps2kbdhost ();
 
+`define assert(signal, value) \
+        if (signal !== value) begin \
+            $display("ASSERTION FAILED in %m: signal != value"); \
+            $finish; \
+        end
+
     // Global signals
     reg           clk6x;      // 48MHz
     reg           resetn;     // sync reset
@@ -21,25 +27,46 @@ module tb_ps2kbdhost ();
         .ck1us (ck1us)
     );
 
-    reg        devsel;           // the device is selected, ongoing transmission for the SLAVE_ADDRESS
-    reg        rw_bit;           // Read/nWrite bit, only valid when devsel_o=1
-    reg [7:0]  rxbyte;          // the received byte for device
-    reg        rxbyte_v;         // valid received byte (for 1T) for Write transfers
-    wire [7:0]  txbyte;           // the next byte to transmit from device; shall be valid anytime devsel_o=1 && rw_bit_o=1
-    reg        txbyte_deq;       // the txbyte has been consumed (1T)
+    localparam RXBUF_DEPTH_BITS = 3;
+
+    wire [7:0]    kbd_rdata;      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
+    wire          kbd_rvalid;     // RX FIFO byte is valid? (= FIFO not empty?)
+    wire [RXBUF_DEPTH_BITS:0]    kbd_rcount;       // RX FIFO count of bytes currently
+    reg           kbd_rdeq;       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
+    // Keyboard reply status register, values:
+    //      0x00 => idle (no transmission started)
+    //      0x01 => transmission pending
+    //      0xFA => ACK received
+    //      0xFE => ERR received
+    wire [7:0]    kbd_stat;
+    wire          kbd_bat_ok;      // received the BAT OK code (0xAA) from the keyboard
+    // Write to keyboard:
+    reg [7:0]     kbd_wcmddata;           // byte for TX FIFO to send into PS2 keyboard
+    reg           kbd_enq_cmd1;           // enqueu 1Byte command
+    reg           kbd_enq_cmd2;           // enqueu 2Byte command+data
 
     ps2_kbd_host dut (
         // Global signals
         .clk6x (clk6x),      // 48MHz
         .resetn (resetn),     // sync reset
         .ck1us (ck1us),      // 1us pulses
-        // SMC interface
-        .devsel_i (devsel),           // the device is selected, ongoing transmission for the SLAVE_ADDRESS
-        .rw_bit_i (rw_bit),           // Read/nWrite bit, only valid when devsel_i=1
-        .rxbyte_i (rxbyte),          // the received byte for device
-        .rxbyte_v_i (rxbyte_v),         // valid received byte (for 1T) for Write transfers
-        .txbyte_o (txbyte),           // the next byte to transmit from device; shall be valid anytime devsel_i=1 && rw_bit_i=1
-        .txbyte_deq_i (txbyte_deq),       // the txbyte has been consumed (1T)
+        // Generic Host interface:
+        // Read from keyboard buffer (from RX FIFO)
+        .kbd_rdata_o (kbd_rdata),      // RX FIFO byte from PS2 keyboard, or 0x00 in case !kbd_rvalid
+        .kbd_rvalid_o (kbd_rvalid),     // RX FIFO byte is valid? (= FIFO not empty?)
+        .kbd_rcount_o (kbd_rcount),       // RX FIFO count of bytes currently
+        .kbd_rdeq_i (kbd_rdeq),       // dequeu (consume) RX FIFO; allowed only iff kbd_rvalid==1
+        // Keyboard reply status register, values:
+        //      0x00 => idle (no transmission started)
+        //      0x01 => transmission pending
+        //      0xFA => ACK received
+        //      0xFE => ERR received
+        .kbd_stat_o (kbd_stat),
+        .kbd_bat_ok_o (kbd_bat_ok),      // received the BAT OK code (0xAA) from the keyboard
+        // Write to keyboard:
+        .kbd_wcmddata_i (kbd_wcmddata),           // byte for TX FIFO to send into PS2 keyboard
+        .kbd_enq_cmd1_i (kbd_enq_cmd1),           // enqueu 1Byte command
+        .kbd_enq_cmd2_i (kbd_enq_cmd2),           // enqueu 2Byte command+data
         // PS2 Keyboard port - FPGA pins
         .PS2K_CLK (PS2_CLK),
         .PS2K_DATA (PS2_DATA),
@@ -119,127 +146,154 @@ module tb_ps2kbdhost ();
         end
     endtask
 
-    task read_smc_reg;
-        input [7:0]     smc_reg;
+    // task read_smc_reg;
+    //     input [7:0]     smc_reg;
+    //     begin
+    //         devsel <= 1'b1; rw_bit <= 1'b0;     // write
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //         rxbyte <= smc_reg;
+    //         rxbyte_v <= 1'b1;
+    //         @(posedge clk6x);
+    //         rxbyte_v <= 1'b0;
+    //         @(posedge clk6x);
+    //         devsel <= 1'b0;                     // restart
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //         devsel <= 1'b1; rw_bit <= 1'b1;     // read
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //         txbyte_deq <= 1'b1;
+    //         @(posedge clk6x);
+    //         txbyte_deq <= 1'b0;
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //         devsel <= 1'b0;
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //     end
+    // endtask
+
+    // task write_smc_reg_1b;
+    //     input [7:0]     smc_reg;
+    //     input [7:0]     dataval;
+    //     begin
+    //         devsel <= 1'b1; rw_bit <= 1'b0;     // write
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //         rxbyte <= smc_reg;
+    //         rxbyte_v <= 1'b1;
+    //         @(posedge clk6x);
+    //         rxbyte_v <= 1'b0;
+    //         @(posedge clk6x);
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //         rxbyte <= dataval;
+    //         rxbyte_v <= 1'b1;
+    //         @(posedge clk6x);
+    //         rxbyte_v <= 1'b0;
+    //         @(posedge clk6x);
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //         devsel <= 1'b0;
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //     end
+    // endtask
+
+    // task write_smc_reg_2b;
+    //     input [7:0]     smc_reg;
+    //     input [7:0]     dataval1;
+    //     input [7:0]     dataval2;
+    //     begin
+    //         devsel <= 1'b1; rw_bit <= 1'b0;     // write
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //         rxbyte <= smc_reg;
+    //         rxbyte_v <= 1'b1;
+    //         @(posedge clk6x);
+    //         rxbyte_v <= 1'b0;
+    //         @(posedge clk6x);
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //         rxbyte <= dataval1;
+    //         rxbyte_v <= 1'b1;
+    //         @(posedge clk6x);
+    //         rxbyte_v <= 1'b0;
+    //         @(posedge clk6x);
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+
+    //         rxbyte <= dataval2;
+    //         rxbyte_v <= 1'b1;
+    //         @(posedge clk6x);
+    //         rxbyte_v <= 1'b0;
+    //         @(posedge clk6x);
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+
+    //         devsel <= 1'b0;
+    //         @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
+    //     end
+    // endtask
+
+    task deque_rd;
         begin
-            devsel <= 1'b1; rw_bit <= 1'b0;     // write
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-            rxbyte <= smc_reg;
-            rxbyte_v <= 1'b1;
+            // dequeue
             @(posedge clk6x);
-            rxbyte_v <= 1'b0;
+            kbd_rdeq <= 1;
             @(posedge clk6x);
-            devsel <= 1'b0;                     // restart
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-            devsel <= 1'b1; rw_bit <= 1'b1;     // read
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-            txbyte_deq <= 1'b1;
+            kbd_rdeq <= 0;
             @(posedge clk6x);
-            txbyte_deq <= 1'b0;
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-            devsel <= 1'b0;
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-        end
-    endtask
-
-    task write_smc_reg_1b;
-        input [7:0]     smc_reg;
-        input [7:0]     dataval;
-        begin
-            devsel <= 1'b1; rw_bit <= 1'b0;     // write
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-            rxbyte <= smc_reg;
-            rxbyte_v <= 1'b1;
-            @(posedge clk6x);
-            rxbyte_v <= 1'b0;
-            @(posedge clk6x);
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-            rxbyte <= dataval;
-            rxbyte_v <= 1'b1;
-            @(posedge clk6x);
-            rxbyte_v <= 1'b0;
-            @(posedge clk6x);
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-            devsel <= 1'b0;
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-        end
-    endtask
-
-    task write_smc_reg_2b;
-        input [7:0]     smc_reg;
-        input [7:0]     dataval1;
-        input [7:0]     dataval2;
-        begin
-            devsel <= 1'b1; rw_bit <= 1'b0;     // write
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-            rxbyte <= smc_reg;
-            rxbyte_v <= 1'b1;
-            @(posedge clk6x);
-            rxbyte_v <= 1'b0;
-            @(posedge clk6x);
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-            rxbyte <= dataval1;
-            rxbyte_v <= 1'b1;
-            @(posedge clk6x);
-            rxbyte_v <= 1'b0;
-            @(posedge clk6x);
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-
-            rxbyte <= dataval2;
-            rxbyte_v <= 1'b1;
-            @(posedge clk6x);
-            rxbyte_v <= 1'b0;
-            @(posedge clk6x);
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
-
-            devsel <= 1'b0;
-            @(posedge clk6x); @(posedge clk6x); @(posedge clk6x);
         end
     endtask
 
     initial
     begin
-        PS2_CLK = 1;
-        PS2_DATA = 1;
-        resetn = 1'b0;
-        devsel = 1'b0;
-        rw_bit = 1'b1;
-        rxbyte = 8'h00;
-        rxbyte_v = 1'b0;
-        txbyte_deq = 1'b0;
+        PS2_CLK <= 1;
+        PS2_DATA <= 1;
+        kbd_rdeq <= 0;
+        kbd_wcmddata <= 8'h00;
+        kbd_enq_cmd1 <= 0;
+        kbd_enq_cmd2 <= 0;
+        resetn <= 1'b0;
         
         for (j = 0; j < 20; ++j)
         begin
             @(posedge clk6x);
         end
 
-        resetn = 1'b1;
+        resetn <= 1'b1;
         for (j = 0; j < 200; ++j)
         begin
             @(posedge clk6x);
         end
 
 
-        read_smc_reg(8'h07);        // smc reg addr = 07 = SMCREG_READ_KBD_BUF
+        // read_smc_reg(8'h07);        // smc reg addr = 07 = SMCREG_READ_KBD_BUF
         // expected: 00
+        `assert(kbd_rdata, 8'h00);
+        `assert(kbd_rvalid, 0);
 
+        // simulate keypress on PS2 keyboard -> output scancodes
         send(8'hC7);
         #100000;
         send(8'h7C);
 
         #100000;
 
-        read_smc_reg(8'h07);        // smc reg addr = 07 = SMCREG_READ_KBD_BUF
+        // read_smc_reg(8'h07);        // smc reg addr = 07 = SMCREG_READ_KBD_BUF
         // expected: C7
+        `assert(kbd_rdata, 8'hC7);
+        `assert(kbd_rvalid, 1);
+        deque_rd();
+        `assert(kbd_rvalid, 1);
 
         #1000;
 
-        read_smc_reg(8'h07);        // smc reg addr = 07 = SMCREG_READ_KBD_BUF
+        // read_smc_reg(8'h07);        // smc reg addr = 07 = SMCREG_READ_KBD_BUF
         // expected 7C
+        `assert(kbd_rdata, 8'h7C);
+        `assert(kbd_rvalid, 1);
+        deque_rd();
+        `assert(kbd_rvalid, 0);
 
         #1000;
 
-        write_smc_reg_1b(8'h19, 8'hA5);         // smc reg addr 19 = SMCREG_SEND_PS2_KBD_CMD
+        // write_smc_reg_1b(8'h19, 8'hA5);         // smc reg addr 19 = SMCREG_SEND_PS2_KBD_CMD
+        @(posedge clk6x);
+        kbd_wcmddata <= 8'hA5;
+        kbd_enq_cmd1 <= 1;
+        @(posedge clk6x);
+        kbd_enq_cmd1 <= 0;
+        @(posedge clk6x);
 
         #100000;
 
@@ -247,11 +301,32 @@ module tb_ps2kbdhost ();
 
         #100000;
 
-        write_smc_reg_2b(8'h1A, 8'h55, 8'hAA);         // smc reg addr 1A = SMCREG_SEND_PS2_KBD_2BCMD
+        // // write_smc_reg_2b(8'h1A, 8'h55, 8'hAA);         // smc reg addr 1A = SMCREG_SEND_PS2_KBD_2BCMD
+        @(posedge clk6x);
+        kbd_wcmddata <= 8'h55;
+        kbd_enq_cmd2 <= 1;
+        @(posedge clk6x);
+        kbd_enq_cmd2 <= 0;
+        @(posedge clk6x);
+        
+        #1000;
+
+        @(posedge clk6x);
+        kbd_wcmddata <= 8'hAA;
+        kbd_enq_cmd2 <= 1;
+        @(posedge clk6x);
+        kbd_enq_cmd2 <= 0;
+        @(posedge clk6x);
+
 
         #100000;
+        receive();          // ps2 keyboard receiving
+
+        send(8'hFA);       // ps2 keyboard replies with OK (FA)  
+
         receive();
-        receive();
+
+        send(8'hFA);       // ps2 keyboard replies with OK (FA)  
 
         #100000;
 

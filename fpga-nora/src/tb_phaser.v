@@ -1,6 +1,6 @@
 // `include "phaser.v"
 `timescale 1ns/100ps
-
+;
 module tb_phaser ();
 
     reg   clk6x;          // system clock, 6x faster than the 65C02 clock -> NORA has 6 microcycles (@48MHz) per one CPU cycle (@8MHz)
@@ -8,8 +8,9 @@ module tb_phaser ();
     reg   run;
     wire  stopped;
     wire  cphi2;      // generated 65C02 PHI2 clock
-    wire  vphi2;      // generated 65C22 PHI2 clock, which is shifted by +60deg (21ns)
+    wire  latch_ad;      // generated 65C22 PHI2 clock, which is shifted by +60deg (21ns)
     wire  setup_cs;   // catch CPU address and setup the CSx signals
+    wire  release_wr;  // release write signal by the next rising edge, to have a hold before the cs-release
     wire  release_cs;  // CPU access is complete, release the CS
 
     phaser ph0 ( 
@@ -18,8 +19,9 @@ module tb_phaser ();
         .run    (run),
         .stopped (stopped),
         .cphi2  (cphi2),
-        .vphi2  (vphi2),
+        .latch_ad  (latch_ad),
         .setup_cs (setup_cs),
+        .release_wr (release_wr),
         .release_cs (release_cs)
     );
 

@@ -48,6 +48,9 @@ module tb_nora ();
     wire CPULED0;
     wire CPULED1;
 
+    wire PS2M_CLK = 1'bZ;
+    wire PS2M_DATA = 1'bZ;
+
     wire VCS0n_VERA;
     wire VCS1n_AIO;
     wire VCS2n_ENET;
@@ -121,8 +124,8 @@ module tb_nora ();
         // output PS2K_CLKDR,
         // output PS2K_DATADR,
         
-        .PS2M_CLK (1'b1),
-        .PS2M_DATA (1'b1),
+        .PS2M_CLK (PS2M_CLK),
+        .PS2M_DATA (PS2M_DATA),
         // output PS2M_CLKDR,
         // output PS2M_DATADR,
 
