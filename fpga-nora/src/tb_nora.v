@@ -145,9 +145,9 @@ module tb_nora ();
         .VCS1n (VCS1n_AIO),
         .VCS2n (VCS2n_ENET),
         .VIRQn (1'b1),
-        .VAUX0 (1'b1),
-        .VAUX1 (1'b1),
-        .VAUX2 (1'b1),
+        // .VAUX0 (1'b1),
+        // .VAUX1 (1'b1),
+        // .VAUX2 (1'b1),
 
     // ICD SPI-slave interface
         .ICD_CSn (ICD_CSn),

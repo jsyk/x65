@@ -2,11 +2,38 @@ PROJ = nora
 PIN_DEF = openX65-mobo-rev01.pcf
 DEVICE = hx4k
 PACKAGE = tq144
+JT51SRC = ../../jt51/hdl/jt51_acc.v \
+	../../jt51/hdl/jt51_eg.v \
+	../../jt51/hdl/jt51_exp2lin.v \
+	../../jt51/hdl/jt51_exprom.v \
+	../../jt51/hdl/jt51_kon.v \
+	../../jt51/hdl/jt51_lfo.v \
+	../../jt51/hdl/jt51_lin2exp.v \
+	../../jt51/hdl/jt51_mmr.v \
+	../../jt51/hdl/jt51_mod.v \
+	../../jt51/hdl/jt51_noise_lfsr.v \
+	../../jt51/hdl/jt51_noise.v \
+	../../jt51/hdl/jt51_op.v \
+	../../jt51/hdl/jt51_pg.v \
+	../../jt51/hdl/jt51_phinc_rom.v \
+	../../jt51/hdl/jt51_phrom.v \
+	../../jt51/hdl/jt51_pm.v \
+	../../jt51/hdl/jt51_csr_ch.v \
+	../../jt51/hdl/jt51_csr_op.v \
+	../../jt51/hdl/jt51_reg.v \
+	../../jt51/hdl/jt51_sh.v \
+	../../jt51/hdl/jt51_timers.v \
+	../../jt51/hdl/jt51.v \
+	../../jt51/hdl/../ver/common/sep32.v \
+	../../jt51/hdl/../ver/common/sep32_cnt.v
+
 SYNSRC = ../src/nora.v ../src/bus_controller.v ../src/phaser.v ../src/blinker.v \
 	../src/resetgen.v ../src/pll.v ../src/spi_slave.v ../src/icd_controller.v \
 	../src/simple_via.v ../src/ps2_port.v ../src/i2c_slave.v ../src/ps2_kbd_host.v \
 	../src/smc.v ../src/ps2_scancode_to_keycode.v \
-	../src/pulser.v ../src/fifo.v
+	../src/pulser.v ../src/fifo.v ../src/spi_master.v
+
+# $(JT51SRC) ../src/fm2151.v
 
 all: $(PROJ).rpt $(PROJ).bin
 

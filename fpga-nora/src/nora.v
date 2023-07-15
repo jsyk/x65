@@ -87,9 +87,10 @@ module top (
     output VCS1n,               // AURA
     output VCS2n,               // ENET
     input VIRQn,            // IRQ from VERA & AURA & ENET, active low.
-    input VAUX0,
-    input VAUX1,
-    input VAUX2,
+
+    output AUDIO_DATA,          // was: VAUX0
+    output AUDIO_BCK,           // was: VAUX1
+    output AUDIO_LRCK,          // was: VAUX2
 
 // ICD SPI-slave interface
     input ICD_CSn,
@@ -492,6 +493,18 @@ module top (
     assign nora_slv_datard = via1_slv_datard;
     // assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_code : via1_slv_datard;
 
+    // fm2151 fm
+    // (
+    //     // Global signals
+    //     .clk (clk6x),      // 48MHz
+    //     .resetn (resetn),     // sync reset
+    //     // Host interface (slave)
+
+    //     // Sound output to the on-board DAC
+    //     .audio_bck (AUDIO_BCK),
+    //     .audio_data (AUDIO_DATA),
+    //     .audio_lrck (AUDIO_LRCK)
+    // );
 
     // define unused output signals
     assign VIACS = 1'b1;
