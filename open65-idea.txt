@@ -17,9 +17,6 @@ SRAM = 2MB
     2MB, TSOP-44
     https://cz.mouser.com/ProductDetail/ISSI/IS61WV20488FBLL-10TLI?qs=l7cgNqFNU1hrNZYLU3MwTg%3D%3D
 
-NorFlash = NE
-    radeji SPI-Flash/SD-Card + PBL v FPGA-BRAM
-
 SPI-Flash min. 2MB
     * either 3x SPI-Flash - for NORA, VERA, CPU
     * or one "unified" SPI-Flash - starts with NORA bitstream, then VERA bitstream, then CPU ROMs / FS
@@ -66,14 +63,19 @@ Front panel:
     2x SNES input
 
 Back panel:
-    USB-C FTDI USB debug port
-    USB-C power-input
+    USB-C FTDI USB debug port, and power-input
     2x PS2 minidin-6 sockets
-    Ethernet RJ45?  ==> move to VERA boards
 
 On PCB:
     pin header to VERA: 2x 02x10p
     pin header to ILI TFT: 1x 01x14p and 01x04p
+
+Rev02 TBD:
+    remove VIA
+    add miso-sdhc slot
+    add QSPI PSRAM
+    add UEXT
+
 
 
 MULTIMEDIA BOARD, 10x10cm, 2L

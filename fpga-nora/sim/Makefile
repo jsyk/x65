@@ -3,7 +3,7 @@ SYNSRC = ../src/phaser.v ../src/blinker.v ../src/resetgen.v ../src/fifo.v \
 	../src/pulser.v ../src/simple_via.v ../src/spi_slave.v ../src/i2c_slave.v \
 	../src/ps2_port.v ../src/ps2_kbd_host.v \
 	../src/icd_controller.v ../src/bus_controller.v \
-	../src/smc.v ../src/ps2_scancode_to_keycode.v \
+	../src/smc.v ../src/ps2_scancode_to_keycode.v ../src/spi_master.v \
 	../src/nora.v
 
 
@@ -21,6 +21,8 @@ SYNSRC = ../src/phaser.v ../src/blinker.v ../src/resetgen.v ../src/fifo.v \
 tb_phaser.vp: ../src/tb_phaser.v ../src/phaser.v
 
 tb_spi_slave.vp: ../src/tb_spi_slave.v ../src/spi_slave.v
+
+tb_spi_master.vp: ../src/tb_spi_master.v ../src/spi_master.v
 
 tb_ps2port.vp: ../src/tb_ps2port.v ../src/ps2_port.v
 
@@ -53,6 +55,8 @@ show_nora: tb_nora.vcd
 show_ps2kbdhost: tb_ps2kbdhost.vcd
 	gtkwave $^
 
+show_spi_master: tb_spi_master.vcd
+	gtkwave $^
 
 clean:
 	rm -f *.vcd *.vp
