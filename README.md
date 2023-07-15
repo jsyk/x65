@@ -142,20 +142,21 @@ Status of hardware testing
 * Motherboard ('mobo') rev01:
   * CPU W65C02, SRAM 2MB, FPGA NORA -- works OK!
   * original VIA -- not tested, will be removed from the design!
-  * SNES controller ports -- not tested yet.
+  * SNES controller ports -- works OK (slight change in scm).
   * RTC -- works OK!
   * USB, FTDI debugger -- works OK!
   * PS2 Keyboard -- works OK! (but the circuit will be changed to simplify)
   * PS2 Mouse -- works OK!
-  * TFT LCD -- not tested, will be removed.
+  * TFT LCD -- not tested, feature will be removed.
+  * UART via FTDI -- not tested.
   * Power supply -- works OK, but the PCB layout is suboptimal, needs improvements.
 
 * Video/Audio board ('vabo') rev01:
   * VERA FPGA, VGA out -- works OK!
-  * S-Video out -- not tested yet.
+  * S-Video/Composite out -- not tested yet.
   * SDC interface -- works OK! (SDHC card required by X16 ROM)
   * I/O LEDS and DIP -- not tested yet.
-  * AURA FPGA -- not tested yet.
+  * AURA FPGA -- not tested yet, feature will be rather implemented in NORA.
   * Audio DAC -- tested partly.
   * Built-in speaker -- tested, the volume control switch needs improvements.
   * 10/100 LAN -- not tested yet.
