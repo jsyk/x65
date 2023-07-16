@@ -186,7 +186,7 @@ module top (
     wire    [7:0]   nora_slv_datawr;     // write data = available just at the end of cycle!!
     wire            nora_slv_datawr_valid;      // flags nora_slv_datawr_o to be valid
     wire    [7:0]   nora_slv_datard;
-    // wire            nora_slv_req_BOOTROM;
+    wire            nora_slv_req_BOOTROM;
     wire            nora_slv_req_SCRB;
     wire            nora_slv_req_VIA1;
     wire            nora_slv_rwn;
@@ -371,7 +371,7 @@ module top (
         .nora_slv_datawr_o (nora_slv_datawr),     // write data = available just at the end of cycle!!
         .nora_slv_datawr_valid (nora_slv_datawr_valid),      // flags nora_slv_datawr_o to be valid
         .nora_slv_data_i (nora_slv_datard),
-        // .nora_slv_req_BOOTROM_o (nora_slv_req_BOOTROM),
+        .nora_slv_req_BOOTROM_o (nora_slv_req_BOOTROM),
         .nora_slv_req_SCRB_o (nora_slv_req_SCRB),
         .nora_slv_req_VIA1_o (nora_slv_req_VIA1),
         .nora_slv_rwn_o (nora_slv_rwn),
@@ -490,8 +490,28 @@ module top (
     assign PS2M_CLK = (ps2m_clkdr0) ? 1'b0 : 1'bZ;
     assign PS2M_DATA = (ps2m_datadr0) ? 1'b0 : 1'bZ;
 
-    assign nora_slv_datard = via1_slv_datard;
+
+    // read data from BOOTROM
+    wire [7:0]  bootrom_slv_datard;
+
+    // boot rom
+    bootrom btrom
+    (
+        // Global signals
+        .clk (clk6x),        // 48MHz
+        .resetn (resetn),     // sync reset
+        // NORA slave interface - internal devices
+        .slv_addr_i (nora_slv_addr[8:0]),
+        .slv_datawr_i (nora_slv_datawr),     // write data = available just at the end of cycle!!
+        .slv_datawr_valid (nora_slv_datawr_valid),      // flags nora_slv_datawr_o to be valid
+        .slv_datard_o (bootrom_slv_datard),       // read data
+        .slv_req_i (nora_slv_req_BOOTROM),          // request (chip select)
+        .slv_rwn_i (nora_slv_rwn)           // read=1, write=0
+    );
+
+    // assign nora_slv_datard = via1_slv_datard;
     // assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_code : via1_slv_datard;
+    assign nora_slv_datard = (nora_slv_req_BOOTROM) ? bootrom_slv_datard : via1_slv_datard;
 
     // fm2151 fm
     // (

@@ -259,6 +259,14 @@ module tb_nora ();
         // write to VERA
         cpu_write(16'h9F20, 8'h12);
 
+        // go to the BOOTROM
+        cpu_write(16'h0001, 8'h3F);         // ROMBANK
+        // test read from BOOTROM
+        cpu_read(16'hFFFC);  `assert(tb_cpuDataRead, 8'h00);
+        cpu_read(16'hFFFD);  `assert(tb_cpuDataRead, 8'hFE);
+        cpu_read(16'hFE00);  `assert(tb_cpuDataRead, 8'hA2);
+        cpu_read(16'hFE01);  `assert(tb_cpuDataRead, 8'hFF);
+
         #1000;
         $display("=== TESTBENCH OK ===");
         $finish;

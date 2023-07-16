@@ -31,7 +31,7 @@ SYNSRC = ../src/nora.v ../src/bus_controller.v ../src/phaser.v ../src/blinker.v 
 	../src/resetgen.v ../src/pll.v ../src/spi_slave.v ../src/icd_controller.v \
 	../src/simple_via.v ../src/ps2_port.v ../src/i2c_slave.v ../src/ps2_kbd_host.v \
 	../src/smc.v ../src/ps2_scancode_to_keycode.v \
-	../src/pulser.v ../src/fifo.v ../src/spi_master.v
+	../src/pulser.v ../src/fifo.v ../src/spi_master.v ../src/bootrom.v
 
 # $(JT51SRC) ../src/fm2151.v
 

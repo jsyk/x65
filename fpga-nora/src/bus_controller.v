@@ -1,3 +1,5 @@
+/* Copyright (c) 2023 Jaroslav Sykora.
+ * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
  * External CPU and Memory Bus controller
  */
@@ -59,7 +61,7 @@ module bus_controller (
     output  [7:0]   nora_slv_datawr_o,          // write data = available just at the end of cycle!!
     output          nora_slv_datawr_valid,      // flags nora_slv_datawr_o to be valid
     input   [7:0]   nora_slv_data_i,            // read data from slave
-    // output reg      nora_slv_req_BOOTROM_o,
+    output reg      nora_slv_req_BOOTROM_o,     // a request to internal BOOTROM (PBL)
     output reg      nora_slv_req_SCRB_o,        // a request to the SCRB at 0x9F50
     output reg      nora_slv_req_VIA1_o,        // a request to VIA1 at 0x9F00
     output reg      nora_slv_rwn_o,             // reading (1) or writing (0) to the slave
@@ -97,7 +99,7 @@ module bus_controller (
                         nora_mst_req_OTHER_i
                         | nora_mst_req_SRAM_i /*| nora_mst_req_VIA_i | nora_mst_req_VERA_i*/;
 
-    // wire nora_mst_req_OTHER_BOOTROM_i = nora_mst_req_OTHER_i && nora_mst_addr_i[20];
+    wire nora_mst_req_OTHER_BOOTROM_i = nora_mst_req_OTHER_i && nora_mst_addr_i[20];
     wire nora_mst_req_OTHER_BANKREG_i = nora_mst_req_OTHER_i && nora_mst_addr_i[19];
     wire nora_mst_req_OTHER_IOREGS = nora_mst_req_OTHER_i && nora_mst_addr_i[18];
     // wire nora_mst_req_OTHER_SCRB_i = nora_mst_req_OTHER_i && nora_mst_addr_i[18];
@@ -143,7 +145,7 @@ module bus_controller (
             run_cpu <= 0;
             strech_cphi <= 0;
             nora_mst_ack_o <= 0;
-            // nora_slv_req_BOOTROM_o <= 0;
+            nora_slv_req_BOOTROM_o <= 0;
             nora_slv_req_SCRB_o <= 0;
             nora_slv_req_VIA1_o <= 0;
             rambank_nr <= 8'h00;
@@ -170,11 +172,14 @@ module bus_controller (
                 else if (cpu_abh_i[15:14] == 2'b11)
                 begin
                     // CPU address 0xC000 - 0xF000 => 16k ROM banks mapped at the top of SRAM
-                    // if (rombank_nr[5] == 1'b1)
-                    // begin
-                    //     // special PBL ROM bank in FPGA
-                    //     nora_slv_req_BOOTROM_o <= 1;
-                    // end else begin
+                    if (rombank_nr[5] == 1'b1)
+                    begin
+                        // special PBL ROM bank in FPGA
+                        nora_slv_req_BOOTROM_o <= 1;
+                        // NOTE: when BOOTROM is selected as the ROMBANK, 
+                        // then Vector Pull always happens inside it, and not from
+                        // the rombank 0 !!
+                    end else begin
                         // normal ROM bank in SRAM.
                         // Check if this is a Vector Pull cycle?
                         if (!cpu_vpu_i)
@@ -188,7 +193,7 @@ module bus_controller (
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
                         mem_wrn_o <= HIGH_INACTIVE;         // never allow writing to the ROM bank!
-                    // end
+                    end
                 end 
                 else if (cpu_abh_i[15:13] == 3'b101)
                 begin
@@ -295,7 +300,7 @@ module bus_controller (
                 vera_csn_o <= HIGH_INACTIVE;
                 aio_csn_o <= HIGH_INACTIVE;
                 enet_csn_o <= HIGH_INACTIVE;
-                // nora_slv_req_BOOTROM_o <= 0;
+                nora_slv_req_BOOTROM_o <= 0;
                 nora_slv_req_BANKREG <= 0;
                 nora_slv_req_SCRB_o <= 0;
                 nora_slv_req_VIA1_o <= 0;
@@ -364,10 +369,10 @@ module bus_controller (
                     //     vera_csn_o <= LOW_ACTIVE;
                     // end
 
-                    // if (nora_mst_req_OTHER_BOOTROM_i)
-                    // begin
-                    //     nora_slv_req_BOOTROM_o <= 1;
-                    // end
+                    if (nora_mst_req_OTHER_BOOTROM_i)
+                    begin
+                        nora_slv_req_BOOTROM_o <= 1;
+                    end
 
                     if (nora_mst_req_OTHER_BANKREG_i)
                     begin
@@ -489,7 +494,7 @@ module bus_controller (
                 cpu_db_o <= { 3'b000, rombank_nr };
             end
         end
-        else if (nora_slv_req_SCRB_o || nora_slv_req_VIA1_o)
+        else if (nora_slv_req_SCRB_o || nora_slv_req_VIA1_o || nora_slv_req_BOOTROM_o)
         begin
             // internal slave reading
             cpu_db_o <= nora_slv_data_i;
