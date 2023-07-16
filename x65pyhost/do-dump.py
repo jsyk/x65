@@ -49,15 +49,22 @@ if args.area == 'sram':
     
     rdata = icd.sram_blockread(start, length)
 
-if args.area == 'io':
+elif args.area == 'bootrom':
+    areasize = 512
+    if start < 0:
+        start = areasize + start
+    
+    rdata = icd.bootrom_blockread(start, length)
+
+elif args.area == 'io':
     areasize = 256
     rdata = icd.ioregs_read(start, length)
 
-if args.area == 'banks':
+elif args.area == 'banks':
     areasize = 2
     rdata = icd.bankregs_read(start, length)
 
-if args.area == 'cpu':
+elif args.area == 'cpu':
     areasize = 65536
     if start < 0:
         start = areasize + start
@@ -76,6 +83,9 @@ if args.area == 'cpu':
         # CPU ROM bank starts at sram fix 0x180000
         rdata = icd.sram_blockread((start - 0xC000) + 0x180000 + rombank*2*ICD.PAGESIZE, length)
 
+else:
+    print('Unknown area {}'.format(args.area))
+    exit(1)
 
 BYTESSPERLINE = 16
 print()

@@ -15,6 +15,7 @@ class ICD:
     nWRITE_READ_BIT =	5
     ADR_INC_BIT =		6
 
+    ICD_OTHER_BOOTROM_BIT = 20
     ICD_OTHER_BANKREG_BIT = 19
     ICD_OTHER_IOREG_BIT = 18
 
@@ -81,6 +82,16 @@ class ICD:
     def iopeek(self, addr):
         data = self.ioregs_read(addr, 1)
         return data[0]
+
+    def bootrom_blockread(self, maddr, n):
+        maddr &= 0xFFF
+        maddr |= (1 << ICD.ICD_OTHER_BOOTROM_BIT)
+        return self.busread(ICD.ICD_OTHER_READ, maddr, n)
+
+    def bootrom_blockwrite(self, maddr, data):
+        maddr &= 0xFFF
+        maddr |= (1 << ICD.ICD_OTHER_BOOTROM_BIT)
+        self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
 
     def sram_blockwrite(self, maddr, data):
         k = 0

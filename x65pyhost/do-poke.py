@@ -33,10 +33,21 @@ if args.area == 'sram':
     
     icd.sram_blockwrite(addr, [data])
 
-if args.area == 'io':
+elif args.area == 'bootrom':
+    areasize = 512
+    if addr < 0:
+        addr = areasize + addr
+    
+    icd.bootrom_blockwrite(addr, [data])
+
+elif args.area == 'io':
     areasize = 256
     icd.ioregs_write(addr, [data])
 
-if args.area == 'banks':
+elif args.area == 'banks':
     areasize = 2
     icd.bankregs_write(addr, [data])
+
+else:
+    print('Unknown area {}'.format(args.area))
+    exit(1)
