@@ -95,9 +95,7 @@ module bus_controller (
     wire [15:0]     cpu_ab_i = { cpu_abh_i, memcpu_abl_i };
 
     // aggregated master request
-    wire nora_mst_req = /*nora_mst_req_BOOTROM_i | nora_mst_req_BANKREG_i | nora_mst_req_SCRB_i */
-                        nora_mst_req_OTHER_i
-                        | nora_mst_req_SRAM_i /*| nora_mst_req_VIA_i | nora_mst_req_VERA_i*/;
+    wire nora_mst_req = nora_mst_req_OTHER_i | nora_mst_req_SRAM_i;
 
     wire nora_mst_req_OTHER_BOOTROM_i = nora_mst_req_OTHER_i && nora_mst_addr_i[20];
     wire nora_mst_req_OTHER_BANKREG_i = nora_mst_req_OTHER_i && nora_mst_addr_i[19];
@@ -124,7 +122,7 @@ module bus_controller (
      * Imminent end of cycle is indicated by the release_wr flag.
      */
     assign nora_slv_datawr_o = (nora_mst_driving_memdb) ? nora_mst_data_i : cpu_db_i;                // pass CPU data write-through
-    assign nora_slv_datawr_valid = release_wr || nora_mst_ack_o;
+    assign nora_slv_datawr_valid = release_wr || (mst_state == MST_DATA_ACC);
 
 
     always @( posedge clk6x )

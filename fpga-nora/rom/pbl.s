@@ -18,9 +18,18 @@ L1:
     LDA  #2
     PLA
     INC A
+
+    PHA
+    LDA  DATA
+    INC
+    STA  DATA
+    PLA
+
     BRA  L1   ; (@PHA)
     
 
+DATA:
+    .BYTE $12
 
 ; .ORG $FFFA
 .SEGMENT "VECTORS"

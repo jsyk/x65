@@ -27,6 +27,8 @@ JT51SRC = ../../jt51/hdl/jt51_acc.v \
 	../../jt51/hdl/../ver/common/sep32.v \
 	../../jt51/hdl/../ver/common/sep32_cnt.v
 
+PBL = ../rom/pbl.mem
+
 SYNSRC = ../src/nora.v ../src/bus_controller.v ../src/phaser.v ../src/blinker.v \
 	../src/resetgen.v ../src/pll.v ../src/spi_slave.v ../src/icd_controller.v \
 	../src/simple_via.v ../src/ps2_port.v ../src/i2c_slave.v ../src/ps2_kbd_host.v \
@@ -39,7 +41,7 @@ all: $(PROJ).rpt $(PROJ).bin
 
 # %.json: ../src/%.v
 
-$(PROJ).json: $(SYNSRC)
+$(PROJ).json: $(SYNSRC) $(PBL)
 	yosys -p 'synth_ice40 -top top -json $@' $(SYNSRC)
 
 %.asc: $(PIN_DEF) %.json

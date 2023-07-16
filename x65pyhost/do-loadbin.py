@@ -41,7 +41,14 @@ if args.area == 'sram':
     if start < 0:
         start = areasize + start
     icd.sram_blockwrite(start, data)
-else:
-    print("Only the SRAM area is supported!")
 
-print("Stored to X65.")
+elif args.area == 'bootrom':
+    areasize = 512
+    if start < 0:
+        start = areasize + start
+    icd.bootrom_blockwrite(start, data)
+
+else:
+    print("Only the sram and bootroma areas are supported!")
+
+print("Stored to X65 area {}.".format(args.area))

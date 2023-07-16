@@ -267,6 +267,11 @@ module tb_nora ();
         cpu_read(16'hFE00);  `assert(tb_cpuDataRead, 8'hA2);
         cpu_read(16'hFE01);  `assert(tb_cpuDataRead, 8'hFF);
 
+        // test write to BOOTROM
+        cpu_write(16'hFE50, 8'hDE);
+        cpu_read(16'hFE00);  `assert(tb_cpuDataRead, 8'hA2);
+        cpu_read(16'hFE50);  `assert(tb_cpuDataRead, 8'hDE);
+
         #1000;
         $display("=== TESTBENCH OK ===");
         $finish;

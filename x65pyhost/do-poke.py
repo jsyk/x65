@@ -30,14 +30,12 @@ if args.area == 'sram':
     areasize = ICD.SIZE_2MB
     if addr < 0:
         addr = areasize + addr
-    
     icd.sram_blockwrite(addr, [data])
 
 elif args.area == 'bootrom':
     areasize = 512
     if addr < 0:
         addr = areasize + addr
-    
     icd.bootrom_blockwrite(addr, [data])
 
 elif args.area == 'io':

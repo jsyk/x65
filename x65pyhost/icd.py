@@ -76,12 +76,14 @@ class ICD:
         maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT)
         return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
 
+
     def iopoke(self, addr, data):
         return self.ioregs_write(addr, [data])
 
     def iopeek(self, addr):
         data = self.ioregs_read(addr, 1)
         return data[0]
+
 
     def bootrom_blockread(self, maddr, n):
         maddr &= 0xFFF
@@ -91,7 +93,8 @@ class ICD:
     def bootrom_blockwrite(self, maddr, data):
         maddr &= 0xFFF
         maddr |= (1 << ICD.ICD_OTHER_BOOTROM_BIT)
-        self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
+        return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
+
 
     def sram_blockwrite(self, maddr, data):
         k = 0
