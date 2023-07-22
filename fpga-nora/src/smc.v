@@ -7,7 +7,8 @@
  *      0x07		Read from keyboard buffer
  *      0x18		Read ps2 (keyboard) status
  *      0x19	    00..FF	Send ps2 command
- *      0x21		Read from mouse buffer     <- TBD, not implemented yet here!!
+ *      0x1A        00..FF  Send 2-byte ps2 command
+ *      0x21		Read from mouse buffer
  * 
  * Keyboard initialization sequence:
  *      After power-up, a keyboard runs a built-in self-test routine (BAT) and flashes all three LED.

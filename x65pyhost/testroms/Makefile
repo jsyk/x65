@@ -1,5 +1,5 @@
 
-all: blink.bin microhello.bin banktest.bin
+all: blink.bin microhello.bin banktest.bin spitest.bin
 
 blink.bin: blink.o
 blink.o: blink.s
@@ -10,6 +10,8 @@ microhello.o: microhello.s
 banktest.bin: banktest.o
 banktest.o: banktest.s
 
+spitest.bin: spitest.o
+spitest.o: spitest.s
 
 %.bin: %.o
 	ld65 -C romboot.ld $< -o $@

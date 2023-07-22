@@ -451,9 +451,9 @@ module top (
     assign CRDY = 1'bZ;             // CPU ready signal
     assign CSOB_MX = 1'bZ;          // CPU SOB (set overflow - 8b) / MX (16b)
 
-    assign FMOSI = ~FMISO;
-    assign FSCK = clk6x;
-    assign FLASHCSn = 1;
+    // assign FMOSI = ~FMISO;
+    // assign FSCK = clk6x;
+    // assign FLASHCSn = 1;
 
     assign ph_run_cpu = busct_run_cpu && icd_run_cpu;
 
@@ -509,9 +509,67 @@ module top (
         .slv_rwn_i (nora_slv_rwn)           // read=1, write=0
     );
 
-    // assign nora_slv_datard = via1_slv_datard;
-    // assign nora_slv_datard = (nora_slv_req_SCRB) ? ps2k_code : via1_slv_datard;
-    assign nora_slv_datard = (nora_slv_req_BOOTROM) ? bootrom_slv_datard : via1_slv_datard;
+
+    // SPI MASTER AND HOST CONTROLLER
+    wire [7:0]    spireg_dr;            // read data output from the core (from the CONTROL or DATA REG)
+    wire  [7:0]    spireg_dw;            // write data input to the core (to the CONTROL or DATA REG)
+    wire          spireg_wr;           // write signal
+    wire          spireg_rd;           // read signal
+    wire          spireg_ad;           // target register select: 0=CONTROL REG, 1=DATA REG.
+
+    spi_master_hostctrl
+    #(
+        .NUM_TARGETS (1),                // number of supported targets (slaves), min 1.
+        .RXFIFO_DEPTH_BITS (4),
+        .TXFIFO_DEPTH_BITS (4)
+    ) spimhstc (
+        // Global signals
+        .clk (clk6x),                    // 48MHz
+        .resetn (resetn),                 // sync reset
+        //
+        // SPI Master Peripheral signals
+        .spi_clk_o (FSCK),
+        .spi_csn_o (FLASHCSn),           // active low
+        .spi_mosi_o (FMOSI),
+        .spi_mosi_drive_o (),
+        .spi_miso_i (FMISO),
+        //
+        // REGISTER INTERFACE
+        .reg_d_o (spireg_dr),            // read data output from the core (from the CONTROL or DATA REG)
+        .reg_d_i (spireg_dw),            // write data input to the core (to the CONTROL or DATA REG)
+        .reg_wr_i (spireg_wr),           // write signal
+        .reg_rd_i (spireg_rd),           // read signal
+        .reg_ad_i (spireg_ad)            // target register select: 0=CONTROL REG, 1=DATA REG.
+    );
+
+    // SCRB output data
+    wire [7:0] SCRB_slv_datard;
+
+    // common system registers
+    sysregs scrb (
+        // Global signals
+        .clk (clk6x),                    // 48MHz
+        .resetn (resetn),                 // sync reset
+        // NORA SLAVE Interface
+        .slv_addr_i (nora_slv_addr[4:0]),
+        .slv_datawr_i (nora_slv_datawr),     // write data = available just at the end of cycle!!
+        .slv_datawr_valid (nora_slv_datawr_valid),      // flags nora_slv_datawr_o to be valid
+        .slv_datard_o (SCRB_slv_datard),       // read data
+        .slv_req_i (nora_slv_req_SCRB),          // request (chip select)
+        .slv_rwn_i (nora_slv_rwn),           // read=1, write=0
+        //
+        // SPI Master interface for accessing the flash memory
+        .spireg_d_o (spireg_dw),            // read data output from the core (from the CONTROL or DATA REG)
+        .spireg_d_i (spireg_dr),            // write data input to the core (to the CONTROL or DATA REG)
+        .spireg_wr_i (spireg_wr),           // write signal
+        .spireg_rd_i (spireg_rd),           // read signal
+        .spireg_ad_i (spireg_ad)            // target register select: 0=CONTROL REG, 1=DATA REG.
+    );
+
+    assign nora_slv_datard = (nora_slv_req_BOOTROM) ? bootrom_slv_datard : 
+                            (nora_slv_req_SCRB) ? SCRB_slv_datard :
+                            (nora_slv_req_VIA1) ? via1_slv_datard :
+                            8'hFF;
 
     // fm2151 fm
     // (

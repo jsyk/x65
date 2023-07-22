@@ -60,6 +60,12 @@ module tb_nora ();
     wire ICD_MISO = 1'b1;
     wire ICD_SCK = 1'b1;
 
+// Master SPI interface for SPI-flash access
+    wire FMOSI;
+    wire FMISO = ~FMOSI;
+    wire FSCK;
+    wire FLASHCSn;
+
 
     top dut0 (
     // 12MHz FPGA clock input
@@ -159,10 +165,10 @@ module tb_nora ();
         .ATTBTN (1'b1),
 
     // Master SPI interface for SPI-flash access
-        // output FMOSI,
-        .FMISO (1'b1)
-        // output FSCK,
-        // output FLASHCSn
+        .FMOSI (FMOSI),
+        .FMISO (FMISO),
+        .FSCK (FSCK),
+        .FLASHCSn (FLASHCSn)
     );
 
     // Clock Generator
@@ -271,6 +277,25 @@ module tb_nora ();
         cpu_write(16'hFE50, 8'hDE);
         cpu_read(16'hFE00);  `assert(tb_cpuDataRead, 8'hA2);
         cpu_read(16'hFE50);  `assert(tb_cpuDataRead, 8'hDE);
+
+        // activate SPI Master for flash access
+        cpu_write(16'h9F52, 8'b00_100_001);  #100; `assert(FLASHCSn, 0);
+        // write data to the SPI master DATA REG for TX
+        cpu_write(16'h9F53, 8'h03);  
+        cpu_write(16'h9F53, 8'h00);  
+        cpu_write(16'h9F53, 8'h00);  
+        // read SPIM CTR REG and poll until rx/tx is done
+        cpu_read(16'h9F52);
+        cpu_read(16'h9F52);
+        cpu_read(16'h9F52);
+        cpu_read(16'h9F52);
+        cpu_read(16'h9F52);
+        cpu_read(16'h9F52);
+        cpu_read(16'h9F52);
+        // read SPI DATA REG to pull out the RX bytes
+        cpu_read(16'h9F53);
+        cpu_read(16'h9F53);
+        cpu_read(16'h9F53);
 
         #1000;
         $display("=== TESTBENCH OK ===");

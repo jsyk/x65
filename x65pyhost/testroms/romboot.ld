@@ -16,7 +16,6 @@ SEGMENTS
     CODE:       load = ROMBANK, type = ro;
     RODATA:     load = ROMBANK, type = ro;
     LAST256:    load = ROMBANK, type = ro, offset = $3F00;
-    #LAST16:     load = ROMBANK, type = ro, offset = $3FF0;
     VECTORS:    load = ROMBANK, type = ro, offset = $3FFA;
     DATA:       load = LOWRAM, type = rw;
     BSS:        load = LOWRAM, type = bss, define = yes;

@@ -1,6 +1,6 @@
 
 
-./do-cpureset.py
+./do-cpureset.py --rombank 0
 ./do-loadbin.py ~/c65/x16-rom/build/x16/rom.bin sram 0x180000
 ./do-cpurun.py
 ./do-cpustep.py 10
@@ -16,3 +16,7 @@ Step #  3:  TraceBuf: V:* O:-  CA:9f01  CD:30  ctr: f  sta:1b:r---
 
 
 ./do-loadbin.py testroms/banktest.bin sram 0x180000
+
+./do-loadbin.py testroms/spitest.bin sram 0x180000
+
+./do-loadbin.py ../fpga-nora/rom/pbl.bin bootrom 0

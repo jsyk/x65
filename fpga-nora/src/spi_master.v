@@ -27,7 +27,8 @@ module spi_master #(
     output          tx_ready_o,         // flag: it is possible to enqueue next tx byte now.
     // Received data from the SPI bus
     output [7:0]    rx_byte_o,          // received byte data
-    output reg      rx_en_o             // flag: received a byte
+    output reg      rx_en_o,            // flag: received a byte
+    output reg      rxtx_busy_o           // flag: ongoing SPI activity
 );
 // IMPLEMENTATION
 
@@ -64,9 +65,11 @@ module spi_master #(
             rx_en_o <= 0;
             txbuf_r <= 0;
             rxbuf_r <= 0;
+            rxtx_busy_o <= 0;
         end else begin
             // normal operation, target selected
             spi_csn_o <= ~target_id_i;
+            rxtx_busy_o <= 1;
             // idle state
             rx_en_o <= 0;
             spi_mosi_drive_o <= 1;
@@ -96,10 +99,14 @@ module spi_master #(
                     // are there input data?
                     if (tx_en_i)
                     begin
+                        // yes, get them and start transmission
                         txbuf_r <= tx_byte_i;
                         fsm_state_r <= SHIFT_CLK_HI;
                         divider_r <= prescaler_i;
                         shift_cnt_r <= 7;
+                    end else begin
+                        // no, so just sit here until we get some data, or we are deselected
+                        rxtx_busy_o <= 0;             // the only case we indicate non-busy while selected!
                     end
                 end
 

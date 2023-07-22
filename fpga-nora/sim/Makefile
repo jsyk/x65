@@ -3,8 +3,8 @@ SYNSRC = ../src/phaser.v ../src/blinker.v ../src/resetgen.v ../src/fifo.v \
 	../src/pulser.v ../src/simple_via.v ../src/spi_slave.v ../src/i2c_slave.v \
 	../src/ps2_port.v ../src/ps2_kbd_host.v \
 	../src/icd_controller.v ../src/bus_controller.v \
-	../src/smc.v ../src/ps2_scancode_to_keycode.v ../src/spi_master.v \
-	../src/bootrom.v \
+	../src/smc.v ../src/ps2_scancode_to_keycode.v ../src/spi_master.v ../src/spi_host.v \
+	../src/bootrom.v ../src/sysregs.v \
 	../src/nora.v
 
 

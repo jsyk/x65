@@ -1,6 +1,19 @@
 #!/usr/bin/python3
 import x65ftdi
+import argparse
 from icd import *
+
+apa = argparse.ArgumentParser(usage="%(prog)s [OPTION]",
+    description="Reset the CPU."
+)
+
+apa.add_argument(
+    "-v", "--version", action="version", version = f"{apa.prog} version 1.0.0")
+apa.add_argument(
+    "-r", "--rombank", action="store", type=lambda x: int(x, 0))
+
+args = apa.parse_args()
+
 
 icd = ICD(x65ftdi.X65Ftdi())
 
@@ -9,6 +22,10 @@ print("CPU Stop & Reset")
 icd.cpu_ctrl(False, False, True)
 # read_print_trace()
 # read_print_trace()
+
+if args.rombank is not None:
+    print('Set ROMBANK to 0x{:x}'.format(args.rombank))
+    icd.bankregs_write(1, [args.rombank])
 
 print("CPU Step while in Reset")
 # // step the cpu while reset is active for some time

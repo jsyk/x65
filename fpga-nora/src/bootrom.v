@@ -1,7 +1,9 @@
 /* Copyright (c) 2023 Jaroslav Sykora.
  * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
- * Bootrom
+ * Internal RAM / BOOTROM
+ * Single-ported RAM with NORA Slave interface.
+ * We expect synthesis in RAM4K, i.e. with 8-bit data width one RAM4K holds 512 rows (512 Bytes)
  */
 module bootrom #(
     parameter       BITDEPTH = 9
