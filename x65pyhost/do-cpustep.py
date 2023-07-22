@@ -2,6 +2,11 @@
 import x65ftdi
 from icd import *
 import argparse
+from colorama import init as colorama_init
+from colorama import Fore
+from colorama import Style
+
+colorama_init()
 
 apa = argparse.ArgumentParser(usage="%(prog)s [OPTION] [count]",
     description="Step the CPU."
@@ -53,19 +58,25 @@ w65c02_dismap = [
 def read_print_trace():
     tbuflen = 5
     is_valid, is_ovf, tbuf = icd.cpu_read_trace(tbuflen)
+    CA = tbuf[4] * 256 + tbuf[3]
+    CD = tbuf[2]
 
-    print("TraceBuf: V:{} O:{}  CA:{:4x}  CD:{:2x}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}     {}".format(
+    print("TraceBuf: V:{} O:{}  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}     {}".format(
             ('*' if is_valid else '-'),
             ('*' if is_ovf else '-'),
-            tbuf[4] * 256 + tbuf[3],  #/*CA:*/
-            tbuf[2],  #/*CD:*/
+            Fore.YELLOW if CA >= 0x9F00 and CA <= 0x9FFF else Fore.WHITE,   # yellow-mark access to IO
+            CA,  #/*CA:*/
+            Style.RESET_ALL,
+            Fore.RED if not(tbuf[0] & TRACE_FLAG_RWN) else Fore.WHITE,      # red-mark Write Data access
+            CD,  #/*CD:*/
+            Style.RESET_ALL,
             #/*ctr:*/
             tbuf[1], ('-' if (tbuf[1] & TRACE_FLAG_RESETN) else 'R'),
             ('-' if tbuf[1] & TRACE_FLAG_IRQN else 'I'),
             ('-' if tbuf[1] & TRACE_FLAG_NMIN else 'N'),
             ('-' if tbuf[1] & TRACE_FLAG_ABORTN else 'A'),
             #/*sta:*/ 
-            tbuf[0], ('r' if tbuf[0] & TRACE_FLAG_RWN else 'W'), 
+            tbuf[0], ('r' if tbuf[0] & TRACE_FLAG_RWN else Fore.RED+'W'+Style.RESET_ALL), 
             ('-' if tbuf[0] & TRACE_FLAG_VECTPULL else 'v'), 
             ('-' if tbuf[0] & TRACE_FLAG_MLOCK else 'L'), 
             ('S' if tbuf[0] & TRACE_FLAG_SYNC else '-'),
