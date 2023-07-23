@@ -36,38 +36,84 @@ TRACE_FLAG_NMIN =       2
 TRACE_FLAG_ABORTN =     1
 
 w65c02_dismap = [
-    "BRK s", "ORA (zp,X)", "?", "?", "TSB zp", "ORA zp", "ASL zp", "RMB0 zp", "PHP s", "ORA #", "ASL A", "?", "TSB A", "ORA a", "ASL a", "BBR0 r",
-    "BPL r", "ORA (zp),Y", "ORA (zp)", "?", "TRB zp", "ORA zp,X", "ASL zp,X", "RMB1 zp", "CLC i", "ORA a,Y", "INC A", "?", "TRB a", "ORA a,x", "ASL a,x", "BBR1 r",
-    "JSR a", "AND (zp,X)", "?", "?", "BIT zp", "AND zp", "ROL zp", "RMB2 zp", "PLP s", "AND #", "ROL A", "?", "BIT a", "AND a", "ROL a", "BBR2 r",
-    "BMI r", "AND (zp),Y", "AND (zp)", "?", "BIT zp,X", "AND zp,X", "ROL zp,X", "RMB3 zp", "SEC i", "AND a,Y", "DEC A", "?", "BIT a,X", "AND a,X", "ROL a,X", "BBR3 r",
-    "RTI s", "EOR (zp,X)", "?", "?", "?", "EOR zp", "LSR zp", "RMB4 zp", "PHA s", "EOR #", "LSR A", "?", "JMP a", "EOR a", "LSR a", "BBR4 r",
-    "BVC r", "EOR (zp),Y", "EOR (zp)", "?", "?", "EOR zp,X", "LSR zp,X", "RMB5 zp", "CLI i", "EOR a,Y", "PHY s", "?", "?", "EOR a,X", "LSR a,X", "BBR5 r",
-    "RTS s", "ADC (zp,X)", "?", "?", "STZ zp", "ADC zp", "ROR zp", "RMB6 zp", "PLA s", "ADC #", "ROR A", "?", "JMP (a)", "ADC a", "ROR a", "BBR6 r",
-    "BVS s", "ADC (zp),Y", "ADC (zp)", "?", "STZ zp,X", "ADC zp,X", "ROR zp,X", "RMB7 zp", "SEI i", "ADC a,Y", "PLY s", "?", "JMP (a,X)", "ADC a,X", "ROR a,X", "BBR7 r",
-    "BRA r", "STA (zp,X)", "?", "?", "STY zp", "STA zp", "STX zp", "SMB0 zp", "DEY i", "BIT #", "TXA i", "?", "STY a", "STA a", "STX a", "BBS0 r",
-    "BCC r", "STA (zp),Y", "STA (zp)", "?", "STY zp,X", "STA zp,X", "STX zp,Y", "SMB1 zp", "TYA i", "STA a,Y", "TXS i", "?", "STZ a", "STA a,X", "STZ a,X", "BBS1 r",
-    "LDY #", "LDA (zp,X)", "LDX #", "?", "LDY zp", "LDA zp", "LDX zp", "SMB2 zp", "TAY i", "LDA #", "TAX i", "?", "LDY A", "LDA a", "LDX a", "BBS2 r",
-    "BCS r", "LDA (zp,Y)", "LDA (zp)", "?", "LDY zp,X", "LDA zp,X", "LDX zp,Y", "SMB3 zp", "CLV i", "LDA a,Y", "TSX i", "?", "LDY a,X", "LDA a,X", "LDX a,Y", "BBS3 r",
-    "CPY #", "CMP (zp,X)", "?", "?", "CPY zp", "CMP zp", "DEC zp", "SMB4 zp", "INY i", "CMP #", "DEX i", "WAI i", "CPY a", "CMP a", "DEC a", "BBS4 r",
-    "BNE r", "CMP (zp),Y", "CMP (zp)", "?", "?", "CMP zp,X", "DEC zp,X", "SMB5 zp", "CLD i", "CMP a,Y", "PHX s", "STP i", "?","CMP a,X", "DEC a,X", "BBS5 r",
-    "CPX #", "SBC (zp,X)", "?", "?", "CPX zp", "SBC zp", "INC zp", "SMB6 zp", "INX i", "SBC #", "NOP i", "?", "CPX a", "SBC a", "INC a", "BBS6 r", 
-    "BEQ r", "SBC (zp),Y", "SBC (zp)", "?", "?", "SBC zp,X", "INC zp,X", "SMB7 zp", "SED i", "SBC a,Y", "PLX s", "?", "?", "SBC a,X", "INC a,X", "BBS7 r"
+    "BRK #.1", "ORA (.1,X)", "?", "?", "TSB .1", "ORA .1", "ASL .1", "RMB0 .1", "PHP", "ORA #.1", "ASL A", "?", "TSB A", "ORA .2", "ASL .2", "BBR0 :1",
+    "BPL :1", "ORA (.1),Y", "ORA (.1)", "?", "TRB .1", "ORA .1,X", "ASL .1,X", "RMB1 .1", "CLC", "ORA .2,Y", "INC A", "?", "TRB .2", "ORA .2,x", "ASL .2,x", "BBR1 :1",
+    "JSR .2", "AND (.1,X)", "?", "?", "BIT .1", "AND .1", "ROL .1", "RMB2 .1", "PLP", "AND #.1", "ROL A", "?", "BIT .2", "AND .2", "ROL .2", "BBR2 :1",
+    "BMI :1", "AND (.1),Y", "AND (.1)", "?", "BIT .1,X", "AND .1,X", "ROL .1,X", "RMB3 .1", "SEC", "AND .2,Y", "DEC A", "?", "BIT .2,X", "AND .2,X", "ROL .2,X", "BBR3 :1",
+    "RTI", "EOR (.1,X)", "?", "?", "?", "EOR .1", "LSR .1", "RMB4 .1", "PHA", "EOR #.1", "LSR A", "?", "JMP .2", "EOR .2", "LSR .2", "BBR4 :1",
+    "BVC :1", "EOR (.1),Y", "EOR (.1)", "?", "?", "EOR .1,X", "LSR .1,X", "RMB5 .1", "CLI", "EOR .2,Y", "PHY", "?", "?", "EOR .2,X", "LSR .2,X", "BBR5 :1",
+    "RTS", "ADC (.1,X)", "?", "?", "STZ .1", "ADC .1", "ROR .1", "RMB6 .1", "PLA", "ADC #.1", "ROR A", "?", "JMP (.2)", "ADC .2", "ROR .2", "BBR6 :1",
+    "BVS", "ADC (.1),Y", "ADC (.1)", "?", "STZ .1,X", "ADC .1,X", "ROR .1,X", "RMB7 .1", "SEI", "ADC .2,Y", "PLY", "?", "JMP (.2,X)", "ADC .2,X", "ROR .2,X", "BBR7 :1",
+    "BRA :1", "STA (.1,X)", "?", "?", "STY .1", "STA .1", "STX .1", "SMB0 .1", "DEY", "BIT #.1", "TXA", "?", "STY .2", "STA .2", "STX .2", "BBS0 :1",
+    "BCC :1", "STA (.1),Y", "STA (.1)", "?", "STY .1,X", "STA .1,X", "STX .1,Y", "SMB1 .1", "TYA", "STA .2,Y", "TXS", "?", "STZ .2", "STA .2,X", "STZ .2,X", "BBS1 :1",
+    "LDY #.1", "LDA (.1,X)", "LDX #.1", "?", "LDY .1", "LDA .1", "LDX .1", "SMB2 .1", "TAY", "LDA #.1", "TAX", "?", "LDY A", "LDA .2", "LDX .2", "BBS2 :1",
+    "BCS :1", "LDA (.1,Y)", "LDA (.1)", "?", "LDY .1,X", "LDA .1,X", "LDX .1,Y", "SMB3 .1", "CLV", "LDA .2,Y", "TSX", "?", "LDY .2,X", "LDA .2,X", "LDX .2,Y", "BBS3 :1",
+    "CPY #.1", "CMP (.1,X)", "?", "?", "CPY .1", "CMP .1", "DEC .1", "SMB4 .1", "INY", "CMP #.1", "DEX", "WAI", "CPY .2", "CMP .2", "DEC .2", "BBS4 :1",
+    "BNE :1", "CMP (.1),Y", "CMP (.1)", "?", "?", "CMP .1,X", "DEC .1,X", "SMB5 .1", "CLD", "CMP .2,Y", "PHX", "STP", "?","CMP .2,X", "DEC .2,X", "BBS5 :1",
+    "CPX #.1", "SBC (.1,X)", "?", "?", "CPX .1", "SBC .1", "INC .1", "SMB6 .1", "INX", "SBC #.1", "NOP", "?", "CPX .2", "SBC .2", "INC .2", "BBS6 :1", 
+    "BEQ :1", "SBC (.1),Y", "SBC (.1)", "?", "?", "SBC .1,X", "INC .1,X", "SMB7 .1", "SED", "SBC .2,Y", "PLX", "?", "?", "SBC .2,X", "INC .2,X", "BBS7 :1"
 ]
 
 
-def read_print_trace():
+def read_byte_as_cpu(banks, CA):
+    rambank = banks[0]
+    rombank = banks[1]
+    if 0 <= CA < 2:
+        # bank regs
+        rdata = icd.bankregs_read(CA, 1)
+    elif CA < 0x9F00:
+        # CPU low memory starts at sram fix 0x170000
+        rdata = icd.sram_blockread(CA + 0x170000, 1)
+    elif 0xA000 <= CA < 0xC000:
+        # CPU RAM Bank starts at sram fix 0x000
+        rdata = icd.sram_blockread((CA - 0xA000) + rambank*ICD.PAGESIZE, 1)
+    elif 0xC000 <= CA:
+        # CPU ROM bank starts at sram fix 0x180000
+        rdata = icd.sram_blockread((CA - 0xC000) + 0x180000 + rombank*2*ICD.PAGESIZE, 1)
+    return rdata[0]
+
+
+def read_print_trace(banks):
     tbuflen = 5
     is_valid, is_ovf, tbuf = icd.cpu_read_trace(tbuflen)
     CA = tbuf[4] * 256 + tbuf[3]
     CD = tbuf[2]
+    disinst = w65c02_dismap[tbuf[2]] if tbuf[0] & TRACE_FLAG_SYNC else ""
 
-    print("TraceBuf: V:{} O:{}  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}     {}".format(
+    # replace byte value
+    if disinst.find('.1') >= 0:
+        byteval = read_byte_as_cpu(banks, CA+1)
+        disinst = disinst.replace('.1', '${:x}'.format(byteval))
+    
+    # replace byte value displacement
+    if disinst.find(':1') >= 0:
+        byteval = read_byte_as_cpu(banks, CA+1)
+        # convert to signed: negative?
+        if byteval > 127:
+            byteval = byteval - 256
+        disinst = disinst.replace(':1', '${:x}'.format(CA+2+byteval))
+
+    # replace word value
+    if disinst.find('.2') >= 0:
+        wordval = read_byte_as_cpu(banks, CA+1) + read_byte_as_cpu(banks, CA+2)*256
+        disinst = disinst.replace('.2', '${:x}'.format(wordval))
+
+    is_sync = (tbuf[0] & TRACE_FLAG_SYNC)
+    is_io = (CA >= 0x9F00 and CA <= 0x9FFF)
+    is_write = not(tbuf[0] & TRACE_FLAG_RWN)
+
+    print("TraceBuf: V:{} O:{}  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}     {}{}{}".format(
             ('*' if is_valid else '-'),
             ('*' if is_ovf else '-'),
-            Fore.YELLOW if CA >= 0x9F00 and CA <= 0x9FFF else Fore.WHITE,   # yellow-mark access to IO
+            Fore.YELLOW if is_io                # yellow-mark access to IO
+                else Fore.GREEN if is_sync
+                else Fore.RED if is_write
+                else Fore.WHITE,   
             CA,  #/*CA:*/
             Style.RESET_ALL,
-            Fore.RED if not(tbuf[0] & TRACE_FLAG_RWN) else Fore.WHITE,      # red-mark Write Data access
+            Fore.RED if is_write 
+                else Fore.YELLOW if is_io
+                else Fore.WHITE,      # red-mark Write Data access
             CD,  #/*CD:*/
             Style.RESET_ALL,
             #/*ctr:*/
@@ -79,8 +125,8 @@ def read_print_trace():
             tbuf[0], ('r' if tbuf[0] & TRACE_FLAG_RWN else Fore.RED+'W'+Style.RESET_ALL), 
             ('-' if tbuf[0] & TRACE_FLAG_VECTPULL else 'v'), 
             ('-' if tbuf[0] & TRACE_FLAG_MLOCK else 'L'), 
-            ('S' if tbuf[0] & TRACE_FLAG_SYNC else '-'),
-            (w65c02_dismap[tbuf[2]] if tbuf[0] & TRACE_FLAG_SYNC else "")
+            ('S' if is_sync else '-'),
+            Fore.GREEN, disinst, Style.RESET_ALL
         ))
 
 
@@ -92,4 +138,5 @@ print("CPU Step:\n")
 for i in range(0, step_count):
     icd.cpu_ctrl(False, True, False)
     print("Step #{:3}:  ".format(i), end='')
-    read_print_trace()
+    banks = icd.bankregs_read(0, 2)
+    read_print_trace(banks)

@@ -18,7 +18,7 @@
  *      [1] = RX FIFO full?
  *      [2] = TX FIFO empty?
  *      [3] = TX FIFO full?
- *      [4] = TX/RX in progress
+ *      [4] = BUSY - TX/RX is in progress
  *      [7:5] = reserved, 0
  *
  * DATA REGISTER:
