@@ -68,8 +68,13 @@ def read_byte_as_cpu(banks, CA):
         # CPU RAM Bank starts at sram fix 0x000
         rdata = icd.sram_blockread((CA - 0xA000) + rambank*ICD.PAGESIZE, 1)
     elif 0xC000 <= CA:
-        # CPU ROM bank starts at sram fix 0x180000
-        rdata = icd.sram_blockread((CA - 0xC000) + 0x180000 + rombank*2*ICD.PAGESIZE, 1)
+        # CPU ROM bank
+        if rombank < 32:
+            # CPU ROM bank starts at sram fix 0x180000
+            rdata = icd.sram_blockread((CA - 0xC000) + 0x180000 + rombank*2*ICD.PAGESIZE, 1)
+        else:
+            # bootrom inside of NORA
+            rdata = icd.bootrom_blockread((CA - 0xC000), 1)
     return rdata[0]
 
 

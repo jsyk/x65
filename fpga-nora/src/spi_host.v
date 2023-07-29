@@ -59,7 +59,7 @@ module spi_host #(
     // IMPLEMENTATION
 
     // write enqueue signal to the TX FIFO: when Writing to the DATA REG
-    wire txf_enq = reg_wr_i && reg_ad_i;
+    wire txf_enq = reg_wr_i && reg_ad_i && !txf_full;
     // read dequeue signal for the TXFIFO: when we request SPI-TX and it is Ready now.
     wire txf_deq = sm_tx_en_o && sm_tx_ready_i;
     // status output from TX FIFO
@@ -95,7 +95,7 @@ module spi_host #(
     wire rxf_empty;
     
     // read (dequeue) data from the RX FIFO: when Reading from the DATA REG
-    wire rxf_deq = reg_rd_i && reg_ad_i;
+    wire rxf_deq = reg_rd_i && reg_ad_i && !rxf_empty;
     wire [7:0] rxf_rdata;
 
     // Receive bytes FIFO

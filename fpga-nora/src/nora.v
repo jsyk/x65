@@ -192,7 +192,7 @@ module top (
     wire            nora_slv_rwn;
     // Bank parameters from SCRB
     // wire    [7:0]   rambank_mask = 8'hFF;
-    wire    [7:0]   rambank_mask = 8'h7F;       // X16 compatibility: allow only 128 RAM banks after reset
+    wire    [7:0]   rambank_mask; // = 8'h7F;       // X16 compatibility: allow only 128 RAM banks after reset
 
     // CPU address bus -virtual internal `input' signal
     // create the 16-bit CPU bus address by concatenating the two bus signals
@@ -558,6 +558,8 @@ module top (
         .slv_req_i (nora_slv_req_SCRB),          // request (chip select)
         .slv_rwn_i (nora_slv_rwn),           // read=1, write=0
         //
+        // RAMBANK_MASK
+        .rambank_mask_o (rambank_mask),
         // SPI Master interface for accessing the flash memory
         .spireg_d_o (spireg_dw),            // read data output from the core (from the CONTROL or DATA REG)
         .spireg_d_i (spireg_dr),            // write data input to the core (to the CONTROL or DATA REG)

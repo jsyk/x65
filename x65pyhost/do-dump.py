@@ -70,6 +70,7 @@ elif args.area == 'cpu':
         start = areasize + start
 
     # TODO: this code doesn't handle the crossing of boundary within a single dump!!
+    # This is serious proble in the zero page!!
     if 0 <= start < 2:
         # bank regs
         rdata = icd.bankregs_read(start, length)
@@ -80,8 +81,13 @@ elif args.area == 'cpu':
         # CPU RAM Bank starts at sram fix 0x000
         rdata = icd.sram_blockread((start - 0xA000) + rambank*ICD.PAGESIZE, length)
     elif 0xC000 <= start:
-        # CPU ROM bank starts at sram fix 0x180000
-        rdata = icd.sram_blockread((start - 0xC000) + 0x180000 + rombank*2*ICD.PAGESIZE, length)
+        # CPU ROM bank
+        if rombank < 32:
+            # CPU ROM bank starts at sram fix 0x180000
+            rdata = icd.sram_blockread((start - 0xC000) + 0x180000 + rombank*2*ICD.PAGESIZE, length)
+        else:
+            # bootrom inside of NORA
+            rdata = icd.bootrom_blockread((start - 0xC000), length)
 
 else:
     print('Unknown area {}'.format(args.area))

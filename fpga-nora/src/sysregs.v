@@ -15,6 +15,8 @@ module sysregs (
     input           slv_req_i,          // request (chip select)
     input           slv_rwn_i,           // read=1, write=0
     //
+    // RAMBANK_MASK
+    output reg [7:0]   rambank_mask_o,
     // SPI Master interface for accessing the flash memory
     output [7:0]    spireg_d_o,            // read data output from the core (from the CONTROL or DATA REG)
     input  [7:0]    spireg_d_i,            // write data input to the core (to the CONTROL or DATA REG)
@@ -24,14 +26,13 @@ module sysregs (
 
 );
     // IMPLEMENTATION
-    reg [7:0]   rambank_mask_r;
 
     reg spireg_cs;
     reg rambank_mask_cs;
 
 
     // calculate the slave data read output
-    always @(slv_addr_i, rambank_mask_r, spireg_d_i, slv_req_i) 
+    always @(slv_addr_i, rambank_mask_o, spireg_d_i, slv_req_i) 
     begin
         slv_datard_o = 8'h00;
         spireg_cs = 0;
@@ -39,7 +40,7 @@ module sysregs (
 
         case (slv_addr_i ^ 5'b10000)
             5'h00: begin            // 0x9F50
-                slv_datard_o = rambank_mask_r;       // RAMBANK_MASK
+                slv_datard_o = rambank_mask_o;       // RAMBANK_MASK
                 rambank_mask_cs = slv_req_i;
             end
             5'h02, 5'h03: begin     // 0x9F52, 9F53
@@ -61,12 +62,12 @@ module sysregs (
         if (!resetn)
         begin
             // in reset
-            rambank_mask_r <= 8'h7F;       // X16 compatibility: allow only 128 RAM banks after reset
+            rambank_mask_o <= 8'h7F;       // X16 compatibility: allow only 128 RAM banks after reset
         end else begin
             // handle write to the RAMBANK_MASK register
             if (rambank_mask_cs && !slv_rwn_i && slv_datawr_valid)
             begin
-                rambank_mask_r <= slv_datawr_i;
+                rambank_mask_o <= slv_datawr_i;
             end
         end
     end
