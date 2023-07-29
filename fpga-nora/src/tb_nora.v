@@ -233,6 +233,7 @@ module tb_nora ();
 
         @(negedge CPHI2);
         @(negedge CPHI2);
+        @(posedge CRESn);
 
         // test-writes CPU->SRAM
         cpu_write(16'h0010, 8'h12);

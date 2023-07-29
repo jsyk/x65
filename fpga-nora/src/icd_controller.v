@@ -1,3 +1,5 @@
+/* Copyright (c) 2023 Jaroslav Sykora.
+ * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
  * ICD = In-Circuit Debugger, normally driven from SPI-Slave connected to the USB/FTDI
  * port on the OpenX65 computer.
@@ -57,11 +59,6 @@ module icd_controller #(
     input           nora_mst_ack_i,                 // end of access, also nora_mst_datard_o is valid now.
     output reg      nora_mst_req_SRAM_o,
     output reg      nora_mst_req_OTHER_o,
-    // output reg      nora_mst_req_BOOTROM_o,
-    // output reg      nora_mst_req_BANKREG_o,
-    // output reg      nora_mst_req_SCRB_o,
-    // output reg      nora_mst_req_VIA_o,
-    // output reg      nora_mst_req_VERA_o,
     output reg      nora_mst_rwn_o,
 
     // CPU control/status
@@ -75,24 +72,38 @@ module icd_controller #(
 );
 // IMPLEMENTATION
 
-    parameter CMD_GETSTATUS = 4'h0;
-    parameter CMD_BUSMEM_ACC = 4'h1;
-    parameter CMD_CPUCTRL = 4'h2;
-    parameter CMD_READTRACE = 4'h3;
+    // protocol constants: commands
+    localparam CMD_GETSTATUS = 4'h0;
+    localparam CMD_BUSMEM_ACC = 4'h1;
+    localparam CMD_CPUCTRL = 4'h2;
+    localparam CMD_READTRACE = 4'h3;
+    // arguments
+    localparam nSRAM_OTHER_BIT = 4;
+    localparam nWRITE_READ_BIT = 5;
+    localparam ADR_INC_BIT = 6;
 
-    parameter nSRAM_OTHER_BIT = 4;
-    parameter nWRITE_READ_BIT = 5;
-    parameter ADR_INC_BIT = 6;
-
+    // command byte from the host
     reg [7:0]   icd_cmd;        // first byte
     reg [3:0]   counter;        // data bytes counter, saturates.
 
+    // trace of the CPU/BUS
     reg [CPUTRACE_WIDTH-1:0]    cpubus_trace_reg;
     reg                         tracereg_valid;
     reg                         tracereg_ovf;           // overflowed
 
+    // indicates that the CPU should be stopped just after one cycle
     reg     single_step_cpu;
 
+    // startup FSM - states
+    // TBD: make possible to start in debug mode!
+    localparam STARTUP_INIT = 2'b00;
+    localparam STARTUP_WAIT_RESB = 2'b01;
+    localparam STARTUP_RUN = 2'b10;
+    localparam STARTUP_DONE = 2'b11;
+    
+    // state machine for the FPGA cold start
+    reg [1:0]    startup_fsm_r;
+    reg [3:0]    startup_cnt_r;
 
     always @(posedge clk6x)
     begin
@@ -111,15 +122,17 @@ module icd_controller #(
             // nora_mst_req_VIA_o <= 0;
             // nora_mst_req_VERA_o <= 0;
             nora_mst_rwn_o <= 1;
-`ifdef SIMULATION
-            run_cpu <= 1;                   // sim starts in run!!
-`else
-            run_cpu <= 0;                   // TBD: this starts in stop!!
-`endif
-            cpu_force_resn_o <= 0;          // TBD: this will force reset!!
+// `ifdef SIMULATION
+            // run_cpu <= 1;                   // sim starts in run!!
+// `else
+            run_cpu <= 0;                   // CPU starts in stop!!
+// `endif
+            cpu_force_resn_o <= 0;          // this will force reset!!
             single_step_cpu <= 0;
             tracereg_valid <= 0;
             tracereg_ovf <= 0;
+            startup_fsm_r <= STARTUP_INIT;
+            startup_cnt_r <= 15;
         end else begin
             if (rx_hdr_en_i)
             begin
@@ -252,6 +265,46 @@ module icd_controller #(
                 run_cpu <= 0;
                 single_step_cpu <= 0;
             end
+
+            // handle startup sequence
+            case (startup_fsm_r)
+                STARTUP_INIT:
+                begin
+                    // initialize CPU reset/startup sequence:
+                    run_cpu <= 0;
+                    cpu_force_resn_o <= 0;          // this will force reset!!
+                    single_step_cpu <= 0;
+                    startup_cnt_r <= 15;
+                    startup_fsm_r <= STARTUP_WAIT_RESB;
+                end
+
+                STARTUP_WAIT_RESB:
+                begin
+                    // run the CPU, while keeping reset active for 15 u-cycles
+                    // TBD: we should check CPHI2 for at least 2 cycles gone!!
+                    run_cpu <= 1;
+                    startup_cnt_r <= startup_cnt_r - 1;
+                    // done?
+                    if (startup_cnt_r == 0)
+                    begin
+                        startup_fsm_r <= STARTUP_RUN;
+                    end
+                end
+
+                STARTUP_RUN:
+                begin
+                    // run the CPU, deactivate the reset
+                    run_cpu <= 1;
+                    cpu_force_resn_o <= 1;
+                    startup_fsm_r <= STARTUP_DONE;
+                end
+
+                STARTUP_DONE:
+                begin
+                    // no action here!
+                    startup_fsm_r <= STARTUP_DONE;
+                end
+            endcase
         end
     end
 
