@@ -56,6 +56,10 @@ Debug = FT2232H
     FT2232HQ        QFN64, no stock
     FT2232H-56Q     VQN56, stocked.
 
+Plan for Rev02:
+    Micro-SD slot for SDHC cards, connected to SPI on NORA.
+    QSPI PSRAM
+    UEXT port
 
 
 Front panel:
@@ -68,7 +72,6 @@ Back panel:
 
 On PCB:
     pin header to VERA: 2x 02x10p
-    pin header to ILI TFT: 1x 01x14p and 01x04p
 
 Rev02 TBD:
     remove VIA
@@ -81,33 +84,26 @@ Rev02 TBD:
 MULTIMEDIA BOARD, 10x10cm, 2L
 ================================
 Video = "VERA" FPGA
-ICE40UP5K-SG48I
-https://eu.mouser.com/ProductDetail/Lattice/ICE40UP5K-SG48I?qs=Rp3RbKSfAt3UqOG1AN4%2FAg%3D%3D
-in QFN-48
-https://github.com/fvdhoef/vera-module
-https://github.com/fvdhoef/ice-dip
+    ICE40UP5K-SG48I
+    https://eu.mouser.com/ProductDetail/Lattice/ICE40UP5K-SG48I?qs=Rp3RbKSfAt3UqOG1AN4%2FAg%3D%3D
+    in QFN-48
+    https://github.com/fvdhoef/vera-module
+    https://github.com/fvdhoef/ice-dip
 
-SD-Card - already on VERA (or ILI)
+SD-Card - already on VERA
 
-SPI ILI9341 TFT (not going through VERA; but make that an option!), touch.
-
-Sound: VERA + YM2151??? radeji v dalsi FPGA
+Sound: VERA PSG + YM2151???
+    Maybe use FPGA for YM2151:
 	https://github.com/jotego/jt51
 
 Network = Wiznet W6100
-
-Consider also alternative MM-boards!
-    that would not have an FPGA -> bring SDCard SPI from baseboard also.
-
 
 
 NAMING
 ========
 
-OPEN65.ORG
-
 X65.EU
-    like X86, but with 65C02
+    like X86, but with 65C02 :-)
 
 
 

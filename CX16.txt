@@ -1,8 +1,8 @@
-Commander_X16
+Commander X16 - Analysis
+=========================
 
 https://www.c64-wiki.com/wiki/Commander_X16
-https://github.com/commanderx16
-file:///home/jara/ownCloud/hw-devkit-boards/Commander%20X16%20VERA/docs/X16%20Reference%20-%2007%20-%20Memory%20Map.html
+https://github.com/X16Community
 https://www.reddit.com/r/CommanderX16/
 
 
@@ -28,17 +28,14 @@ I/O Area
 
     This is the memory map of the I/O Area:
     Addresses 	Description
-    9F00−9F0F 	VIA I/O controller #1   -- yes, but tbd move inside of fpga
-    9F10−9F1F 	VIA I/O controller #2   -- will not be impl.
+    9F00−9F0F 	VIA I/O controller #1
+    9F10−9F1F 	VIA I/O controller #2
     9F20−9F3F 	VERA video controller
-    9F40−9F41 	YM2151 audio controller  -- no
+                https://github.com/X16Community/vera-module
+    9F40−9F41 	YM2151 audio controller
     9F42−9F4F 	Reserved
     9F50−9F5F 	Reserved
     9F60−9FFF 	External devices
-
-    Note: Wiznet W6100 requires 2-bit Indirect address.
-    That would fit at 0x9F60 - 0x9F63.
-    Our FPGA could use 9F42 - 9F5F
 
 SRAM banked:
 0xA000-0xBFFF 	8192 bytes* 	RAM Bank window (512K total, expandable to 2MB)

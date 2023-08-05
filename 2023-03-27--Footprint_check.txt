@@ -1,9 +1,0 @@
-Footprint check
-
-
-* button footprint OK, but the button is very small => we should find a better one.
-* PS/2 footprint OK, but it could be erronously assembled on top side!!
-* side-view LED footprint OK, but the LED looks very small; Vf=1.92V
-* Lattice => OK
-* ISSI mem => OK
-

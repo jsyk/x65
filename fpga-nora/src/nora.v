@@ -593,6 +593,7 @@ module top (
     assign TCSn = 1'b1;
     assign PERIRESn = 1'b1;
     assign ILIDC = 1'b0;
-    assign ILICSn = 1'b1;
+
+    assign ILICSn = nora_slv_req_VIA1;          // for debug
 
 endmodule

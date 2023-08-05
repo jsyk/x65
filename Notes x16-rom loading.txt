@@ -1,4 +1,7 @@
 
+Tips for CX16 commands:
+https://voidstar.blog/voidstars-commander-x16-notes/
+
 
 ./do-cpureset.py --rombank 0
 ./do-loadbin.py ~/c65/x16-rom/build/x16/rom.bin sram 0x180000
@@ -8,7 +11,8 @@
 
 
 ./do-loadbin.py testroms/banktest.bin sram 0x180000
-
 ./do-loadbin.py testroms/spitest.bin sram 0x180000
 
 ./do-loadbin.py ../fpga-nora/rom/pbl.bin bootrom 0
+
+./x65prog -N -o 256k ~/c65/x16-rom/build/x16/rom.bin
