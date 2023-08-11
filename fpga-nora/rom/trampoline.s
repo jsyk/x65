@@ -1,0 +1,3 @@
+.SEGMENT "CODE"
+    STA 1
+    JMP ($FFFC)
