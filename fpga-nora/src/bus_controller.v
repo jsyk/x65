@@ -64,6 +64,7 @@ module bus_controller (
     output reg      nora_slv_req_BOOTROM_o,     // a request to internal BOOTROM (PBL)
     output reg      nora_slv_req_SCRB_o,        // a request to the SCRB at 0x9F50
     output reg      nora_slv_req_VIA1_o,        // a request to VIA1 at 0x9F00
+    output reg      nora_slv_req_OPM_o,         // a request to internal OPM
     output reg      nora_slv_rwn_o,             // reading (1) or writing (0) to the slave
     //
     // Bank parameters from SCRB
@@ -146,6 +147,7 @@ module bus_controller (
             nora_slv_req_BOOTROM_o <= 0;
             nora_slv_req_SCRB_o <= 0;
             nora_slv_req_VIA1_o <= 0;
+            nora_slv_req_OPM_o <= 0;
             rambank_nr <= 8'h00;
             rombank_nr <= 6'b11_1111;        // rombank 63 - starts in BOOTROM
             // rombank_nr <= 6'b000000;        // rombank 0 - starts at 0x18_0000
@@ -221,10 +223,11 @@ module bus_controller (
                     end
                     else if (cpu_ab_i[7:4] == 4'h4)
                     begin
-                        // 0x9F40 AURA audio controller
-                        aio_csn_o <= LOW_ACTIVE;
-                        mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_o <= cpu_rw_i;
+                        // 0x9F40-F AURA audio controller
+                        nora_slv_req_OPM_o <= 1;
+                        // aio_csn_o <= LOW_ACTIVE;
+                        // mem_rdn_o <= ~cpu_rw_i;
+                        // mem_wrn_o <= cpu_rw_i;
                     end
                     else if (cpu_ab_i[7:4] == 4'h5)
                     begin
@@ -302,6 +305,7 @@ module bus_controller (
                 nora_slv_req_BANKREG <= 0;
                 nora_slv_req_SCRB_o <= 0;
                 nora_slv_req_VIA1_o <= 0;
+                nora_slv_req_OPM_o <= 0;
             end
 
             case (mst_state)
@@ -402,9 +406,10 @@ module bus_controller (
                         else if (nora_mst_addr_i[7:4] == 4'h4)
                         begin
                             // 0x9F40 AURA audio controller
-                            aio_csn_o <= LOW_ACTIVE;
-                            mem_rdn_o <= ~nora_mst_rwn_i;
-                            mem_wrn_o <= nora_mst_rwn_i;
+                            nora_slv_req_OPM_o <= 1;
+                            // aio_csn_o <= LOW_ACTIVE;
+                            // mem_rdn_o <= ~nora_mst_rwn_i;
+                            // mem_wrn_o <= nora_mst_rwn_i;
                         end
                         else if (nora_mst_addr_i[7:4] == 4'h5)
                         begin
@@ -492,7 +497,7 @@ module bus_controller (
                 cpu_db_o <= { 3'b000, rombank_nr };
             end
         end
-        else if (nora_slv_req_SCRB_o || nora_slv_req_VIA1_o || nora_slv_req_BOOTROM_o)
+        else if (nora_slv_req_SCRB_o || nora_slv_req_VIA1_o || nora_slv_req_BOOTROM_o || nora_slv_req_OPM_o)
         begin
             // internal slave reading
             cpu_db_o <= nora_slv_data_i;

@@ -55,6 +55,10 @@ module tb_nora ();
     wire VCS1n_AIO;
     wire VCS2n_ENET;
 
+    wire AUDIO_DATA;          // was: VAUX0
+    wire AUDIO_BCK;           // was: VAUX1
+    wire AUDIO_LRCK;         // was: VAUX2
+
     wire ICD_CSn = 1'b1;
     wire ICD_MOSI = 1'b1;
     wire ICD_MISO = 1'b1;
@@ -151,9 +155,10 @@ module tb_nora ();
         .VCS1n (VCS1n_AIO),
         .VCS2n (VCS2n_ENET),
         .VIRQn (1'b1),
-        // .VAUX0 (1'b1),
-        // .VAUX1 (1'b1),
-        // .VAUX2 (1'b1),
+
+        .AUDIO_DATA (AUDIO_DATA),          // was: VAUX0
+        .AUDIO_BCK (AUDIO_BCK),           // was: VAUX1
+        .AUDIO_LRCK (AUDIO_LRCK),          // was: VAUX2
 
     // ICD SPI-slave interface
         .ICD_CSn (ICD_CSn),
@@ -217,6 +222,24 @@ module tb_nora ();
             CRWn = #10 1'b1;
         end
     endtask
+
+
+    task IKAOPM_write;
+        input       [7:0]   i_TARGET_ADDR;
+        input       [7:0]   i_WRITE_DATA;
+    begin
+        // read OPM status reg and wait until BUSY flag is 0.
+        tb_cpuDataRead = 8'hFF;
+        while (tb_cpuDataRead[7] == 1)
+        begin
+            cpu_read(16'h9F40);
+        end
+
+        cpu_write(16'h9F40, i_TARGET_ADDR);
+        #2000;
+        cpu_write(16'h9F41, i_WRITE_DATA);
+        #2000;
+    end endtask
 
     initial
     begin
@@ -297,6 +320,50 @@ module tb_nora ();
         cpu_read(16'h9F53);
         cpu_read(16'h9F53);
         cpu_read(16'h9F53);
+
+        // test of IKAOPM
+        // KC
+        // cpu_write(16'h9F40, 8'h28);
+        // cpu_write(16'h9F41, {4'h4, 4'h2});
+
+        //KC
+        #(600*35) IKAOPM_write(8'h28, {4'h4, 4'h2}); //ch1
+
+        //MUL
+        #(600*35) IKAOPM_write(8'h40, {1'b0, 3'd0, 4'd2}); 
+        #(600*35) IKAOPM_write(8'h50, {1'b0, 3'd0, 4'd1});
+
+        //TL
+        #(600*35) IKAOPM_write(8'h60, {8'd21});
+        #(600*35) IKAOPM_write(8'h70, {8'd1});
+        #(600*35) IKAOPM_write(8'h68, {8'd127});
+        #(600*35) IKAOPM_write(8'h78, {8'd127});
+
+        //AR
+        #(600*35) IKAOPM_write(8'h80, {2'd0, 1'b0, 5'd31}); 
+        #(600*35) IKAOPM_write(8'h90, {2'd0, 1'b0, 5'd30});
+
+        //AMEN/D1R(DR)
+        #(600*35) IKAOPM_write(8'hA0, {1'b0, 2'b00, 5'd5});
+        #(600*35) IKAOPM_write(8'hB0, {1'b0, 2'b00, 5'd18});
+
+        //D2R(SR)
+        #(600*35) IKAOPM_write(8'hC0, {2'd0, 1'b0, 5'd0});
+        #(600*35) IKAOPM_write(8'hD0, {2'd0, 1'b0, 5'd7});
+
+        //D1L(SL)RR
+        #(600*35) IKAOPM_write(8'hE0, {4'd0, 4'd0});
+        #(600*35) IKAOPM_write(8'hF0, {4'd1, 4'd4});
+
+        //RL/FL/ALG
+        #(600*35) IKAOPM_write(8'h20, {2'b11, 3'd7, 3'd4});
+
+        //KON
+        #(600*35) IKAOPM_write(8'h08, {1'b0, 4'b0011, 3'd0}); //write 0x7F, 0x08(KON)=
+
+        cpu_read(16'h0000);
+
+        #1_000_000;
 
         #1000;
         $display("=== TESTBENCH OK ===");

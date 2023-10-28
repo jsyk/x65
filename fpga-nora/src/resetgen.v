@@ -9,7 +9,7 @@ module resetgen (
     output reg  resetn
 );
 
-    reg [3:0] counter = 4'd0;
+    reg [7:0] counter = 8'd0;
 
     always @(posedge clk)
     begin
@@ -21,7 +21,7 @@ module resetgen (
             counter <= 4'h0;
         end else begin
             // count up...
-            if (counter[3] != 1'b1)
+            if (counter[7] != 1'b1)
             begin
                 // counting
                 counter <= counter + 4'd1;

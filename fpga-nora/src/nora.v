@@ -189,6 +189,7 @@ module top (
     wire            nora_slv_req_BOOTROM;
     wire            nora_slv_req_SCRB;
     wire            nora_slv_req_VIA1;
+    wire            nora_slv_req_OPM;
     wire            nora_slv_rwn;
     // Bank parameters from SCRB
     // wire    [7:0]   rambank_mask = 8'hFF;
@@ -374,6 +375,7 @@ module top (
         .nora_slv_req_BOOTROM_o (nora_slv_req_BOOTROM),
         .nora_slv_req_SCRB_o (nora_slv_req_SCRB),
         .nora_slv_req_VIA1_o (nora_slv_req_VIA1),
+        .nora_slv_req_OPM_o (nora_slv_req_OPM),
         .nora_slv_rwn_o (nora_slv_rwn),
         // Bank parameters from SCRB
         .rambank_mask_i (rambank_mask)
@@ -568,23 +570,35 @@ module top (
         .spireg_ad_i (spireg_ad)            // target register select: 0=CONTROL REG, 1=DATA REG.
     );
 
+    // OPM output data
+    wire [7:0]   OPM_slv_datard;
+
+    fm2151 opm
+    (
+        // Global signals
+        .clk                (clk6x),      // 48MHz
+        .resetn             (resetn),     // sync reset
+        // Host interface (slave)
+        .slv_addr_i         (nora_slv_addr[4:0]),
+        .slv_datawr_i       (nora_slv_datawr),     // write data = available just at the end of cycle!!
+        .slv_datawr_valid   (nora_slv_datawr_valid),      // flags nora_slv_datawr_o to be valid
+        .slv_datard_o       (OPM_slv_datard),       // read data
+        .slv_req_i          (nora_slv_req_OPM),          // request (chip select)
+        .slv_rwn_i          (nora_slv_rwn),           // read=1, write=0
+        .slv_irqn_o         ( ),         // interrupt output, active low
+        // Sound output to the on-board DAC
+        .audio_bck          (AUDIO_BCK),
+        .audio_data         (AUDIO_DATA),
+        .audio_lrck         (AUDIO_LRCK)
+    );
+
+
     assign nora_slv_datard = (nora_slv_req_BOOTROM) ? bootrom_slv_datard : 
                             (nora_slv_req_SCRB) ? SCRB_slv_datard :
                             (nora_slv_req_VIA1) ? via1_slv_datard :
+                            (nora_slv_req_OPM) ? OPM_slv_datard :
                             8'hFF;
 
-    // fm2151 fm
-    // (
-    //     // Global signals
-    //     .clk (clk6x),      // 48MHz
-    //     .resetn (resetn),     // sync reset
-    //     // Host interface (slave)
-
-    //     // Sound output to the on-board DAC
-    //     .audio_bck (AUDIO_BCK),
-    //     .audio_data (AUDIO_DATA),
-    //     .audio_lrck (AUDIO_LRCK)
-    // );
 
     // define unused output signals
     assign VIACS = 1'b1;

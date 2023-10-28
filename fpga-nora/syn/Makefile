@@ -2,6 +2,7 @@ PROJ = nora
 PIN_DEF = openX65-mobo-rev01.pcf
 DEVICE = hx4k
 PACKAGE = tq144
+
 JT51SRC = ../../jt51/hdl/jt51_acc.v \
 	../../jt51/hdl/jt51_eg.v \
 	../../jt51/hdl/jt51_exp2lin.v \
@@ -27,13 +28,19 @@ JT51SRC = ../../jt51/hdl/jt51_acc.v \
 	../../jt51/hdl/../ver/common/sep32.v \
 	../../jt51/hdl/../ver/common/sep32_cnt.v
 
+IKAOPMSRC = ../../IKAOPM/HDL/IKAOPM.v ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_acc.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_eg.v \
+		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_lfo.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_noise.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_op.v \
+		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_pg.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_primitives.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_reg.v \
+		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timer.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timinggen.v
+
 PBL = ../rom/pbl.mem
 
 SYNSRC = ../src/nora.v ../src/bus_controller.v ../src/phaser.v ../src/blinker.v \
 	../src/resetgen.v ../src/pll.v ../src/spi_slave.v ../src/icd_controller.v \
 	../src/simple_via.v ../src/ps2_port.v ../src/i2c_slave.v ../src/ps2_kbd_host.v \
 	../src/smc.v ../src/ps2_scancode_to_keycode.v \
-	../src/pulser.v ../src/fifo.v ../src/spi_master.v ../src/spi_host.v ../src/bootrom.v ../src/sysregs.v
+	../src/pulser.v ../src/fifo.v ../src/spi_master.v ../src/spi_host.v ../src/bootrom.v ../src/sysregs.v \
+ 	$(IKAOPMSRC) ../src/i2s_encoder.v ../src/fm2151_ikaopm.v
 
 # $(JT51SRC) ../src/fm2151.v
 
