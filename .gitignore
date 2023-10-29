@@ -62,6 +62,9 @@ Datasheet/
 *.bin
 *.rpt
 
+*.raw
+*.log
+
 # Python
 __pycache__
 
