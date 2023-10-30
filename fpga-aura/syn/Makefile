@@ -27,8 +27,13 @@ JT51SRC = ../../jt51/hdl/jt51_acc.v \
 	../../jt51/hdl/../ver/common/sep32.v \
 	../../jt51/hdl/../ver/common/sep32_cnt.v
 
+IKAOPMSRC = ../../IKAOPM/HDL/IKAOPM.v ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_acc.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_eg.v \
+		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_lfo.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_noise.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_op.v \
+		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_pg.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_primitives.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_reg.v \
+		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timer.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timinggen.v
 
-SYNSRC = $(JT51SRC) ../src/aura.v
+
+SYNSRC = $(IKAOPMSRC) ../src/aura.v ../../fpga-nora/src/i2s_encoder.v ../../fpga-nora/src/resetgen.v
 
 # $(JT51SRC) ../src/fm2151.v
 

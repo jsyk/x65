@@ -11,14 +11,14 @@ module aura
     input       MWRN,           // write cmd
     output      AIRQN,          // IRQ output
     output      IOCSN,          // IO CSn output
-    // Audio input from VERA
+    // Audio input from VERA, I2S
     input       VAUDIO_LRCK,
     input       VAUDIO_DATA,
     input       VAUDIO_BCK,
-    // Audio output
-    output reg      AUDIO_BCK,
-    output reg     AUDIO_DATA,
-    output reg      AUDIO_LRCK,
+    // Audio output I2S
+    output       AUDIO_BCK,
+    output       AUDIO_DATA,
+    output       AUDIO_LRCK,
     // SPI Flash
     output      ASPI_MOSI,
     input       ASPI_MISO,
@@ -27,18 +27,15 @@ module aura
 );
     // IMPLEMENTATION
 
-    // assign DB[0] = AB[0];
 
-    wire clk = ASYSCLK;         // TBD correct frequency!!
-    wire resetn = 1;            // TBD
+    wire clk = ASYSCLK;
 
-    // clock-enables at 3.57Mhz and 1.78MHz
-    wire cen_fm, cen_fm2;
-
-    jtframe_cen3p57 u_cen (
-        .clk        ( clk       ),       // 48 MHz
-        .cen_3p57   ( cen_fm    ),
-        .cen_1p78   ( cen_fm2   )
+    /**
+    * Autonomous reset generator
+    */
+    resetgen rstgen0 (
+        .clk (clk), .clklocked (1'b1), .rstreq(1'b0),
+        .resetn (resetn)
     );
 
 
@@ -47,85 +44,110 @@ module aura
     wire  a0 = AB[0];
     wire  [7:0] din = DB;
     wire [7:0] dout;
-
-    wire signed  [15:0] left, xleft;
-    wire signed  [15:0] right, xright;
-    wire                sample, ct1, ct2, irq_n;
+    wire  dout_en;
 
     assign AIRQN = irq_n;
 
-    jt51 uut(
-        .rst        (  !resetn      ),    // reset, active high
-        .clk        (  clk      ),    // main clock 48Mhz (or whatever)
-        .cen        (  cen_fm   ),    // clock enable to gear down to 3.57 MHz, nominal for YM2151
-        .cen_p1     (  cen_fm2  ), // clock enable at half the speed (1.78MHz)
-        .cs_n       (  cs_n     ),   // chip select
-        .wr_n       (  wr_n     ),   // write
-        .a0         (  a0       ),
-        .din        (  din      ), // data in
-        .dout       (  dout     ), // data out
-        // peripheral control
-        .ct1        ( ct1       ),
-        .ct2        ( ct2       ),
-        .irq_n      ( irq_n     ),  // I do not synchronize this signal
-        // Low resolution output (same as real chip)
-        .sample     ( sample    ), // marks new output sample
-        .left       ( left      ),
-        .right      ( right     ),
-        // Full resolution output
-        .xleft      ( xleft     ),
-        .xright     ( xright    )
+    // parallel output DAC data from the OPM
+    wire signed  [15:0] left_chan;
+    wire signed  [15:0] right_chan;
+
+    // clk dividers for OPM
+    reg     [4:0]   clkdiv = 4'b0000;
+    wire            phiM_PCEN_n = ~(clkdiv == 4'd0);
+    
+    reg             phiMref = 1'b0;
+
+    // Generate phiMref as clk div 7 ==> 25MHz / 7 = 3.57 MHz.
+    // This must run even during resetn, so that OPM is cleared well. 
+    // It needs many reset cycles to flush pipelines!
+    // Output sampling frequency will be 53.657 kHz
+    always @(posedge clk) 
+    begin
+        if (clkdiv == 4'd6) 
+        begin 
+            clkdiv <= 4'b0000;
+            phiMref <= 1'b1; 
+        end else begin 
+            clkdiv <= clkdiv + 4'b0001;
+        end
+
+        if (clkdiv == 4'd3) 
+        begin
+            phiMref <= 1'b0;
+        end
+    end
+
+
+    //Verilog module instantiation example
+    IKAOPM #(
+        .FULLY_SYNCHRONOUS          (1                          ),
+        .FAST_RESET                 (1                          )
+    ) u_ikaopm_0 (
+        .i_EMUCLK                   ( clk                          ),   // 25MHz
+
+        .i_phiM_PCEN_n              ( phiM_PCEN_n                  ),     // nENABLE 
+
+        .i_IC_n                     ( resetn                          ),
+
+        .o_phi1                     (                           ),
+
+        //.o_EMU_BUSY_FLAG            (                           ), //compilation option
+        .i_CS_n                     (  cs_n                         ),
+        .i_RD_n                     (  MRDN                         ),
+        .i_WR_n                     (  MWRN                         ),
+        .i_A0                       (  a0                         ),
+
+        .i_D                        (  din                         ),
+        // Reads are very easy, because YM2151 has just single read register: the STATUS with the Busy flag in MSB.
+        // This register is always present on the o_D from IKAOPM. We just always present it on.
+        .o_D                        (  dout                     ),
+        .o_D_OE                     (  dout_en                  ),
+
+        .o_CT1                      (                           ),
+        .o_CT2                      (                           ),
+
+        .o_IRQ_n                    ( irq_n                     ),
+
+        .o_SH1                      (                           ),
+        .o_SH2                      (                           ),
+
+        .o_SO                       (                           ),
+
+        .o_EMU_R_SAMPLE             (                           ),
+        .o_EMU_R_EX                 (  right_chan               ),
+        .o_EMU_R                    (                           ),
+
+        .o_EMU_L_SAMPLE             (                           ),
+        .o_EMU_L_EX                 (  left_chan                ),
+        .o_EMU_L                    (                           )
+    );
+
+    assign DB = (dout_en) ? dout : 8'hZZ;
+
+    // encode output audio data into I2S
+    I2S_encoder #(
+        .LRCLK_DIV (10'd511),           // LRCLK = 25 Mhz / 512 = 48.828 kHz
+        .BCLK_DIV  (4'd3)               // BCLK = 25 MHz / 4 = 6.25 Mhz
+    ) enc (
+        // Global signals
+        .clk        (clk),              // system clock 25 MHz
+        .resetn     (resetn),           // system reset, low-active sync.
+        // Input sound samples
+        .r_chan_i   (right_chan),
+        .l_chan_i   (left_chan),
+        // Output I2S signal
+        .lrclk_o    (AUDIO_LRCK),
+        .bclk_o     (AUDIO_BCK),
+        .dacdat_o   (AUDIO_DATA)
     );
 
 
-    always @(posedge clk)
-    begin
-        AUDIO_LRCK <= sample;
-        AUDIO_BCK <= xleft[0];
-        AUDIO_DATA <= xright[0];
-    end
-
+    assign IOCSN = 1'b1;            // TBD
+    
+    assign ASPI_MOSI = 1'bZ;
+    assign ASPI_SCK = 1'b1;
+    assign AFLASH_SSELN = 1'b1;
 
 endmodule
 
-
-
-module jtframe_cen3p57(
-    input      clk,       // 48 MHz
-    output reg cen_3p57,
-    output reg cen_1p78
-);
-
-wire [10:0] step=11'd105;
-wire [10:0] lim =11'd1408;
-wire [10:0] absmax = lim+step;
-
-reg  [10:0] cencnt=11'd0;
-reg  [10:0] next;
-reg  [10:0] next2;
-
-always @(*) begin
-    next  = cencnt+11'd105;
-    next2 = next-lim;
-end
-
-reg alt=1'b0;
-
-always @(posedge clk) begin
-    cen_3p57 <= 1'b0;
-    cen_1p78 <= 1'b0;
-    if( cencnt >= absmax ) begin
-        // something went wrong: restart
-        cencnt <= 11'd0;
-        alt    <= 1'b0;
-    end else
-    if( next >= lim ) begin
-        cencnt <= next2;
-        cen_3p57 <= 1'b1;
-        alt    <= ~alt;
-        if( alt ) cen_1p78 <= 1'b1;
-    end else begin
-        cencnt <= next;
-    end
-end
-endmodule
