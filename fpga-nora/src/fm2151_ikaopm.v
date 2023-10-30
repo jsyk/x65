@@ -62,7 +62,7 @@ module fm2151
     //Verilog module instantiation example
     IKAOPM #(
         .FULLY_SYNCHRONOUS          (1                          ),
-        .FAST_RESET                 (0                          )
+        .FAST_RESET                 (1                          )
     ) u_ikaopm_0 (
         .i_EMUCLK                   ( clk                          ),   // 48MHz
 
@@ -103,6 +103,7 @@ module fm2151
         .o_EMU_L                    (                           )
     );
 
+    // assign slv_datard_o = 8'h00;            // HACK
 
     I2S_encoder #(
         .LRCLK_DIV (10'd982),

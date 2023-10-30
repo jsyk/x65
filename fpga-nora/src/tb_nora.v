@@ -235,6 +235,7 @@ module tb_nora ();
             cpu_read(16'h9F40);
         end
 
+        #2000;
         cpu_write(16'h9F40, i_TARGET_ADDR);
         #2000;
         cpu_write(16'h9F41, i_WRITE_DATA);
