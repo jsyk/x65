@@ -73,7 +73,7 @@ sim: $(PROJ)_tb.vcd
 postsim: $(PROJ)_syntb.vcd
 
 prog: $(PROJ).bin
-	../../x65prog/x65prog -N $<
+	../../x65prog/x65prog -A $<
 
 #	iceprog $<
 

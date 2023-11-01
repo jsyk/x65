@@ -101,7 +101,7 @@ enum flash_cmd {
 #define VERAAURADONE		0x40			// ACBUS6
 #define VERARSTN			0x80			// ACBUS7
 
-
+/* x65 target flash memory */
 enum target_flash 
 {
 	TARGET_UNKNOWN = 'U',
@@ -139,17 +139,37 @@ static void set_cs_creset_vera(int cs_b, int creset_b)
 	// bitmap of GPIO output register values (0/1 drive)
 	uint8_t gpio = ICD2NORAROM;
 	// bitmap of GPIO direction register values (0=in, 1=out)
-	uint8_t direction = 0x03 | ICD2NORAROM | VERAFCS;
+	uint8_t direction = 0x03 | ICD2NORAROM | VERAFCS | AURAFCS;
 
 	if (!cs_b) {
 		// ADBUS4 (GPIOL0) = VERAFCS for VERA
 		// direction |= VERAFCS;		// set to output mode, will drive logic 1
-		gpio |= VERAFCS;			// drive HIGH to VERAFCS
+		gpio |= VERAFCS;			// drive HIGH to VERAFCS; this enables the bus-switch U404 on VABO
 	}
 
 	if (!creset_b) {
 		// ADBUS7 (GPIOL3) = VERARSTN
 		direction |= VERARSTN;		// set to output mode, will drive 0
+	}
+
+	mpsse_set_gpio_high(gpio, direction);
+}
+
+static void set_cs_creset_aura(int cs_b, int creset_b)
+{
+	// bitmap of GPIO output register values (0/1 drive)
+	uint8_t gpio = ICD2NORAROM;				// drive high ICD2NORAROM, so that FTDI gets to FMOSI/FSCK bus
+	// bitmap of GPIO direction register values (0=in, 1=out)
+	uint8_t direction = 0x03 | ICD2NORAROM | VERAFCS | AURAFCS;		// drive ICD2NORAROM, VERAFCS, AURAFCS
+
+	if (!cs_b) {
+		// ACBUS3) = AURAFCS for AURA
+		gpio |= AURAFCS;			// drive HIGH to AURAFCS; this enables the bus-switch U602 on VABO
+	}
+
+	if (!creset_b) {
+		// ACBUS2  = AURARSTN
+		direction |= AURARSTN;		// set to output mode, will drive 0
 	}
 
 	mpsse_set_gpio_high(gpio, direction);
@@ -874,7 +894,7 @@ int main(int argc, char **argv)
 	switch (target)
 	{
 		case TARGET_AURA:
-			set_cs_creset = NULL;		// TBD
+			set_cs_creset = set_cs_creset_aura;
 			get_cdone = get_cdone_vera_aura;
 			break;
 		case TARGET_NORA:
