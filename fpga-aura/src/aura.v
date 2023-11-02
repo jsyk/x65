@@ -40,7 +40,7 @@ module aura
 
 
     /* OPM CSN gets activated in the address range 0x9F40 - 0x9F43 */
-    wire  opm_cs_n = ACS1N; // | AB[3] | AB[2];
+    wire  opm_cs_n = ACS1N| AB[3] | AB[2];
     wire  wr_n = MWRN;
     wire  a0 = AB[0];
     wire  [7:0] din = DB;
@@ -150,7 +150,7 @@ module aura
     // assign AUDIO_LRCK = VAUDIO_LRCK;
 
     /* IOCSN gets activated in the address range 0x9F4C - 0x9F4F */
-    assign IOCSN = 1'b1; //ACS1N | ~AB[3] | ~AB[2];
+    assign IOCSN = ACS1N | ~AB[3] | ~AB[2];
     
     assign ASPI_MOSI = 1'bZ;
     assign ASPI_SCK = 1'b1;
