@@ -571,8 +571,9 @@ module top (
     );
 
     // OPM output data
-    wire [7:0]   OPM_slv_datard;
+    wire [7:0]   OPM_slv_datard = 8'hFF;
 
+`ifdef OPM_INTERNAL
     fm2151 opm
     (
         // Global signals
@@ -591,7 +592,7 @@ module top (
         .audio_data         (AUDIO_DATA),
         .audio_lrck         (AUDIO_LRCK)
     );
-
+`endif
 
     assign nora_slv_datard = (nora_slv_req_BOOTROM) ? bootrom_slv_datard : 
                             (nora_slv_req_SCRB) ? SCRB_slv_datard :

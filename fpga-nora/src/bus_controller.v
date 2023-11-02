@@ -224,10 +224,13 @@ module bus_controller (
                     else if (cpu_ab_i[7:4] == 4'h4)
                     begin
                         // 0x9F40-F AURA audio controller
+`ifdef OPM_INTERNAL
                         nora_slv_req_OPM_o <= 1;
-                        // aio_csn_o <= LOW_ACTIVE;
-                        // mem_rdn_o <= ~cpu_rw_i;
-                        // mem_wrn_o <= cpu_rw_i;
+`else
+                        aio_csn_o <= LOW_ACTIVE;
+                        mem_rdn_o <= ~cpu_rw_i;
+                        mem_wrn_o <= cpu_rw_i;
+`endif
                     end
                     else if (cpu_ab_i[7:4] == 4'h5)
                     begin
@@ -406,10 +409,13 @@ module bus_controller (
                         else if (nora_mst_addr_i[7:4] == 4'h4)
                         begin
                             // 0x9F40 AURA audio controller
+`ifdef OPM_INTERNAL
                             nora_slv_req_OPM_o <= 1;
-                            // aio_csn_o <= LOW_ACTIVE;
-                            // mem_rdn_o <= ~nora_mst_rwn_i;
-                            // mem_wrn_o <= nora_mst_rwn_i;
+`else
+                            aio_csn_o <= LOW_ACTIVE;
+                            mem_rdn_o <= ~nora_mst_rwn_i;
+                            mem_wrn_o <= nora_mst_rwn_i;
+`endif
                         end
                         else if (nora_mst_addr_i[7:4] == 4'h5)
                         begin
