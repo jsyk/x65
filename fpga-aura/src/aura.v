@@ -39,7 +39,8 @@ module aura
     );
 
 
-    wire  cs_n = ACS1N;
+    /* OPM CSN gets activated in the address range 0x9F40 - 0x9F43 */
+    wire  opm_cs_n = ACS1N; // | AB[3] | AB[2];
     wire  wr_n = MWRN;
     wire  a0 = AB[0];
     wire  [7:0] din = DB;
@@ -93,7 +94,7 @@ module aura
         .o_phi1                     (                           ),
 
         //.o_EMU_BUSY_FLAG            (                           ), //compilation option
-        .i_CS_n                     (  cs_n                         ),
+        .i_CS_n                     (  opm_cs_n                         ),
         .i_RD_n                     (  MRDN                         ),
         .i_WR_n                     (  MWRN                         ),
         .i_A0                       (  a0                         ),
@@ -115,15 +116,16 @@ module aura
         .o_SO                       (                           ),
 
         .o_EMU_R_SAMPLE             (                           ),
-        .o_EMU_R_EX                 (  right_chan               ),
-        .o_EMU_R                    (                           ),
+        .o_EMU_R_EX                 (                           ),
+        .o_EMU_R                    (  right_chan               ),
 
         .o_EMU_L_SAMPLE             (                           ),
-        .o_EMU_L_EX                 (  left_chan                ),
-        .o_EMU_L                    (                           )
+        .o_EMU_L_EX                 (                           ),
+        .o_EMU_L                    (  left_chan                )
     );
 
     assign DB = (dout_en) ? dout : 8'hZZ;
+    // assign DB = (~opm_cs_n & ~MRDN) ? 8'h00 : 8'hZZ;
 
     // encode output audio data into I2S
     I2S_encoder #(
@@ -143,7 +145,12 @@ module aura
     );
 
 
-    assign IOCSN = 1'b1;            // TBD
+    // assign AUDIO_BCK = VAUDIO_BCK;
+    // assign AUDIO_DATA = VAUDIO_DATA;
+    // assign AUDIO_LRCK = VAUDIO_LRCK;
+
+    /* IOCSN gets activated in the address range 0x9F4C - 0x9F4F */
+    assign IOCSN = 1'b1; //ACS1N | ~AB[3] | ~AB[2];
     
     assign ASPI_MOSI = 1'bZ;
     assign ASPI_SCK = 1'b1;
