@@ -95,12 +95,12 @@ module fm2151
         .o_SO                       (                           ),
 
         .o_EMU_R_SAMPLE             (                           ),
-        .o_EMU_R_EX                 (  right_chan               ),
-        .o_EMU_R                    (                           ),
+        .o_EMU_R_EX                 (                           ),
+        .o_EMU_R                    (  right_chan               ),
 
         .o_EMU_L_SAMPLE             (                           ),
-        .o_EMU_L_EX                 (  left_chan                ),
-        .o_EMU_L                    (                           )
+        .o_EMU_L_EX                 (                           ),
+        .o_EMU_L                    (  left_chan                )
     );
 
     // assign slv_datard_o = 8'h00;            // HACK
