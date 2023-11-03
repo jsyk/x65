@@ -1,3 +1,6 @@
+/* Copyright (c) 2023 Jaroslav Sykora.
+ * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
+/* AURA FPGA - top-level code */
 module aura
 (
     // System Clock input
@@ -50,8 +53,8 @@ module aura
     assign AIRQN = irq_n;
 
     // parallel output DAC data from the OPM
-    wire signed  [15:0] left_chan;
-    wire signed  [15:0] right_chan;
+    wire signed  [15:0] opm_left_chan;
+    wire signed  [15:0] opm_right_chan;
 
     // clk dividers for OPM
     reg     [4:0]   clkdiv = 4'b0000;
@@ -117,15 +120,46 @@ module aura
 
         .o_EMU_R_SAMPLE             (                           ),
         .o_EMU_R_EX                 (                           ),
-        .o_EMU_R                    (  right_chan               ),
+        .o_EMU_R                    (  opm_right_chan           ),
 
         .o_EMU_L_SAMPLE             (                           ),
         .o_EMU_L_EX                 (                           ),
-        .o_EMU_L                    (  left_chan                )
+        .o_EMU_L                    (  opm_left_chan            )
     );
 
     assign DB = (dout_en) ? dout : 8'hZZ;
-    // assign DB = (~opm_cs_n & ~MRDN) ? 8'h00 : 8'hZZ;
+
+    // parallel output DAC data from the OPM
+    wire signed  [15:0] va_left_chan;
+    wire signed  [15:0] va_right_chan;
+
+    // decode input audio from I2S from VERA
+    I2S_decoder dec
+    (
+        // Global signals
+        .clk            (clk),              // system clock 48MHz
+        .resetn         (resetn),           // system reset, low-active sync.
+        // Input I2S signal
+        .lrclk_i        (VAUDIO_LRCK),
+        .bclk_i         (VAUDIO_BCK),
+        .dacdat_i       (VAUDIO_DATA),
+        // Output sound samples
+        .r_chan_o       (va_right_chan),           // right channel sample data
+        .r_strobe_o     ( ),         // right channel strobe (sample update)
+        .l_chan_o       (va_left_chan),           // left channel sample data
+        .l_strobe_o     ( )          // left channel strobe (sample update)
+    );
+
+    // parallel output DAC data from the OPM and VERA
+    reg signed  [15:0] left_chan;
+    reg signed  [15:0] right_chan;
+
+    // output mixing = 1/2 from each channel VERA and OPM
+    always @(posedge clk) 
+    begin
+        left_chan <= (va_left_chan >>> 1) + (opm_left_chan >>> 1);
+        right_chan <= (va_right_chan >>> 1) + (opm_right_chan >>> 1);
+    end
 
     // encode output audio data into I2S
     I2S_encoder #(
@@ -143,6 +177,7 @@ module aura
         .bclk_o     (AUDIO_BCK),
         .dacdat_o   (AUDIO_DATA)
     );
+
 
 
     // assign AUDIO_BCK = VAUDIO_BCK;

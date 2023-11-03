@@ -1,3 +1,5 @@
+/* Copyright (c) 2023 Jaroslav Sykora.
+ * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
  * I2S Encoder - generates serial sound data from parallel 16-bit samples
  *

@@ -1,3 +1,5 @@
+/* Copyright (c) 2023 Jaroslav Sykora.
+ * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 `timescale 1ns/100ps
 module tb_aura;
 
@@ -13,9 +15,9 @@ module tb_aura;
     wire      AIRQN;          // IRQ output
     wire      IOCSN;          // IO CSn output
     // Audio input from VERA
-    reg       VAUDIO_LRCK = 1'b0;
-    reg       VAUDIO_DATA = 1'b0;
-    reg       VAUDIO_BCK = 1'b0;
+    wire       VAUDIO_LRCK;
+    wire       VAUDIO_DATA;
+    wire       VAUDIO_BCK;
     // Audio output
     wire       AUDIO_BCK;
     wire      AUDIO_DATA;
@@ -128,13 +130,48 @@ module tb_aura;
         //KON
         #(600*35) IKAOPM_write(8'h08, {1'b0, 4'b0011, 3'd0}); //write 0x7F, 0x08(KON)=
     end
+    // ------------------------------------------------------
 
+    reg [15:0] right_chan_stream = 16'h0012;
+    reg [15:0] left_chan_stream = 16'h0034;
+    reg enc_resetn;
+
+    // encode output audio data into I2S
+    I2S_encoder #(
+        .LRCLK_DIV (10'd511),           // LRCLK = 25 Mhz / 512 = 48.828 kHz
+        .BCLK_DIV  (4'd3)               // BCLK = 25 MHz / 4 = 6.25 Mhz
+    ) enc (
+        // Global signals
+        .clk        (ASYSCLK),              // system clock 25 MHz
+        .resetn     (enc_resetn),               // system reset, low-active sync.
+        // Input sound samples
+        .r_chan_i   (right_chan_stream),
+        .l_chan_i   (left_chan_stream),
+        // Output I2S signal
+        .lrclk_o    (VAUDIO_LRCK),
+        .bclk_o     (VAUDIO_BCK),
+        .dacdat_o   (VAUDIO_DATA)
+    );
 
     initial
     begin
+        // reset encoder
+        enc_resetn <= 0;
+        # 200_000;
+        enc_resetn <= 1;
+
+        // let encoder run
+        # 800_000;      // 800us
+
+        // stop (reset) the encoder
+        enc_resetn <= 0;
+    end
+
+    // ------------------------------------------------------
+    initial
+    begin
         // time in 1ns-units
-        // # 100_000_000;      // 100ms
-        # 1_000_000;      // 10ms
+        # 1_200_000;      // 10.2ms
         // # 10000000_00;
         $finish;
     end
