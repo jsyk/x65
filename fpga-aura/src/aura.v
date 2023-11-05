@@ -86,7 +86,8 @@ module aura
     //Verilog module instantiation example
     IKAOPM #(
         .FULLY_SYNCHRONOUS          (1                          ),
-        .FAST_RESET                 (1                          )
+        .FAST_RESET                 (1                          ),
+        .USE_BRAM                   (1                          )
     ) u_ikaopm_0 (
         .i_EMUCLK                   ( clk                          ),   // 25MHz
 
