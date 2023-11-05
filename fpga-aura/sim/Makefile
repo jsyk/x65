@@ -4,7 +4,7 @@ IKAOPMSRC = ../../IKAOPM/HDL/IKAOPM.v ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_acc
 		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_pg.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_primitives.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_reg.v \
 		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timer.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timinggen.v
 
-SYNSRC = $(IKAOPMSRC) ../src/aura.v ../../fpga-nora/src/i2s_encoder.v ../../fpga-nora/src/resetgen.v ../src/i2s_decoder.v
+SYNSRC = $(IKAOPMSRC) ../src/aura.v ../src/i2s_encoder.v ../../fpga-nora/src/resetgen.v ../src/i2s_decoder.v
 
 
 # generic rules

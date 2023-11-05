@@ -10,8 +10,10 @@ SYNSRC = ../src/phaser.v ../src/blinker.v ../src/resetgen.v ../src/fifo.v \
 	../src/icd_controller.v ../src/bus_controller.v \
 	../src/smc.v ../src/ps2_scancode_to_keycode.v ../src/spi_master.v ../src/spi_host.v \
 	../src/bootrom.v ../src/sysregs.v \
-	../src/nora.v \
- 	$(IKAOPMSRC) ../src/i2s_encoder.v ../src/fm2151_ikaopm.v
+	../src/nora.v
+
+# NORA-internal IKAOPM is disabled:
+# $(IKAOPMSRC) ../src/i2s_encoder.v ../src/fm2151_ikaopm.v
 
 
 # generic rules

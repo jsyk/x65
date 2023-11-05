@@ -328,39 +328,39 @@ module tb_nora ();
         // cpu_write(16'h9F41, {4'h4, 4'h2});
 
         //KC
-        #(600*35) IKAOPM_write(8'h28, {4'h4, 4'h2}); //ch1
+        // #(600*35) IKAOPM_write(8'h28, {4'h4, 4'h2}); //ch1
 
-        //MUL
-        #(600*35) IKAOPM_write(8'h40, {1'b0, 3'd0, 4'd2}); 
-        #(600*35) IKAOPM_write(8'h50, {1'b0, 3'd0, 4'd1});
+        // //MUL
+        // #(600*35) IKAOPM_write(8'h40, {1'b0, 3'd0, 4'd2}); 
+        // #(600*35) IKAOPM_write(8'h50, {1'b0, 3'd0, 4'd1});
 
-        //TL
-        #(600*35) IKAOPM_write(8'h60, {8'd21});
-        #(600*35) IKAOPM_write(8'h70, {8'd1});
-        #(600*35) IKAOPM_write(8'h68, {8'd127});
-        #(600*35) IKAOPM_write(8'h78, {8'd127});
+        // //TL
+        // #(600*35) IKAOPM_write(8'h60, {8'd21});
+        // #(600*35) IKAOPM_write(8'h70, {8'd1});
+        // #(600*35) IKAOPM_write(8'h68, {8'd127});
+        // #(600*35) IKAOPM_write(8'h78, {8'd127});
 
-        //AR
-        #(600*35) IKAOPM_write(8'h80, {2'd0, 1'b0, 5'd31}); 
-        #(600*35) IKAOPM_write(8'h90, {2'd0, 1'b0, 5'd30});
+        // //AR
+        // #(600*35) IKAOPM_write(8'h80, {2'd0, 1'b0, 5'd31}); 
+        // #(600*35) IKAOPM_write(8'h90, {2'd0, 1'b0, 5'd30});
 
-        //AMEN/D1R(DR)
-        #(600*35) IKAOPM_write(8'hA0, {1'b0, 2'b00, 5'd5});
-        #(600*35) IKAOPM_write(8'hB0, {1'b0, 2'b00, 5'd18});
+        // //AMEN/D1R(DR)
+        // #(600*35) IKAOPM_write(8'hA0, {1'b0, 2'b00, 5'd5});
+        // #(600*35) IKAOPM_write(8'hB0, {1'b0, 2'b00, 5'd18});
 
-        //D2R(SR)
-        #(600*35) IKAOPM_write(8'hC0, {2'd0, 1'b0, 5'd0});
-        #(600*35) IKAOPM_write(8'hD0, {2'd0, 1'b0, 5'd7});
+        // //D2R(SR)
+        // #(600*35) IKAOPM_write(8'hC0, {2'd0, 1'b0, 5'd0});
+        // #(600*35) IKAOPM_write(8'hD0, {2'd0, 1'b0, 5'd7});
 
-        //D1L(SL)RR
-        #(600*35) IKAOPM_write(8'hE0, {4'd0, 4'd0});
-        #(600*35) IKAOPM_write(8'hF0, {4'd1, 4'd4});
+        // //D1L(SL)RR
+        // #(600*35) IKAOPM_write(8'hE0, {4'd0, 4'd0});
+        // #(600*35) IKAOPM_write(8'hF0, {4'd1, 4'd4});
 
-        //RL/FL/ALG
-        #(600*35) IKAOPM_write(8'h20, {2'b11, 3'd7, 3'd4});
+        // //RL/FL/ALG
+        // #(600*35) IKAOPM_write(8'h20, {2'b11, 3'd7, 3'd4});
 
-        //KON
-        #(600*35) IKAOPM_write(8'h08, {1'b0, 4'b0011, 3'd0}); //write 0x7F, 0x08(KON)=
+        // //KON
+        // #(600*35) IKAOPM_write(8'h08, {1'b0, 4'b0011, 3'd0}); //write 0x7F, 0x08(KON)=
 
         cpu_read(16'h0000);
 

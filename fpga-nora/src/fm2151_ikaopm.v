@@ -1,7 +1,9 @@
 /* Copyright (c) 2023 Jaroslav Sykora.
  * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
- * Wrapper for YM2151-emulated FM sound core IKAOPM.
+ * Wrapper for YM2151-emulated FM / OPM sound core IKAOPM.
+ * This is in case the OPM is INCLUDED insider NORA, which is depracted because it takes
+ * a lot of resources. Recomended is IKAOPM in AURA FPGA.
  */
 module fm2151 
 (
@@ -62,7 +64,8 @@ module fm2151
     //Verilog module instantiation example
     IKAOPM #(
         .FULLY_SYNCHRONOUS          (1                          ),
-        .FAST_RESET                 (1                          )
+        .FAST_RESET                 (1                          ),
+        .USE_BRAM                   (1                          )
     ) u_ikaopm_0 (
         .i_EMUCLK                   ( clk                          ),   // 48MHz
 
