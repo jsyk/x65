@@ -1,5 +1,6 @@
 /* Copyright (c) 2023 Jaroslav Sykora.
  * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
+/* TESTBENCH FOR AURA-FPGA */
 `timescale 1ns/100ps
 module tb_aura;
 

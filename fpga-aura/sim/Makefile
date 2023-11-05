@@ -18,10 +18,18 @@ SYNSRC = $(IKAOPMSRC) ../src/aura.v ../src/i2s_encoder.v ../../fpga-nora/src/res
 
 tb_aura.vp: $(SYNSRC) ../src/tb_aura.v
 
+IKAOPM_tb.vp: $(IKAOPMSRC) ../src/IKAOPM_tb.v
+
+IKAOPM_48MHz_I2S_tb.vp: $(IKAOPMSRC) ../src/IKAOPM_48MHz_I2S_tb.v
 
 show_aura: tb_aura.vcd
 	gtkwave $^
 
+show_ikaopm: IKAOPM_tb.vcd
+	gtkwave $^
+
+show_ikaopm_48Mhz: IKAOPM_48MHz_I2S_tb.vcd
+	gtkwave $^
 
 clean:
 	rm -f *.vcd *.vp
