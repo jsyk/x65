@@ -137,7 +137,7 @@ more easier possible. At minimum, something like the GEOS. (PC/GEOS is a free so
 Status of hardware testing
 ----------------------------
 
-(last update 27.6.2023):
+(last update 11.11.2023):
 
 * Motherboard ('mobo') rev01:
   * CPU W65C02, SRAM 2MB, FPGA NORA -- works OK!
@@ -152,11 +152,11 @@ Status of hardware testing
   * Power supply -- works OK, but the PCB layout is suboptimal, needs improvements.
 
 * Video/Audio board ('vabo') rev01:
-  * VERA FPGA, VGA out -- works OK!
+  * VERA FPGA, with VGA out -- works OK!
   * S-Video/Composite out -- not tested yet.
   * SDC interface -- works OK! (SDHC card required by X16 ROM)
   * I/O LEDS and DIP -- not tested yet.
-  * AURA FPGA -- not tested yet, feature will be rather implemented in NORA.
-  * Audio DAC -- tested partly.
+  * AURA FPGA -- works OK! (YM2151 FM-synth replica)
+  * Audio DAC -- works OK!
   * Built-in speaker -- tested, the volume control switch needs improvements.
   * 10/100 LAN -- not tested yet.
