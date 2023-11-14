@@ -1,0 +1,3 @@
+[submodule "fpga-aura/IKAOPM_ice40"]
+	path = fpga-aura/IKAOPM_ice40
+	url = git@github.com:jsyk/IKAOPM_ice40.git
