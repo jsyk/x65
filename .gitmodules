@@ -1,3 +1,0 @@
-[submodule "fpga-aura/IKAOPM_dirty"]
-	path = fpga-aura/IKAOPM_dirty
-	url = git@github.com:jsyk/IKAOPM_dirty.git
