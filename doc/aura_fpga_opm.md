@@ -90,6 +90,11 @@ Therefore, the total cost using AURA FPGA is also around 10 EUR in 1pc quantity 
 Demo
 ----
 
+[Calliope](https://github.com/ZeroByteOrg/calliope) is a player / jukebox application for Commander X16.
+It can play files in the ZSM format. It supports output through the VERA PSG and YM2151 FM-synth.
+This is a photo od Calliope running on X65 hardware, playing a sound file through the AURA:
+
+![Calliope on X65](pic/calliope.png)
 
 
 Conclusion
