@@ -30,16 +30,30 @@ module aura
 );
     // IMPLEMENTATION
 
-
+    // system clock 25MHz and main reset (active low)
     wire clk = ASYSCLK;
+    reg  resetn = 1'b0;
 
     /**
-    * Autonomous reset generator
+    * reset generator
     */
-    resetgen rstgen0 (
-        .clk (clk), .clklocked (1'b1), .rstreq(1'b0),
-        .resetn (resetn)
-    );
+    reg [7:0] rstcounter = 8'd0;
+
+    // reset counter
+    always @(posedge clk)
+    begin
+        // count up...
+        if (rstcounter[7] != 1'b1)
+        begin
+            // counting
+            rstcounter <= rstcounter + 4'd1;
+            // keep reset active
+            resetn <= 1'b0;
+        end else begin
+            // stop counting and release the reset
+            resetn <= 1'b1;
+        end
+    end
 
 
     /* OPM CSN gets activated in the address range 0x9F40 - 0x9F43 */
@@ -181,9 +195,9 @@ module aura
 
 
 
-    // assign AUDIO_BCK = VAUDIO_BCK;
-    // assign AUDIO_DATA = VAUDIO_DATA;
-    // assign AUDIO_LRCK = VAUDIO_LRCK;
+    // assign AUDIO_BCK = opm_right_chan[5];
+    // assign AUDIO_DATA = opm_left_chan[7];
+    // assign AUDIO_LRCK = opm_right_chan[9];
 
     /* IOCSN gets activated in the address range 0x9F4C - 0x9F4F */
     assign IOCSN = ACS1N | ~AB[3] | ~AB[2];
