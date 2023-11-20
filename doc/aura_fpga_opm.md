@@ -26,7 +26,7 @@ The picture below illustrates the basic circuit, as taken from the datasheet:
 ![Example of Basic Circuit ym2151+ym3012](pic/example-ym2151-ym3012.png)
 
 YM2151 was created by Yamaha in 1980's, being used by Atari and Sega arcade systems starting in 1984.
-As of 2023, this chip is maybe a quarter of century out of production.
+As of 2023, this chip is perhaps a quarter of century out of production.
 The chip interfaces with then-standard 5V TTL logic, and the D/A converter YM3012 even requires +/- 12V rails for its analog output.
 
 
@@ -42,7 +42,7 @@ Sound in x65
 I was looking for a modern software compatible replacement of these chips and, since the architecture is unique, 
 the only practical solution is via an emulation in FPGA. I wanted to use a Lattice iCE40 FPGA, to keep in line with the rest
 of my x65 design (both NORA and VERA are iCE40 FPGAs). 
-There are multiple YM2151 emulations for FPGA available on the open-source internet; I found two: jt51 and IKAOPM.
+There are multiple YM2151 emulations for FPGA available on the open-source internet; I found two: jt51 and [IKAOPM](https://github.com/ika-musume/IKAOPM).
 The problem with both, or rather the problem with the original design is that it is using a lot of flip-flops as delay shift-registers.
 This is actually not a big deal for modern FPGAs from Altera/Intel or Xilinx/AMD, as they could implement shift-registers efficiently in LUTs.
 But an old architecture like iCE40 struggles and is forced to use a lot of basic logic blocks to implement these shift registers.
@@ -102,8 +102,8 @@ Conclusion
 
 In conclusion, the solution with AURA FPGA has the following advantages:
 
-* better availbility of parts, 
+* good availbility of modern parts, 
 * same or better cost, 
-* direct interfacing with the 3.3V LVTTL logic of x65 design, 
+* direct interfacing with the 3.3V LVTTL logic of the x65 design, 
 * not requiring +/- 12V for the DAC, 
 * and the smaller total footpring size on the PCB because of modern component packages.

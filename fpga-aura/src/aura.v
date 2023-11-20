@@ -1,6 +1,7 @@
 /* Copyright (c) 2023 Jaroslav Sykora.
  * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
-/* AURA FPGA - top-level code */
+/* AURA FPGA - YM2151 emulation.
+ * Top-level code */
 module aura
 (
     // System Clock input
@@ -97,7 +98,7 @@ module aura
     end
 
 
-    //Verilog module instantiation example
+    // YM2151 emulation
     IKAOPM #(
         .FULLY_SYNCHRONOUS          (1                          ),
         .FAST_RESET                 (1                          ),
