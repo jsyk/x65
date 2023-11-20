@@ -26,8 +26,15 @@
  *      |       0x2         CPU CTRL
  *      `----------------------->   [4]     0 => Stop CPU, 1 => RUN CPU (indefinitely)
  *                                  [5]     0 => no-action, 1 => Single-Cycle-Step CPU (it must be stopped prior)
- *                          2nd byte = forcing of CPU control signals
+ *                          2nd byte = forcing or blocking of CPU control signals
  *                                  [0]     0 => reset not active, 1 => CPU reset active!
+ *                                  [1]     0 => IRQ not active, 1 => IRQ forced!
+ *                                  [2]     0 => NMI not active, 1 => NMI forced!
+ *                                  [3]     0 => ABORT not active, 1 => ABORT forced!
+ *                                  [4]     0 => IRQ not blocked, 1 => IRQ blocked!
+ *                                  [5]     0 => NMI not blocked, 1 => NMI blocked!
+ *                                  [6]     0 => ABORT not blocked, 1 => ABORT blocked!
+ *                                  [7]     unused
  *
  *              0x3         READ CPU TRACE REG
  *                          TX:2nd byte = dummy
@@ -64,7 +71,14 @@ module icd_controller #(
     // CPU control/status
     output reg      run_cpu,                // allow the CPU to run
     input           stopped_cpu,            // indicates if the CPU is stopped
+
     output reg      cpu_force_resn_o,       // 0 will force CPU reset
+    output reg      cpu_force_irqn_o,       // 0 will force CPU IRQ
+    output reg      cpu_force_nmin_o,       // 0 will force CPU NMI
+    output reg      cpu_force_abortn_o,       // 0 will force CPU ABORT (16b only)
+    output reg      cpu_block_irq_o,       // 1 will block CPU IRQ
+    output reg      cpu_block_nmi_o,       // 1 will block CPU NMI
+    output reg      cpu_block_abort_o,       // 1 will block CPU ABORT
 
     // Trace input
     input [CPUTRACE_WIDTH-1:0]    cpubus_trace_i,
@@ -128,6 +142,12 @@ module icd_controller #(
             run_cpu <= 0;                   // CPU starts in stop!!
 // `endif
             cpu_force_resn_o <= 0;          // this will force reset!!
+            cpu_force_irqn_o <= 1;          // 1=inactive
+            cpu_force_nmin_o <= 1;          // 1=inactive
+            cpu_force_abortn_o <= 1;        // 1=inactive
+            cpu_block_irq_o <= 0;           // 0=inactive
+            cpu_block_nmi_o <= 0;           // 0=inactive
+            cpu_block_abort_o <= 0;         // 0=inactive
             single_step_cpu <= 0;
             tracereg_valid <= 0;
             tracereg_ovf <= 0;
@@ -208,6 +228,12 @@ module icd_controller #(
                     end
                     // first data byte -> set control signals
                     cpu_force_resn_o <= ~rx_byte_i[0];
+                    cpu_force_irqn_o <= ~rx_byte_i[1];
+                    cpu_force_nmin_o <= ~rx_byte_i[2];
+                    cpu_force_abortn_o <= ~rx_byte_i[3];
+                    cpu_block_irq_o <= rx_byte_i[4];
+                    cpu_block_nmi_o <= rx_byte_i[5];
+                    cpu_block_abort_o <= rx_byte_i[6];
                     counter <= counter + 1;
                 end
             end

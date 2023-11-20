@@ -147,12 +147,32 @@ class ICD:
         return errors
 
 
-    def cpu_ctrl(self, run_cpu, cstep_cpu, reset_cpu):
+    def cpu_ctrl(self, run_cpu, cstep_cpu, reset_cpu, 
+                    force_irq=False, force_nmi=False, force_abort=False, 
+                    block_irq=False, block_nmi=False, block_abort=False):
+        #  *      |       0x2         CPU CTRL
+        #  *      `----------------------->   [4]     0 => Stop CPU, 1 => RUN CPU (indefinitely)
+        #  *                                  [5]     0 => no-action, 1 => Single-Cycle-Step CPU (it must be stopped prior)
+        #  *                          2nd byte = forcing or blocking of CPU control signals
+        #  *                                  [0]     0 => reset not active, 1 => CPU reset active!
+        #  *                                  [1]     0 => IRQ not active, 1 => IRQ forced!
+        #  *                                  [2]     0 => NMI not active, 1 => NMI forced!
+        #  *                                  [3]     0 => ABORT not active, 1 => ABORT forced!
+        #  *                                  [4]     0 => IRQ not blocked, 1 => IRQ blocked!
+        #  *                                  [5]     0 => NMI not blocked, 1 => NMI blocked!
+        #  *                                  [6]     0 => ABORT not blocked, 1 => ABORT blocked!
+        #  *                                  [7]     unused
         run_cpu = 1 if run_cpu else 0
         cstep_cpu = 1 if cstep_cpu else 0
-        reset_cpu = 1 if reset_cpu else 0
+        cpu_sig = 1 if reset_cpu else 0
+        cpu_sig |= 2 if force_irq else 0
+        cpu_sig |= 4 if force_nmi else 0
+        cpu_sig |= 8 if force_abort else 0
+        cpu_sig |= 16 if block_irq else 0
+        cpu_sig |= 32 if block_nmi else 0
+        cpu_sig |= 64 if block_abort else 0
 
-        hdr = bytes([ ICD.CMD_CPUCTRL | (run_cpu << 4) | (cstep_cpu << 5), reset_cpu ])
+        hdr = bytes([ ICD.CMD_CPUCTRL | (run_cpu << 4) | (cstep_cpu << 5), cpu_sig ])
 
         self.com.icd_chip_select()
         self.com.spiwriteonly(hdr)

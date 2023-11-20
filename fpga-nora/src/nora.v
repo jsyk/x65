@@ -255,6 +255,12 @@ module top (
 
     wire        icd_run_cpu;
     wire        icd_cpu_force_resn;
+    wire      cpu_force_irqn;       // 0 will force CPU IRQ
+    wire      cpu_force_nmin;       // 0 will force CPU NMI
+    wire      cpu_force_abortn;       // 0 will force CPU ABORT (16b only)
+    wire      cpu_block_irq;       // 1 will block CPU IRQ
+    wire      cpu_block_nmi;       // 1 will block CPU NMI
+    wire      cpu_block_abort;       // 1 will block CPU ABORT
 
     /**
     * SPI Slave (Target) - for ICD function.
@@ -307,7 +313,14 @@ module top (
         // CPU control
         .run_cpu (icd_run_cpu),
         .stopped_cpu (stopped_cpu),
+        //
         .cpu_force_resn_o (icd_cpu_force_resn),
+        .cpu_force_irqn_o (cpu_force_irqn),       // 0 will force CPU IRQ
+        .cpu_force_nmin_o (cpu_force_nmin),       // 0 will force CPU NMI
+        .cpu_force_abortn_o (cpu_force_abortn),       // 0 will force CPU ABORT (16b only)
+        .cpu_block_irq_o (cpu_block_irq),       // 1 will block CPU IRQ
+        .cpu_block_nmi_o (cpu_block_nmi),       // 1 will block CPU NMI
+        .cpu_block_abort_o (cpu_block_abort),       // 1 will block CPU ABORT
         // Trace input
         .cpubus_trace_i (cpubus_trace),
         .trace_catch_i (release_wr)
@@ -447,16 +460,13 @@ module top (
 
 
     assign CRESn = icd_cpu_force_resn;           // CPU reset
-    assign CIRQn = VIRQn;           // CPU IRQ request
-    assign CNMIn = 1'b1;           // CPU NMI request
-    assign CABORTn = 1'b1;         // CPU ABORT request (16b only)
-    assign CRDY = 1'bZ;             // CPU ready signal
+    assign CIRQn = (VIRQn & cpu_force_irqn) | cpu_block_irq;           // CPU IRQ request
+    assign CNMIn = cpu_force_nmin | cpu_block_nmi;           // CPU NMI request
+    assign CABORTn = cpu_force_abortn | cpu_block_abort;         // CPU ABORT request (16b only)
+    assign CRDY = 1'bZ;             // CPU ready signal (output)
     assign CSOB_MX = 1'bZ;          // CPU SOB (set overflow - 8b) / MX (16b)
 
-    // assign FMOSI = ~FMISO;
-    // assign FSCK = clk6x;
-    // assign FLASHCSn = 1;
-
+    // enable phaser to run the CPU?
     assign ph_run_cpu = busct_run_cpu && icd_run_cpu;
 
     // assign PS2K_CLKDR = 1'b0;
