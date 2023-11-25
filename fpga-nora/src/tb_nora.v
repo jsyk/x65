@@ -364,7 +364,7 @@ module tb_nora ();
 
         cpu_read(16'h0000);
 
-        #1_000_000;
+        #100_000;
 
         #1000;
         $display("=== TESTBENCH OK ===");

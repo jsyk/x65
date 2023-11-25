@@ -179,6 +179,7 @@ module bus_controller (
                         // NOTE: when BOOTROM is selected as the ROMBANK, 
                         // then Vector Pull always happens inside it, and not from
                         // the rombank 0 !!
+                        mem_abh_o <= 9'h00;         // just for trace buffer
                     end else begin
                         // normal ROM bank in SRAM.
                         // Check if this is a Vector Pull cycle?

@@ -30,7 +30,7 @@ module top (
 
 
 // Memory bus
-    output [20:12] MAH,      // memory address high bits 12-20: private to FPGA = output
+    output [20:12] MAH,      // memory address 9 high bits 12-20: private to FPGA = output
     inout [11:0] MAL,      // memory address low bits 0-11: shared with CPU = bidi
     inout [7:0] MD,         // Memory data bus
     output M1CSn,           // SRAM chip-select
@@ -218,7 +218,9 @@ module top (
     end
 
     // Trace signal
-    wire [39:0]   cpubus_trace = {
+    wire [47:0]   cpubus_trace = {
+        // trace bytes [5]
+            MAH[20:13],         // top 8 bits on the memory bus
         // trace bytes [4], [3]:
             cpu_ab_r,        // CPU address bus, [15:12][11:0] = 16b
         // trace byte [2]:
@@ -450,9 +452,15 @@ module top (
     //                   CRWn=1     CRWn=0
     assign CD = (CRWn) ? cpu_db_o : 8'bZZZZZZZZ;
 
+    // create a 1T delayed MRDn  
+    reg    mrdn_delayed;
+
+    always @(posedge clk6x) mrdn_delayed <= MRDn;
+
     // put Memory data bus in Hi-Z as soon as MRd goes low (SRAM is outputing read data)
-    //                   MRDn=1     MRDn=0
-    assign MD = (MRDn) ? mem_db_o : 8'bZZZZZZZZ;
+    // put to driving state with 1T delay to allow bus turn-around time.
+    //                                  MRDn=1     MRDn=0
+    assign MD = (MRDn && mrdn_delayed) ? mem_db_o : 8'bZZZZZZZZ;
 
     // put Memory address bus low in Hi-Z as soon as CPU bus drivers are active
     //                    CBE=1        CBE=0

@@ -14,7 +14,7 @@
  *                                  [5]     0 => WRITE, 1 => READ
  *                                  [6]     0 => ADR-KEEP, 1 => ADR-INC
  *                                  [7]     reserved
- *                          2nd, 3rd, 4th byte = 24b Memory address, little-endian (note: SPI is MSBit-first).
+ *                          RX 2nd, 3rd, 4th byte = 24b Memory address, little-endian (note: SPI is MSBit-first).
  *                                                  SRAM => [23:21]=0, [20:0]=SRAM_Addr
  *                                                  OTHER => [23:21]=0,
  *                                                           [20]=BOOTROM_CS
@@ -26,7 +26,7 @@
  *      |       0x2         CPU CTRL
  *      `----------------------->   [4]     0 => Stop CPU, 1 => RUN CPU (indefinitely)
  *                                  [5]     0 => no-action, 1 => Single-Cycle-Step CPU (it must be stopped prior)
- *                          2nd byte = forcing or blocking of CPU control signals
+ *                          RX 2nd byte = forcing or blocking of CPU control signals
  *                                  [0]     0 => reset not active, 1 => CPU reset active!
  *                                  [1]     0 => IRQ not active, 1 => IRQ forced!
  *                                  [2]     0 => NMI not active, 1 => NMI forced!
@@ -36,17 +36,25 @@
  *                                  [6]     0 => ABORT not blocked, 1 => ABORT blocked!
  *                                  [7]     unused
  *
- *              0x3         READ CPU TRACE REG
+ *      |       0x3         READ CPU TRACE REG
+ *      `----------------------->   [4]     1 => Dequeue next trace-word from trace-buffer memory into the trace-reg
+ *                                  [5]     1 => Clear the trace buffer memory.
  *                          TX:2nd byte = dummy
  *                          TX:3rd byte = status of trace buffer:
- *                                          VALID => [0]
- *                                          OVERFLOWED => [1]
- *                                          reserved = [7:2]
- *                          TX:4th, 5th... byte = trace buffer contents, starting from LSB byte.
+ *                                  [0]    TRACE-REG VALID
+ *                                  [1]    TRACE-REG OVERFLOWED
+ *                                  [2]    TRACE-BUF NON-EMPTY (note: status before a dequeue or clear!)
+ *                                  [3]    TRACE-BUF FULL (note: status before a dequeue or clear!)
+ *                                          reserved = [7:4]
+ *                          TX:4th, 5th... byte = trace REGISTER contents, starting from LSB byte.
+ *
+ *              0x4         XXX
+ *
  *
  */
 module icd_controller #(
-    parameter CPUTRACE_WIDTH = 40
+    parameter CPUTRACE_WIDTH = 48,
+    parameter CPUTRACE_DEPTH = 8
 ) (
     // Global signals
     input           clk6x,      // 48MHz
@@ -90,7 +98,7 @@ module icd_controller #(
     localparam CMD_GETSTATUS = 4'h0;
     localparam CMD_BUSMEM_ACC = 4'h1;
     localparam CMD_CPUCTRL = 4'h2;
-    localparam CMD_READTRACE = 4'h3;
+    localparam CMD_READTRACEREG = 4'h3;
     // arguments
     localparam nSRAM_OTHER_BIT = 4;
     localparam nWRITE_READ_BIT = 5;
@@ -119,6 +127,37 @@ module icd_controller #(
     reg [1:0]    startup_fsm_r;
     reg [3:0]    startup_cnt_r;
 
+    // signals for trace buffer
+    wire        trb_wenq;                           // insert into trace buffer
+    wire [CPUTRACE_WIDTH-1:0]  trb_rport;            // read data from trace buffer
+    reg         trb_rdeq;                           // remove from trace buffer
+    reg         trb_clear;                          // clear (reset) the trace buffer
+    wire        trb_full;                           // flag: trace buffer is full
+    wire        trb_empty;                          // flag: trace buffer is empty
+    wire [CPUTRACE_DEPTH:0]    trb_count;
+
+    // trace buffer
+    tracebuf #(
+        .BITWIDTH (CPUTRACE_WIDTH),          // bit-width of one data element
+        .BITDEPTH (CPUTRACE_DEPTH)          // buffer keeps 2**BITDEPTH elements
+    ) tbuf (
+        // Global signals
+        .clk        (clk6x),        // 48MHz
+        .resetn     (resetn),     // sync reset
+        // I/O Write port
+        .wport_i    (cpubus_trace_reg),          // Write Port Data
+        .wenq_i     (trb_wenq),                 // Enqueue data from the write port now; must not assert when full_o=1
+        // I/O read port
+        .rport_o    (trb_rport),          // Read port data: valid any time empty_o=0
+        .rdeq_i     (trb_rdeq),                 // Dequeue current data from FIFO
+        .clear_i    (trb_clear),                // Clear the buffer (reset)
+        // Status signals
+        .full_o     (trb_full),                 // FIFO is full?
+        .empty_o    (trb_empty),                // FIFO is empty?
+        .count_o    (trb_count)       // count of elements in the FIFO now; mind the width of the reg!
+
+    );
+
     always @(posedge clk6x)
     begin
         tx_en_o <= 0;
@@ -128,19 +167,10 @@ module icd_controller #(
             icd_cmd <= 0;
             counter <= 0;
 
-            // nora_mst_req_BOOTROM_o <= 0;
-            // nora_mst_req_BANKREG_o <= 0;
-            // nora_mst_req_SCRB_o <= 0;
             nora_mst_req_SRAM_o <= 0;
             nora_mst_req_OTHER_o <= 0;
-            // nora_mst_req_VIA_o <= 0;
-            // nora_mst_req_VERA_o <= 0;
             nora_mst_rwn_o <= 1;
-// `ifdef SIMULATION
-            // run_cpu <= 1;                   // sim starts in run!!
-// `else
             run_cpu <= 0;                   // CPU starts in stop!!
-// `endif
             cpu_force_resn_o <= 0;          // this will force reset!!
             cpu_force_irqn_o <= 1;          // 1=inactive
             cpu_force_nmin_o <= 1;          // 1=inactive
@@ -153,7 +183,13 @@ module icd_controller #(
             tracereg_ovf <= 0;
             startup_fsm_r <= STARTUP_INIT;
             startup_cnt_r <= 15;
+            trb_rdeq <= 0;
+            trb_clear <= 0;
         end else begin
+            // always reset signals
+            trb_rdeq <= 0;
+            trb_clear <= 0;
+
             if (rx_hdr_en_i)
             begin
                 // header/command byte received
@@ -162,24 +198,27 @@ module icd_controller #(
 
                 // cpubus_trace_reg <= 40'h12_34_56_78_9A;
 
-                if (rx_byte_i[3:0] == CMD_READTRACE)
+                if (rx_byte_i[3:0] == CMD_READTRACEREG)
                 begin
-                    // Handle READ CPU TRACE command
+                    // Handle READ CPU TRACE REG command
                     //
-                    // first data byte -> return trace buffer status: valid, ovf
-                    tx_byte_o <= { 6'b000000, tracereg_ovf, tracereg_valid };
+                    // check options:
+                    trb_clear <= rx_byte_i[5];          // Clear trace buffer.
+                    // first data byte -> return trace reg and buffer status: valid, ovf
+                    tx_byte_o <= { 4'b0000, trb_full, ~trb_empty, tracereg_ovf, 
+                                   tracereg_valid | (rx_byte_i[4] && !trb_empty) };
                     tx_en_o <= 1;
                     // reset the status bits
                     tracereg_ovf <= 0;
                     tracereg_valid <= 0;
+                    // load trace reg from buffer?
+                    if (rx_byte_i[4] && !trb_empty)
+                    begin
+                        cpubus_trace_reg <= trb_rport;
+                        trb_rdeq <= 1;              // Dequeue a word from the trace buffer into shift register.
+                    end
                 end
             end
-
-            // if (rx_db_en_i)
-            // begin
-            //     tx_byte_o <= icd_cmd + rx_byte_i;
-            //     tx_en_o <= 1;
-            // end
 
             if ((icd_cmd[3:0] == CMD_BUSMEM_ACC) && rx_db_en_i)
             begin
@@ -238,27 +277,13 @@ module icd_controller #(
                 end
             end
 
-            if ((icd_cmd[3:0] == CMD_READTRACE) && rx_db_en_i)
+            if ((icd_cmd[3:0] == CMD_READTRACEREG) && rx_db_en_i)
             begin
-                // Handle READ CPU TRACE command
-                //
-                // if (counter == 0)
-                // begin
-                //     // first data byte -> return trace buffer status: valid, ovf
-                //     tx_byte_o <= { 6'b000000, tracereg_ovf, tracereg_valid };
-                //     tx_en_o <= 1;
-                //     // reset the status bits
-                //     tracereg_ovf <= 0;
-                //     tracereg_valid <= 0;
-                //     // next provide trace bytes
-                //     counter <= counter + 1;
-                // end else begin
-                    // 2nd and further data bytes -> provide trace buffer (LSB 8 bits)
-                    tx_byte_o <= cpubus_trace_reg[7:0];
-                    tx_en_o <= 1;
-                    // shift the trace buffer right by 8 bits - prepare for next access
-                    cpubus_trace_reg <= { 8'h00, cpubus_trace_reg[CPUTRACE_WIDTH-1:8] };
-                // end
+                // 2nd and further data bytes -> provide trace buffer (LSB 8 bits)
+                tx_byte_o <= cpubus_trace_reg[7:0];
+                tx_en_o <= 1;
+                // shift the trace buffer right by 8 bits - prepare for next access
+                cpubus_trace_reg <= { 8'h00, cpubus_trace_reg[CPUTRACE_WIDTH-1:8] };
             end
 
             // finishing a bus/mem access?
@@ -334,5 +359,10 @@ module icd_controller #(
         end
     end
 
+    // Enqueue to the trace buffer only when the trace register is already full (valid).
+    // The (previous contents of) cpubus_trace_reg is inserted into the trace buffer,
+    // making place for the new trace info.
+    // New trace info is always inserted into the trace register.
+    assign trb_wenq = tracereg_valid && trace_catch_i;
 
 endmodule
