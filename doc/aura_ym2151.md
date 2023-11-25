@@ -1,5 +1,7 @@
-AURA FPGA: The replacement of YM2151 and YM3012
-===============================================
+AURA FPGA: The replacement of YM2151
+====================================
+
+This document discusses the FM sound synthesis in the Commander X16 and in my x65 computer.
 
 Sound in Commander X16
 -----------------------
@@ -32,6 +34,9 @@ The chip interfaces with then-standard 5V TTL logic, and the D/A converter YM301
 
 Principle of FM Sound Synthesis
 -------------------------------
+
+FM sound synthesis is quite complex topic and I do not claim to understand it so well.
+I would recommend the following article which provides some background and details:
 
 https://www.perfectcircuit.com/signal/what-is-fm-synthesis
 
@@ -70,21 +75,23 @@ are also visible and marked.
 
 ![Photo of x65 PCB with VERA, AURA and DAC chips labelled](pic/aura-on-x65-pcb-labelled.drawio.png)
 
+TBD: record sound played through VERA + AURA.
 
 
 Cost Comparison
 ---------------
 
-Since both Yamaha chips are long out of production, it is not possible to buy them from normal distributors of electronic parts 
-like Mouser, Farnell, Digikey etc. The parts are typically to be had on ebay from various sellers, in various quantities and prices.
-Ideally one gets an old new stock part, or in a bad case a sub-par clone.
+Both Yamaha chips are long out of production (discontinued). 
+It is not possible to buy them from normal distributors of electronic parts  like Mouser, Farnell, Digikey etc. 
+The Yamaha chips are typically to be had on ebay from various sellers, in various quantities and prices.
 A brief ebay listings overview shows that the D/A YM3012 costs around 1 EUR/1pc, and the FM-synth YM2151 around 9 EUR/1pc. 
-So the total cost with original new-old Yamaha parts could be 10 EUR, plus the analog sound mixer.
+Therefore the total cost using Yamaha parts could be 10 EUR, plus the analog sound mixer.
 
-The ice40up5k-sg48 FPGA costs around 9.30 EUR/1pc, or 7.8 EUR in 100-piece quantity. To this we should add the cost of one SPI-Flash
-memory necessary to store the FPGA bitstream; I use W25Q16JVSNIQ which costs 0.45 EUR/1pc. 
-I do not add the cost of the D/A converter WM8524 since it is also present in the C'X16 solution for the VERA PSG output conversion.
-Therefore, the total cost using AURA FPGA is also around 10 EUR in 1pc quantity (or better, if bought in quantity).
+The AURA FPGA, ice40up5k-sg48, costs around 9.30 EUR/1pc, or 7.8 EUR in 100-piece quantity. 
+To this we should add the cost of one SPI-Flash memory necessary to store the FPGA bitstream; 
+I use W25Q16JVSNIQ which costs 0.45 EUR/1pc. 
+I do not calculate the cost of the D/A converter WM8524 since it is equally present in both solution (for VERA PSG).
+Therefore, the total cost using AURA FPGA is around 10 EUR in 1pc quantity (or better, if bought in quantity).
 
 
 Demo
@@ -102,8 +109,8 @@ Conclusion
 
 In conclusion, the solution with AURA FPGA has the following advantages:
 
-* good availbility of modern parts, 
-* same or better cost, 
-* direct interfacing with the 3.3V LVTTL logic of the x65 design, 
+* good availbility of chips at distributors, 
+* the same or better cost, 
+* direct interfacing with the 3.3V LVTTL logic used in the x65 design, 
 * not requiring +/- 12V for the DAC, 
-* and the smaller total footpring size on the PCB because of modern component packages.
+* smaller total footpring size on the PCB because of small component packages.
