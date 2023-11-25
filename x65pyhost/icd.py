@@ -179,16 +179,32 @@ class ICD:
         self.com.icd_chip_deselect()
 
 
-    def cpu_read_trace(self, tbuflen):
-        #                        /*dummy*/
-        hdr = bytes([ ICD.CMD_READTRACE, 0  ])
+    # Read CPU Trace Register.
+    def cpu_read_trace(self, tbr_deq=False, tbr_clear=False, treglen=6):
+        #  *      |       0x3         READ CPU TRACE REG
+        #  *      `----------------------->   [4]     1 => Dequeue next trace-word from trace-buffer into the trace-reg
+        #  *                                  [5]     1 => Clear the trace buffer.
+        #  *                          TX:2nd byte = dummy
+        #  *                          TX:3rd byte = status of trace buffer:
+        #  *                                  [0]    TRACE-REG VALID
+        #  *                                  [1]    TRACE-REG OVERFLOWED
+        #  *                                  [2]    TRACE-BUF NON-EMPTY
+        #  *                                  [3]    TRACE-BUF FULL
+        #  *                                          reserved = [7:4]
+        #  *                          TX:4th, 5th... byte = trace REGISTER contents, starting from LSB byte.
+        tbr_deq = 1 if tbr_deq else 0
+        tbr_clear = 1 if tbr_clear else 0
+        #                               /*dummy*/
+        hdr = bytes([ ICD.CMD_READTRACE | (tbr_deq << 4) | (tbr_clear << 5), 0  ])
 
         self.com.icd_chip_select();
-        rxdata = self.com.spiexchange(hdr, tbuflen+1+len(hdr))
+        rxdata = self.com.spiexchange(hdr, treglen+1+len(hdr))
         self.com.icd_chip_deselect()
 
-        is_valid = rxdata[2] & 1
-        is_ovf = rxdata[2] & 2
+        is_valid = rxdata[2] & 1            # TRACE-REG VALID?  
+        is_ovf = rxdata[2] & 2              # TRACE-REG OVERFLOWED?
+        is_tbr_valid = rxdata[2] & 4        # TRACE-BUFFER NON-EMPTY?
+        is_tbr_full = rxdata[2] & 8         # TRACE-BUFFER FULL?
         # print('icd_cpu_read_trace got {}'.format(rxdata.hex()))
 
-        return (is_valid, is_ovf, rxdata[3:])
+        return (is_valid, is_ovf, is_tbr_valid, is_tbr_full, rxdata[3:])

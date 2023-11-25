@@ -12,11 +12,18 @@ apa = argparse.ArgumentParser(usage="%(prog)s [OPTION] [count]",
     description="Step the CPU."
 )
 
-apa.add_argument(
-    "-v", "--version", action="version", version = f"{apa.prog} version 1.0.0"
-)
+apa.add_argument("-v", "--version", action="version", version = f"{apa.prog} version 1.0.0")
 
-apa.add_argument('count', default=32)
+apa.add_argument("-I", "--force_irq", action="store_true", help="Force CPU IRQ line active.")
+apa.add_argument("-i", "--block_irq", action="store_true", help="Block CPU IRQ line (deassert).")
+
+apa.add_argument("-N", "--force_nmi", action="store_true", help="Force CPU NMI line active.")
+apa.add_argument("-n", "--block_nmi", action="store_true", help="Block CPU NMI line (deassert).")
+
+apa.add_argument("-A", "--force_abort", action="store_true", help="Force CPU ABORT line active.")
+apa.add_argument("-a", "--block_abort", action="store_true", help="Block CPU ABORT line (deassert).")
+
+apa.add_argument('count', default=32, help="Number of CPU steps to perform.")
 
 args = apa.parse_args()
 
@@ -54,10 +61,12 @@ w65c02_dismap = [
     "BEQ :1", "SBC (.1),Y", "SBC (.1)", "?", "?", "SBC .1,X", "INC .1,X", "SMB7 .1", "SED", "SBC .2,Y", "PLX", "?", "?", "SBC .2,X", "INC .2,X", "BBS7 :1"
 ]
 
-
-def read_byte_as_cpu(banks, CA):
-    rambank = banks[0]
-    rombank = banks[1]
+# Read a byte via ICD memory access from the target.
+# The address is identified by captured MAH and CA.
+# MAH is decoded into the bank address.
+def read_byte_as_cpu(MAH, CA):
+    # rambank = banks[0]
+    # rombank = banks[1]
     if 0 <= CA < 2:
         # bank regs
         rdata = icd.bankregs_read(CA, 1)
@@ -66,9 +75,11 @@ def read_byte_as_cpu(banks, CA):
         rdata = icd.sram_blockread(CA + 0x170000, 1)
     elif 0xA000 <= CA < 0xC000:
         # CPU RAM Bank starts at sram fix 0x000
+        rambank = MAH
         rdata = icd.sram_blockread((CA - 0xA000) + rambank*ICD.PAGESIZE, 1)
     elif 0xC000 <= CA:
         # CPU ROM bank
+        rombank = (MAH >> 1) & 0x1F     # tbd: does not cover the PBL BANK!!
         if rombank < 32:
             # CPU ROM bank starts at sram fix 0x180000
             rdata = icd.sram_blockread((CA - 0xC000) + 0x180000 + rombank*2*ICD.PAGESIZE, 1)
@@ -78,21 +89,29 @@ def read_byte_as_cpu(banks, CA):
     return rdata[0]
 
 
-def read_print_trace(banks):
-    tbuflen = 5
-    is_valid, is_ovf, tbuf = icd.cpu_read_trace(tbuflen)
+# def read_print_trace(banks):
+#     is_valid, is_ovf, is_tbr_valid, is_tbr_full, tbuf = icd.cpu_read_trace()
+#     if is_valid:
+#         print_traceline(tbuf)
+#     else:
+#         print("N/A")
+
+
+def print_traceline(tbuf):
+    # extract signal values from trace buffer array
+    MAH = tbuf[5]
     CA = tbuf[4] * 256 + tbuf[3]
     CD = tbuf[2]
     disinst = w65c02_dismap[tbuf[2]] if tbuf[0] & TRACE_FLAG_SYNC else ""
 
     # replace byte value
     if disinst.find('.1') >= 0:
-        byteval = read_byte_as_cpu(banks, CA+1)
+        byteval = read_byte_as_cpu(MAH, CA+1)
         disinst = disinst.replace('.1', '${:x}'.format(byteval))
     
     # replace byte value displacement
     if disinst.find(':1') >= 0:
-        byteval = read_byte_as_cpu(banks, CA+1)
+        byteval = read_byte_as_cpu(MAH, CA+1)
         # convert to signed: negative?
         if byteval > 127:
             byteval = byteval - 256
@@ -100,16 +119,27 @@ def read_print_trace(banks):
 
     # replace word value
     if disinst.find('.2') >= 0:
-        wordval = read_byte_as_cpu(banks, CA+1) + read_byte_as_cpu(banks, CA+2)*256
+        wordval = read_byte_as_cpu(MAH, CA+1) + read_byte_as_cpu(MAH, CA+2)*256
         disinst = disinst.replace('.2', '${:x}'.format(wordval))
 
     is_sync = (tbuf[0] & TRACE_FLAG_SYNC)
     is_io = (CA >= 0x9F00 and CA <= 0x9FFF)
     is_write = not(tbuf[0] & TRACE_FLAG_RWN)
 
-    print("TraceBuf: V:{} O:{}  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}     {}{}{}".format(
-            ('*' if is_valid else '-'),
-            ('*' if is_ovf else '-'),
+    if (MAH <= 183) or (188 <= MAH <= 191):
+        # High memory – mapped to CPU page 5 according to REG00 (RAMBANK)
+        mah_area = "RAMB:{:3}".format(MAH)
+    elif MAH <= 191:
+        # Low memory – fix-mapped at CPU pages 0-4 ; unused 5-7 due to alignment (can be accessed as high-mem pages 189-191)
+        mah_area = "low :{:3}".format(MAH)
+    else:
+        # >= 192 to 255
+        # ROM banks: 32 a 16kB, mapped to CPU pages 6-7 according to REG01
+        mah_area = "ROMB:{:3}".format(MAH - 192)
+
+    print("MAH:{:2x} ({})  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}     {}{}{}".format(
+            MAH,
+            mah_area,
             Fore.YELLOW if is_io                # yellow-mark access to IO
                 else Fore.GREEN if is_sync
                 else Fore.RED if is_write
@@ -135,13 +165,51 @@ def read_print_trace(banks):
         ))
 
 
+def print_tracebuffer():
+    # retrieve line from trace buffer
+    is_valid, is_ovf, is_tbr_valid, is_tbr_full, tbuf = icd.cpu_read_trace(tbr_deq=True)
+    tbuf_list = []
+    while is_tbr_valid:
+        # note down
+        tbuf_list.append(tbuf)
+        # fetch next trace item into reg
+        is_valid, is_ovf, is_tbr_valid, is_tbr_full, tbuf = icd.cpu_read_trace(tbr_deq=True)
+    # print out
+    for i in range(0, len(tbuf_list)):
+        print("Step #{:5}:  ".format(i - len(tbuf_list)), end='')
+        print_traceline(tbuf_list[i])
+
+
 banks = icd.bankregs_read(0, 2)
+print('Options: block-irq={}, force-irq={}'.format(args.block_irq, args.force_irq))
 print('Active banks: RAMBANK={:2x}  ROMBANK={:2x}'.format(banks[0], banks[1]))
 
 print("CPU Step:\n")
-# // deactivate the reset, step the cpu
-for i in range(0, step_count):
-    icd.cpu_ctrl(False, True, False)
-    print("Step #{:3}:  ".format(i), end='')
-    banks = icd.bankregs_read(0, 2)
-    read_print_trace(banks)
+
+# // deactivate the reset, STOP the cpu
+icd.cpu_ctrl(False, False, False, 
+                force_irq=args.force_irq, force_nmi=args.force_nmi, force_abort=args.force_abort,
+                block_irq=args.block_irq, block_nmi=args.block_nmi, block_abort=args.block_abort)
+
+for i in range(0, step_count+1):
+    if i > 0:
+        # // deactivate the reset, STEP the cpu by 1 cycle
+        icd.cpu_ctrl(False, True, False, 
+                    force_irq=args.force_irq, force_nmi=args.force_nmi, force_abort=args.force_abort,
+                    block_irq=args.block_irq, block_nmi=args.block_nmi, block_abort=args.block_abort)
+    # determine the current bank; TBD remove
+    # banks = icd.bankregs_read(0, 2)
+    # read the current trace register
+    is_valid, is_ovf, is_tbr_valid, is_tbr_full, tbuf = icd.cpu_read_trace()
+    # check if trace buffer memory is non-empty
+    if is_tbr_valid:
+        # yes, we should first print the trace buffer contents!
+        print_tracebuffer()
+
+    # finally, check if the original trace register was valid
+    print("Step #{:5}:  ".format(i), end='')
+    if is_valid:
+        print_traceline(tbuf)
+    else:
+        print("N/A")
+    # read_print_trace(banks)
