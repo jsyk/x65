@@ -38,9 +38,12 @@ print("Loaded {} B of data from the file.".format(len(data)))
 
 # SRAM area always
 
+# CPU low memory starts at sram fix 0x170000
+start += + 0x170000
+
 areasize = ICD.SIZE_2MB
 if start < 0:
     start = areasize + start
 icd.sram_blockwrite(start, data)
 
-print("Stored to X65.")
+print("Stored {} Bytes to X65 from address 0x{:x}.".format(len(data), start))
