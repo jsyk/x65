@@ -70,6 +70,8 @@ module tb_nora ();
     wire FSCK;
     wire FLASHCSn;
 
+    reg  ATTBTN;
+
 
     top dut0 (
     // 12MHz FPGA clock input
@@ -167,7 +169,7 @@ module tb_nora ();
         .ICD_SCK (ICD_SCK),
 
     // Button input
-        .ATTBTN (1'b1),
+        .ATTBTN (ATTBTN),
 
     // Master SPI interface for SPI-flash access
         .FMOSI (FMOSI),
@@ -254,6 +256,7 @@ module tb_nora ();
         // CSOB_MX = 1'b1;
         CSYNC_VPA = 1'b0;
         // ICD_MISO = 1'b1;
+        ATTBTN <= 1;
 
         @(negedge CPHI2);
         @(negedge CPHI2);
@@ -365,6 +368,13 @@ module tb_nora ();
         cpu_read(16'h0000);
 
         #100_000;
+
+        ATTBTN <= 0;
+
+        #100_000;
+        #100_000;
+        #100_000;
+        #100_000_000;
 
         #1000;
         $display("=== TESTBENCH OK ===");

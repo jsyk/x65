@@ -1,6 +1,6 @@
-// `include "pll.v"
-// `include "blinker.v"
-
+/* Copyright (c) 2023 Jaroslav Sykora.
+ * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
+/* NORA FPGA top */
 module top (
 // 12MHz FPGA clock input
     input FPGACLK,
@@ -110,6 +110,7 @@ module top (
 
     wire clk6x;
     wire clk6x_locked;
+    wire rst_req;
     wire resetn;
 
 `ifdef SIMULATION
@@ -125,7 +126,7 @@ module top (
     * Autonomous reset generator
     */
     resetgen rstgen0 (
-        .clk (clk6x), .clklocked (clk6x_locked), .rstreq(1'b0),
+        .clk (clk6x), .clklocked (clk6x_locked), .rstreq(rst_req),
         .resetn (resetn)
     );
 
@@ -466,10 +467,11 @@ module top (
     //                    CBE=1        CBE=0
     assign MAL = (CBE) ? 12'bZZZZZZZZZZZZ : mem_abl_o;
 
+    wire  nmi_req_n;
 
     assign CRESn = icd_cpu_force_resn;           // CPU reset
     assign CIRQn = (VIRQn & cpu_force_irqn) | cpu_block_irq;           // CPU IRQ request
-    assign CNMIn = cpu_force_nmin | cpu_block_nmi;           // CPU NMI request
+    assign CNMIn = (nmi_req_n & cpu_force_nmin) | cpu_block_nmi;           // CPU NMI request
     assign CABORTn = cpu_force_abortn | cpu_block_abort;         // CPU ABORT request (16b only)
     assign CRDY = 1'bZ;             // CPU ready signal (output)
     assign CSOB_MX = 1'bZ;          // CPU SOB (set overflow - 8b) / MX (16b)
@@ -617,6 +619,21 @@ module top (
                             (nora_slv_req_VIA1) ? via1_slv_datard :
                             (nora_slv_req_OPM) ? OPM_slv_datard :
                             8'hFF;
+
+
+    // handle the user ATTBTN
+    attenbtn abtn
+    (
+        // Global signals
+        .clk            (clk6x),        // 48MHz
+        .resetn         (resetn),     // sync reset
+        // User Button
+        .attbtn_i       (ATTBTN),       // active-low button input
+        // System Control output
+        .nmi_req_no     (nmi_req_n),     // active-low NMI request output to the CPU
+        .rst_req_o      (rst_req)       // active-high global reset request for the FPGA+CPU
+    );
+
 
 
     // define unused output signals
