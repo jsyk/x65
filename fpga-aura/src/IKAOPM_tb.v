@@ -47,7 +47,8 @@ wire signed     [15:0]  emu_r, emu_l;
 //main chip
 IKAOPM #(
     .FULLY_SYNCHRONOUS          (1                          ),
-    .FAST_RESET                 (1                          )
+    .FAST_RESET                 (1                          ),
+    .USE_BRAM                   (1                          )
 ) main (
     // phyM expected 3.58MHz.
     // Due to phiM_PCEN_n division by 4 below, the EMUCLK shall be 4 * 3.58Mhz = 14.32Mhz, i.e. Tperiod=69.832ns=70ns
