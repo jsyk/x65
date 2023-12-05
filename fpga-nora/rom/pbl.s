@@ -1,20 +1,35 @@
+; ** Primary Bootloader for x65
+; * Copyright (c) 2023 Jaroslav Sykora.
+; * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory.
+; 
+; This code is stored inside of NORA FPGA BlockRAM, see the file bootrom.v, size=512Bytes,
+; and mapped to the 65C02 address space at the last top CPU address space: $FE00 ... $FFFF.
+; Assemble & link with ca65 + ld65.
+;
 
+; Register locations:
+; RAM/ROM bank mapper:
 RAMBANK_REG = $0
 ROMBANK_REG = $1
 
+; VIA1 - for LEDs
 VIA1_ORB_IRB_REG = $9F00
 VIA1_DDRB_REG = $9F02
 
+; NORA registers:
 RAMBANK_MASK_REG = $9F50
+; NORA SPI to access the SPI-Flash memory of NORA
 SPI_CTRLSTAT_REG = $9F52
 SPI_DATA_REG = $9F53
 
+; BUSY flag mask in the SPI_CTRLSTAT_REG
 SPI_CTRLSTAT__BUSY = (1 << 4)
 
-; Variables in the zero page
+; Working Variables in the zero page
 LOAD_POINTER = $10          ; 2B
 LDPAGE_COUNTER = $12        ; 1B
 
+; this is where the RAMBANK window starts in the CPU address space: $A000 up to +8kB
 RAMBANK_WIN = $A000
 
 .SEGMENT "CODE"
