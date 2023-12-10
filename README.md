@@ -21,6 +21,8 @@ PC host software in Python and supporting JTAG-like functions for the 65xx platf
 
 [*] note: W65C816S to be tested yet.
 
+Project web pages: http://www.x65.eu  -> currently links to http://www.jsykora.info
+
 ----------------------------------------------------------------------------
 *Warning* 
 
@@ -219,8 +221,6 @@ Status of hardware testing
 
 Contact
 --------
-
-Project web pages: http://www.x65.eu  -> currently links to http://www.jsykora.info
 
 Jaroslav Sykora,
     Personal: http://www.jsykora.info,
