@@ -1,0 +1,5 @@
+Wiznet notes
+---------------
+
+Deactivate reset:
+./do-poke.py io 0x4c 0xf
