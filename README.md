@@ -76,7 +76,7 @@ Hardware Specification:
 * **SD-card slot** supporting SDHC cards (handled by VERA FPGA).
 * **LAN 10/100Mbps** Ethernet port (RJ45) implemented by [Wiznet W6100](https://www.wiznet.io/product-item/w6100/) chip, 
   with hardware-integrated TCP/IP v4/v6 stack.
-* **Real-time clock* (RTC) chip with battery backup.
+* **Real-time clock** (RTC) chip with battery backup.
 * **In-circuit debugger** (ICD) integrated with NORA and accessible over the device USB-C port from a host PC
   running Linux or Windows. The ICD can write all permanent (SPI-Flash) memories in the system, 
   even in a totally empty / bricked state. PC host software is written in Python and should be portable to other 
@@ -120,6 +120,8 @@ Running Commander X16 ROM and BASIC program (compatibility testing only, not all
 Structure of the GIT repository:
 ---------------------------------
 
+* `doc' --> documentation
+* `fpga-aura' --> verilog code for the AURA FPGA (Audio) with referenced IKAOPM sources.
 * `fpga-nora' --> verilog code for the NORA FPGA on the motherboard.
 * `fpga-vera' --> VERA FPGA bitstream (100% derived from https://github.com/fvdhoef/vera-module)
 * `pcb' --> hardware projects in Kicad:

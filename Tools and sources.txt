@@ -11,7 +11,7 @@ Assembler:
     https://github.com/cc65/cc65/tree/master
 * ACME - used in some examples
 
-YosysHQ/IceStorm
+YosysHQ/IceStorm for iCE40 FPGA synthesis
 
 * compiler for 65c816
     http://forum.6502.org/viewtopic.php?f=2&t=7573

@@ -1,6 +1,4 @@
 
-Tips for CX16 commands:
-https://voidstar.blog/voidstars-commander-x16-notes/
 
 
 ./do-cpureset.py --rombank 0
