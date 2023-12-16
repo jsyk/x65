@@ -2,7 +2,7 @@ X65
 ====
 
 The X65 is an ultimate computer for everyone interested in the venerable 65-series of 8-bit and 16-bit CPUs,
-i.e. the 6502 and 65816 [*]. Specifically, we support the W65C02S and W65C816S CPU chips from Western Design Centre.
+i.e. the 6502 and 65816. Specifically, we support the W65C02S and W65C816S CPU chips from Western Design Centre.
 The design is fully open-source and open-hardware, and we also prefer to use just the open-source development tools
 whenever possible. The X65 computer hardware is designed with modern electronics parts, but with a distinct retro feel.
 The computer is backward compatible with Commander X16 (i.e. can run their ROM), but the goal is to improve
@@ -19,8 +19,6 @@ _Interfaces_: VGA 640x480 out, Stereo sound out (FM and PSG), PS/2 keyboard and 
 Ethernet LAN 10/100Mpbs with RJ45, SDHC card slot, power-in 5V USB-C port, In-Circuit Debugger (ICD) over the USB-C with 
 PC host software in Python and supporting JTAG-like functions for the 65xx platform (CPU step, trace, memory dump & poke).
 
-[*] note: W65C816S to be tested yet.
-
 Project web pages: http://www.x65.eu  -> currently links to http://www.jsykora.info
 
 ----------------------------------------------------------------------------
@@ -36,8 +34,7 @@ See the section `Status of hardware testing' below.
 General Project Features:
 -------------------------
 
-* The CPU is W65C02 (8-bit) or the W65C816 (16-bit). The motherboard PCB supports both assembly options 
-  (note: W65C816 has not been tested so far, but is planned).
+* The CPU is W65C02 (8-bit) or the W65C816 (16-bit). The motherboard PCB supports both assembly options.
 * Backward software compatibility with the [Commander X16](https://www.commanderx16.com/) computer.
   Can run unmodified CX16 ROM for testing purposes.
 * Designed with components (chips) that are in production and available from normal electronics parts distributors 
@@ -165,9 +162,8 @@ There some existing systems, for example:
 * [GeckOS](http://www.6502.org/users/andre/osa/index.html)
 
 The hardware could be assembled with either the 8-bit 65C02 CPU or the 16-bit 65C816 CPU.
-I am not decided which one should be the default.
 The advantage of the 16-bit 65C816 CPU is a linear 24-bit address space.
-On the other hand, compiler tools support is much weaker than for 65C02.
+On the other hand, compiler tools support is much weaker in case of 65C816 than for the widely known 65C02.
 
 
 Timeline
@@ -199,7 +195,7 @@ Status of hardware testing
 
 * Motherboard ('mobo') rev01:
   * CPU W65C02, SRAM 2MB, FPGA NORA -- works OK!
-  * option: CPU W65C816 -- **to be tested**.
+  * CPU W65C816 -- works OK.
   * original VIA -- will be removed from the design!
   * SNES controller ports -- works OK (slight change in scm).
   * RTC -- works OK!
