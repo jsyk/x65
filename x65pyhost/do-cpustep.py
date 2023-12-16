@@ -38,9 +38,10 @@ TRACE_FLAG_VDA =        4
 TRACE_FLAG_VECTPULL =	8
 TRACE_FLAG_MLOCK =		16
 TRACE_FLAG_SYNC_VPA =   32
-TRACE_FLAG_CSOB_MX =    64
+TRACE_FLAG_CSOB_M =     64
 TRACE_FLAG_RDY =        128
 # CPU Control flags
+TRACE_FLAG_CSOB_X =     16      # status
 TRACE_FLAG_RESETN =     8
 TRACE_FLAG_IRQN =       4
 TRACE_FLAG_NMIN =       2
@@ -131,6 +132,7 @@ def print_traceline(tbuf):
 
     is_io = (CA >= 0x9F00 and CA <= 0x9FFF)
     is_write = not(tbuf[0] & TRACE_FLAG_RWN)
+    is_addr_invalid = not((tbuf[0] & TRACE_FLAG_SYNC_VPA) or (tbuf[0] & TRACE_FLAG_VDA))
 
     if (MAH <= 183) or (188 <= MAH <= 191):
         # High memory – mapped to CPU page 5 according to REG00 (RAMBANK)
@@ -143,10 +145,11 @@ def print_traceline(tbuf):
         # ROM banks: 32 a 16kB, mapped to CPU pages 6-7 according to REG01
         mah_area = "ROMB:{:3}".format(MAH - 192)
 
-    print("MAH:{:2x} ({})  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}{}{}{}     {}{}{}".format(
+    print("MAH:{:2x} ({})  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}{}{}{}{}{}     {}{}{}".format(
             MAH,
             mah_area,
-            Fore.YELLOW if is_io                # yellow-mark access to IO
+            Fore.LIGHTBLACK_EX if is_addr_invalid
+                else Fore.YELLOW if is_io                # yellow-mark access to IO
                 else Fore.GREEN if is_sync
                 else Fore.RED if is_write
                 else Fore.WHITE,   
@@ -167,6 +170,8 @@ def print_traceline(tbuf):
             ('-' if tbuf[0] & TRACE_FLAG_VECTPULL else 'v'),        # vector pull, active low
             ('-' if tbuf[0] & TRACE_FLAG_MLOCK else 'L'),           # mem lock, active low
             ('E' if tbuf[0] & TRACE_FLAG_EF else '-'),              # emulation mode, active high
+            ('m' if tbuf[0] & TRACE_FLAG_CSOB_M else 'M'),          # '816 M-flag (acumulator): 0=> 16-bit, 1=> 8-bit
+            ('x' if tbuf[1] & TRACE_FLAG_CSOB_X else 'X'),          # '816 X-flag (index regs): 0=> 16-bit, 1=> 8-bit
             ('P' if tbuf[0] & TRACE_FLAG_SYNC_VPA else '-'),        # '02: SYNC, '816: VPA (valid program address)
             ('D' if tbuf[0] & TRACE_FLAG_VDA else '-'),             # '02: always 1, '816: VDA (valid data address)
             ('S' if is_sync else '-'),
@@ -213,6 +218,10 @@ for i in range(0, step_count+1):
     # check if trace buffer memory is non-empty
     if is_tbr_valid:
         # yes, we should first print the trace buffer contents!
+        # sanity check: this could happen just on the first for-iteration!!
+        if i > 0:
+            print("IS_TBR_VALID=TRUE: COMMUNICATION ERROR!!")
+            exit(1)
         print_tracebuffer()
 
     # finally, check if the original trace register was valid
@@ -221,4 +230,9 @@ for i in range(0, step_count+1):
         print_traceline(tbuf)
     else:
         print("N/A")
+        # sanity: this could happen just on the first for-iter!
+        if i > 0:
+            print("IS_VALID=FALSE: COMMUNICATION ERROR!!")
+            exit(1)
+
     # read_print_trace(banks)
