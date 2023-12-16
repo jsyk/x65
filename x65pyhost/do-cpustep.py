@@ -33,14 +33,20 @@ icd = ICD(x65ftdi.X65Ftdi())
 
 # CPU Status flags
 TRACE_FLAG_RWN =		1
+TRACE_FLAG_EF =         2
+TRACE_FLAG_VDA =        4
 TRACE_FLAG_VECTPULL =	8
 TRACE_FLAG_MLOCK =		16
-TRACE_FLAG_SYNC =		32
+TRACE_FLAG_SYNC_VPA =   32
+TRACE_FLAG_CSOB_MX =    64
+TRACE_FLAG_RDY =        128
 # CPU Control flags
 TRACE_FLAG_RESETN =     8
 TRACE_FLAG_IRQN =       4
 TRACE_FLAG_NMIN =       2
 TRACE_FLAG_ABORTN =     1
+
+ISYNC = TRACE_FLAG_VDA | TRACE_FLAG_SYNC_VPA            # both must be set to indicate first byte of an instruction
 
 w65c02_dismap = [
     "BRK #.1", "ORA (.1,X)", "?", "?", "TSB .1", "ORA .1", "ASL .1", "RMB0 .1", "PHP", "ORA #.1", "ASL A", "?", "TSB A", "ORA .2", "ASL .2", "BBR0 :1",
@@ -102,7 +108,8 @@ def print_traceline(tbuf):
     MAH = tbuf[5]
     CA = tbuf[4] * 256 + tbuf[3]
     CD = tbuf[2]
-    disinst = w65c02_dismap[tbuf[2]] if tbuf[0] & TRACE_FLAG_SYNC else ""
+    is_sync = (tbuf[0] & ISYNC) == ISYNC
+    disinst = w65c02_dismap[tbuf[2]] if is_sync else ""
 
     # replace byte value
     if disinst.find('.1') >= 0:
@@ -122,7 +129,6 @@ def print_traceline(tbuf):
         wordval = read_byte_as_cpu(MAH, CA+1) + read_byte_as_cpu(MAH, CA+2)*256
         disinst = disinst.replace('.2', '${:x}'.format(wordval))
 
-    is_sync = (tbuf[0] & TRACE_FLAG_SYNC)
     is_io = (CA >= 0x9F00 and CA <= 0x9FFF)
     is_write = not(tbuf[0] & TRACE_FLAG_RWN)
 
@@ -137,7 +143,7 @@ def print_traceline(tbuf):
         # ROM banks: 32 a 16kB, mapped to CPU pages 6-7 according to REG01
         mah_area = "ROMB:{:3}".format(MAH - 192)
 
-    print("MAH:{:2x} ({})  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}     {}{}{}".format(
+    print("MAH:{:2x} ({})  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}{}{}{}     {}{}{}".format(
             MAH,
             mah_area,
             Fore.YELLOW if is_io                # yellow-mark access to IO
@@ -158,8 +164,11 @@ def print_traceline(tbuf):
             ('-' if tbuf[1] & TRACE_FLAG_ABORTN else 'A'),
             #/*sta:*/ 
             tbuf[0], ('r' if tbuf[0] & TRACE_FLAG_RWN else Fore.RED+'W'+Style.RESET_ALL), 
-            ('-' if tbuf[0] & TRACE_FLAG_VECTPULL else 'v'), 
-            ('-' if tbuf[0] & TRACE_FLAG_MLOCK else 'L'), 
+            ('-' if tbuf[0] & TRACE_FLAG_VECTPULL else 'v'),        # vector pull, active low
+            ('-' if tbuf[0] & TRACE_FLAG_MLOCK else 'L'),           # mem lock, active low
+            ('E' if tbuf[0] & TRACE_FLAG_EF else '-'),              # emulation mode, active high
+            ('P' if tbuf[0] & TRACE_FLAG_SYNC_VPA else '-'),        # '02: SYNC, '816: VPA (valid program address)
+            ('D' if tbuf[0] & TRACE_FLAG_VDA else '-'),             # '02: always 1, '816: VDA (valid data address)
             ('S' if is_sync else '-'),
             Fore.GREEN, disinst, Style.RESET_ALL
         ))

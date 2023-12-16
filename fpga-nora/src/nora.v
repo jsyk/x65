@@ -58,7 +58,8 @@ module top (
     output ILICSn,
     output ILIDC,
     output TCSn,
-    input TIRQn,
+
+    input CPUTYPE02,        // board assembly CPU type: 0 => 65C816 (16b), 1 => 65C02 (8b)
 
 // PS2 ports
     input PS2K_CLK,
@@ -200,22 +201,32 @@ module top (
     // create the 16-bit CPU bus address by concatenating the two bus signals
     wire [15:0]     cpu_ab = { CA, MAL };
     reg [15:0]      cpu_ab_r;
-    reg             csob_mx_r, csync_vpa_r, cmln_r, cvpn_r, cvda_r, cef_r, crwn_r;
+    reg             csob_m_r, csob_x_r, csync_vpa_r, cmln_r, cvpn_r, cvda_r, cef_r, crwn_r;
+    reg             cputype02_r;            // board assembly: 0 => 65C816, 1 => 65C02.
 
-    // sample address and CPU status outputs for trace buffer at setup_cs
+    // sample address and CPU status outputs for trace buffer at latch_ad
     always @(posedge clk6x)
     begin
-        if (setup_cs)
+        if (latch_ad)               // PHY2 rising
         begin
             cpu_ab_r <= cpu_ab;
-            csob_mx_r <= CSOB_MX;
-            csync_vpa_r <= CSYNC_VPA;
-            cmln_r <= CMLn;
-            cvpn_r <= CVPn;
-            cvda_r <= CVDA;
-            cef_r <= CEF;
+            csob_x_r <= CSOB_MX | cputype02_r;       // 6502: Set Overflow Bit; 65816: M/X status flag; (Flag M is valid during PHI2 negative transition 
+                                        // and Flag X is valid during PHI2 positive transition. 0=>16-bit, 1=8-bit)
+            csync_vpa_r <= CSYNC_VPA;   // 6502: SYNC, 65816: Valid Program Address
+            cmln_r <= CMLn;         // memory lock, active low
+            cvpn_r <= CVPn;         // vector pull, active low.
+            cvda_r <= CVDA | cputype02_r;         // Valid Data Addres (65C816 only; for C02, we always set 1)
+            cef_r <= CEF | cputype02_r;           // emulation flag (1=6502, 0=native 16b)
             crwn_r <= CRWn;
         end
+
+        if (release_wr)
+        begin
+            csob_m_r <= CSOB_MX | cputype02_r;       // 6502: Set Overflow Bit; 65816: M/X status flag; (Flag M is valid during PHI2 negative transition 
+                                        // and Flag X is valid during PHI2 positive transition.)
+        end
+
+        cputype02_r <= CPUTYPE02;
     end
 
     // Trace signal
@@ -227,14 +238,15 @@ module top (
         // trace byte [2]:
             CD,             // CPU data bus, 8b
         // trace byte [1]:
-            4'h0,
+            3'b000,
+            csob_x_r,           // 6502: CPU SOB (set overflow - 8b); 65816: X-flag (16b)
             CRESn,           // CPU reset
             CIRQn,           // CPU IRQ request
             CNMIn,           // CPU NMI request
             CABORTn,         // CPU ABORT request (16b only)
         // trace byte [0]:
             CRDY,             // CPU ready signal
-            csob_mx_r,          // CPU SOB (set overflow - 8b) / MX (16b)
+            csob_m_r,           // 6502: CPU SOB (set overflow - 8b); 65816: M-flag (16b)
             csync_vpa_r,        // CPU SYNC (8b) / VPA (16b) signal
             cmln_r,             // CPU memory lock
             cvpn_r,             // CPU vector pull signal
@@ -337,6 +349,7 @@ module top (
         // Global signals
         .clk6x (clk6x),      // 48MHz
         .resetn (resetn),     // sync reset
+        .cputype02_i (cputype02_r),
         // CPU bus signals - address and data
         .cpu_db_o (cpu_db_o),           // output to cpu data bus
         .cpu_db_i (CD),
@@ -449,9 +462,10 @@ module top (
 
 
 // CPU interface
-    // put CPU data bus in Hi-Z as soon as RWB goes low (CPU is outputting write data)
+    // Put CPU data bus in Hi-Z as soon as RWB goes low (CPU is outputting write data).
+    // I.E. Allow driving CD from NORA only iff CRWn=1 (CPU reads) and CPHI2=1 (second phase - necessary for '816)
     //                   CRWn=1     CRWn=0
-    assign CD = (CRWn) ? cpu_db_o : 8'bZZZZZZZZ;
+    assign CD = (CRWn && CPHI2) ? cpu_db_o : 8'bZZZZZZZZ;
 
     // create a 1T delayed MRDn  
     reg    mrdn_delayed;

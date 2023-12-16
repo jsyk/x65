@@ -7,6 +7,7 @@ module bus_controller (
     // Global signals
     input           clk6x,      // 48MHz
     input           resetn,     // sync reset
+    input           cputype02_i,    // 0 => 65C816, 1 => 65C02.
     //
     // CPU bus signals - address and data
     output reg [7:0] cpu_db_o,           // output to cpu data bus
@@ -163,8 +164,17 @@ module bus_controller (
                 nora_slv_addr_o <= cpu_ab_i;
                 nora_slv_rwn_o <= cpu_rw_i;
 
+                // Check if CPU bus address is valid?
+                // hint: in 65C02 the bus address is always valid.
+                if (!cputype02_i && !cpu_vda_i && !cpu_sync_vpa_i)
+                begin
+                    // CPU == 65C816 and invalid bus address
+                    // ==> No access is generated!
+                    mem_rdn_o <= HIGH_INACTIVE;
+                    mem_wrn_o <= HIGH_INACTIVE;
+                end
                 // decode CPU address space regions
-                if (cpu_ab_i[15:1] == 15'b000000000000000)
+                else if (cpu_ab_i[15:1] == 15'b000000000000000)
                 begin
                     // registers 0x0000 RAMBANK and 0x0001 ROMBANK
                     nora_slv_req_BANKREG <= 1;

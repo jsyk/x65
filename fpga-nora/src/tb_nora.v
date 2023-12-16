@@ -128,7 +128,8 @@ module tb_nora ();
         // output ILICSn,
         // output ILIDC,
         // output TCSn,
-        .TIRQn (1'b1),
+        
+        .CPUTYPE02 (1'b1),
 
     // PS2 ports
         .PS2K_CLK (1'b1),
