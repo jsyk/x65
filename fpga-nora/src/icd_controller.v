@@ -160,6 +160,7 @@ module icd_controller #(
 
     always @(posedge clk6x)
     begin
+        tx_byte_o <= 8'h00;
         tx_en_o <= 0;
 
         if (!resetn)
@@ -195,6 +196,10 @@ module icd_controller #(
                 // header/command byte received
                 icd_cmd <= rx_byte_i;
                 counter <= 0;
+
+                // default: clear TX byte!
+                tx_byte_o <= 8'h00;
+                tx_en_o <= 1;
 
                 // cpubus_trace_reg <= 40'h12_34_56_78_9A;
 
