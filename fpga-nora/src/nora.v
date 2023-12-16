@@ -210,8 +210,9 @@ module top (
         if (latch_ad)               // PHY2 rising
         begin
             cpu_ab_r <= cpu_ab;
-            csob_x_r <= CSOB_MX | cputype02_r;       // 6502: Set Overflow Bit; 65816: M/X status flag; (Flag M is valid during PHI2 negative transition 
+            csob_x_r <= CSOB_MX | cputype02_r | CEF;       // 6502: Set Overflow Bit; 65816: M/X status flag; (Flag M is valid during PHI2 negative transition 
                                         // and Flag X is valid during PHI2 positive transition. 0=>16-bit, 1=8-bit)
+                                        // In Emulation mode (CEF=1), force 1 to indicate 8-bit register width.
             csync_vpa_r <= CSYNC_VPA;   // 6502: SYNC, 65816: Valid Program Address
             cmln_r <= CMLn;         // memory lock, active low
             cvpn_r <= CVPn;         // vector pull, active low.
@@ -222,8 +223,9 @@ module top (
 
         if (release_wr)
         begin
-            csob_m_r <= CSOB_MX | cputype02_r;       // 6502: Set Overflow Bit; 65816: M/X status flag; (Flag M is valid during PHI2 negative transition 
+            csob_m_r <= CSOB_MX | cputype02_r | cef_r;       // 6502: Set Overflow Bit; 65816: M/X status flag; (Flag M is valid during PHI2 negative transition 
                                         // and Flag X is valid during PHI2 positive transition.)
+                                        // In Emulation mode (CEF=1), force 1 to indicate 8-bit register width.
         end
 
         cputype02_r <= CPUTYPE02;
