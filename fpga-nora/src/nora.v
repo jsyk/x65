@@ -55,17 +55,17 @@ module top (
     output CPULED1,
 
 // additional ILI SPI ports
-    output ILICSn,
-    output ILIDC,
-    output TCSn,
+    output ILICSn,      // TBD remove
+    output ILIDC,       // TBD remove
+    output TCSn,        // TBD remove
 
     input CPUTYPE02,        // board assembly CPU type: 0 => 65C816 (16b), 1 => 65C02 (8b)
 
 // PS2 ports
     input PS2K_CLK,
     input PS2K_DATA,
-    output PS2K_CLKDR,
-    output PS2K_DATADR,
+    output PS2K_CLKDR,      // TBD remove
+    output PS2K_DATADR,     // TBD remove
     
     inout PS2M_CLK,         // via bidi level-shifter
     inout PS2M_DATA,        // via bidi level-shifter
@@ -108,7 +108,7 @@ module top (
     output FSCK,
     output FLASHCSn
 );
-
+// IMPLEMENTATION
     wire clk6x;
     wire clk6x_locked;
     wire rst_req;
@@ -201,6 +201,7 @@ module top (
     // create the 16-bit CPU bus address by concatenating the two bus signals
     wire [15:0]     cpu_ab = { CA, MAL };
     reg [15:0]      cpu_ab_r;
+    reg [7:0]       cba_r;
     reg             csob_m_r, csob_x_r, csync_vpa_r, cmln_r, cvpn_r, cvda_r, cef_r, crwn_r;
     reg             cputype02_r;            // board assembly: 0 => 65C816, 1 => 65C02.
 
@@ -210,6 +211,12 @@ module top (
         if (latch_ad)               // PHY2 rising
         begin
             cpu_ab_r <= cpu_ab;
+            
+            if (cputype02_r)
+                cba_r <= 8'h00;           // fixed bank address 0 in 65C02
+            else
+                cba_r <= CD;            // 65C816 on PHI2 rising edge.
+            
             csob_x_r <= CSOB_MX | cputype02_r | CEF;       // 6502: Set Overflow Bit; 65816: M/X status flag; (Flag M is valid during PHI2 negative transition 
                                         // and Flag X is valid during PHI2 positive transition. 0=>16-bit, 1=8-bit)
                                         // In Emulation mode (CEF=1), force 1 to indicate 8-bit register width.
@@ -231,8 +238,12 @@ module top (
         cputype02_r <= CPUTYPE02;
     end
 
+    localparam  CPUTRACE_WIDTH = 48 + 8;
+
     // Trace signal
-    wire [47:0]   cpubus_trace = {
+    wire [CPUTRACE_WIDTH-1:0]   cpubus_trace = {
+        // trace bytes [6]
+            cba_r,              // CPU bank address
         // trace bytes [5]
             MAH[20:13],         // top 8 bits on the memory bus
         // trace bytes [4], [3]:
@@ -301,7 +312,8 @@ module top (
         .tx_en_i (icd_tx_en)         // flag: catch the transmit byte
     );
 
-    icd_controller icdctrl (
+    icd_controller #( .CPUTRACE_WIDTH (CPUTRACE_WIDTH), .CPUTRACE_DEPTH(8) ) 
+    icdctrl (
         // Global signals
         .clk6x (clk6x),      // 48MHz
         .resetn (resetn),     // sync reset

@@ -180,7 +180,7 @@ class ICD:
 
 
     # Read CPU Trace Register.
-    def cpu_read_trace(self, tbr_deq=False, tbr_clear=False, treglen=6):
+    def cpu_read_trace(self, tbr_deq=False, tbr_clear=False, treglen=7):
         #  *      |       0x3         READ CPU TRACE REG
         #  *      `----------------------->   [4]     1 => Dequeue next trace-word from trace-buffer into the trace-reg
         #  *                                  [5]     1 => Clear the trace buffer.

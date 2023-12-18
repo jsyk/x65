@@ -106,6 +106,7 @@ def read_byte_as_cpu(MAH, CA):
 
 def print_traceline(tbuf):
     # extract signal values from trace buffer array
+    CBA = tbuf[6]
     MAH = tbuf[5]
     CA = tbuf[4] * 256 + tbuf[3]
     CD = tbuf[2]
@@ -145,14 +146,17 @@ def print_traceline(tbuf):
         # ROM banks: 32 a 16kB, mapped to CPU pages 6-7 according to REG01
         mah_area = "ROMB:{:3}".format(MAH - 192)
 
-    print("MAH:{:2x} ({})  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}{}{}{}{}{}     {}{}{}".format(
+    addr_color = Fore.LIGHTBLACK_EX if is_addr_invalid \
+                else Fore.YELLOW if is_io  \
+                else Fore.GREEN if is_sync \
+                else Fore.RED if is_write \
+                else Fore.WHITE
+
+    print("MAH:{:2x} ({})  CBA:{:2x}  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}{}{}{}{}{}     {}{}{}".format(
             MAH,
             mah_area,
-            Fore.LIGHTBLACK_EX if is_addr_invalid
-                else Fore.YELLOW if is_io                # yellow-mark access to IO
-                else Fore.GREEN if is_sync
-                else Fore.RED if is_write
-                else Fore.WHITE,   
+            CBA,
+            addr_color,   
             CA,  #/*CA:*/
             Style.RESET_ALL,
             Fore.RED if is_write 
