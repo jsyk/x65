@@ -55,7 +55,7 @@ Block Diagram
 Hardware Specification:
 ------------------------
 
-* **CPU**: W65C02 or W65C816 in the QFP-44 package, running at 8MHz, supplied by 3.3V.
+* **CPU**: [W65C02 or W65C816](doc/cpu02vs816.md) in the QFP-44 package, running at 8MHz, supplied by 3.3V.
 * **Memory**: 2MB asynchronous SRAM, common for ROM and RAM.
 * **System controller** semi-ASIC, aka north-bridge, aka NORA: Lattice FPGA iCE40HX4K (TQFP-144) handles address decoding, 
   glue logic, PS/2 interfaces, in-circuit debugger and more. 
