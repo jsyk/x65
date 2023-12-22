@@ -10,7 +10,7 @@
  *    .release_cs.        .latch_ad .setup_cs .         .release_wr.      <= TBD !!
  *               (stopped)
  *
- * cphi2 - 8MHz for the 65CPU:
+ * cphi2 - 8MHz (125ns period) for the 65CPU:
  * ___                               _____________________________
  *    |_____________________________|                             |__________
  *

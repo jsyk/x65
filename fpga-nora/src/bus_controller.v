@@ -96,6 +96,8 @@ module bus_controller (
     // create the 16-bit CPU bus address by concatenating the two bus signals
     wire [15:0]     cpu_ab_i = { cpu_abh_i, memcpu_abl_i };
 
+    reg [7:0]       cba_r;          // CPU Bank Address (65C816)
+
     // aggregated master request
     wire nora_mst_req = nora_mst_req_OTHER_i | nora_mst_req_SRAM_i;
 
@@ -149,6 +151,7 @@ module bus_controller (
             nora_slv_req_SCRB_o <= 0;
             nora_slv_req_VIA1_o <= 0;
             nora_slv_req_OPM_o <= 0;
+            cba_r <= 8'h00;
             rambank_nr <= 8'h00;
             rombank_nr <= 6'b11_1111;        // rombank 63 - starts in BOOTROM
             // rombank_nr <= 6'b000000;        // rombank 0 - starts at 0x18_0000
@@ -164,6 +167,11 @@ module bus_controller (
                 nora_slv_addr_o <= cpu_ab_i;
                 nora_slv_rwn_o <= cpu_rw_i;
 
+                if (cputype02_i)
+                    cba_r <= 8'h00;           // fixed bank address 0 in 65C02
+                else
+                    cba_r <= cpu_db_i;            // 65C816 on PHI2 rising edge.
+
                 // Check if CPU bus address is valid?
                 // hint: in 65C02 the bus address is always valid.
                 if (!cputype02_i && !cpu_vda_i && !cpu_sync_vpa_i)
@@ -172,94 +180,109 @@ module bus_controller (
                     // ==> No access is generated!
                     mem_rdn_o <= HIGH_INACTIVE;
                     mem_wrn_o <= HIGH_INACTIVE;
+                    // and skip the rest of decoding.
                 end
-                // decode CPU address space regions
-                else if (cpu_ab_i[15:1] == 15'b000000000000000)
+                // Allowed to decode CPU address space regions;
+                else if (cputype02_i || (cpu_db_i == 8'h00))
                 begin
-                    // registers 0x0000 RAMBANK and 0x0001 ROMBANK
-                    nora_slv_req_BANKREG <= 1;
-                end
-                else if (cpu_abh_i[15:14] == 2'b11)
-                begin
-                    // CPU address 0xC000 - 0xF000 => 16k ROM banks mapped at the top of SRAM
-                    if (rombank_nr[5] == 1'b1)
+                    // is 65c02 (16-bit), or zero bank of 65c816.
+                    // Decoding inside of CPU Bank 0x00:
+                    if (cpu_ab_i[15:1] == 15'b000000000000000)
                     begin
-                        // special PBL ROM bank in FPGA
-                        nora_slv_req_BOOTROM_o <= 1;
-                        // NOTE: when BOOTROM is selected as the ROMBANK, 
-                        // then Vector Pull always happens inside it, and not from
-                        // the rombank 0 !!
-                        mem_abh_o <= 9'h00;         // just for trace buffer
-                    end else begin
-                        // normal ROM bank in SRAM.
-                        // Check if this is a Vector Pull cycle?
-                        if (!cpu_vpu_i)
+                        // registers 0x0000 RAMBANK and 0x0001 ROMBANK
+                        nora_slv_req_BANKREG <= 1;
+                    end
+                    else if (cpu_abh_i[15:14] == 2'b11)
+                    begin
+                        // CPU address 0xC000 - 0xF000 => 32x 16k ROM pages mapped at SRAM pages 64 to 127;
+                        if (rombank_nr[5] == 1'b1)
                         begin
-                            // Vector Pull cycle (cpu_vpu_i is active low) -> must access the rombank 0x00 always!
-                            mem_abh_o <= { 2'b11, 5'b00000, cpu_abh_i[13:12] };
+                            // special PBL ROM bank #33 is inside of FPGA
+                            nora_slv_req_BOOTROM_o <= 1;
+                            // NOTE: when BOOTROM is selected as the ROMBANK, 
+                            // then Vector Pull always happens inside it, and not from
+                            // the rombank 0 !!
+                            mem_abh_o <= 9'h00;         // just for trace buffer
                         end else begin
-                            // normal access through the active rombank
-                            mem_abh_o <= { 2'b11, rombank_nr[4:0], cpu_abh_i[13:12] };
+                            // normal ROM bank in SRAM.
+                            // Check if this is a Vector Pull cycle?
+                            if (!cpu_vpu_i)
+                            begin
+                                // Vector Pull cycle (cpu_vpu_i is active low) -> must access the rombank 0x00 always!
+                                mem_abh_o <= { 2'b01, 5'b00000, cpu_abh_i[13:12] };
+                            end else begin
+                                // normal access through the active rompage, starting at SRAM Page 64
+                                mem_abh_o <= { 2'b01, rombank_nr[4:0], cpu_abh_i[13:12] };
+                            end
+                            sram_csn_o <= LOW_ACTIVE;
+                            mem_rdn_o <= ~cpu_rw_i;
+                            mem_wrn_o <= HIGH_INACTIVE;         // never allow writing to the ROM bank!
                         end
+                    end 
+                    else if (cpu_abh_i[15:13] == 3'b101)
+                    begin
+                        // CPU address 0xA000 - 0xB000 => 8k RAM Pages mapped from the middle of SRAM (MSB inverted)
+                        mem_abh_o <= { rambank_masked_nr ^ 8'h80, cpu_abh_i[12] };
+                        // mem_abh_o <= { rambank_nr & rambank_mask_i, cpu_abh_i[12] };
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_o <= HIGH_INACTIVE;         // never allow writing to the ROM bank!
+                        mem_wrn_o <= cpu_rw_i;                    
                     end
-                end 
-                else if (cpu_abh_i[15:13] == 3'b101)
-                begin
-                    // CPU address 0xA000 - 0xB000 => 8k RAM banks mapped from the bottom of SRAM
-                    mem_abh_o <= { rambank_masked_nr, cpu_abh_i[12] };
-                    // mem_abh_o <= { rambank_nr & rambank_mask_i, cpu_abh_i[12] };
-                    sram_csn_o <= LOW_ACTIVE;
-                    mem_rdn_o <= ~cpu_rw_i;
-                    mem_wrn_o <= cpu_rw_i;                    
+                    else if (cpu_ab_i[15:8] == 8'h9F)
+                    begin
+                        //
+                        // IO area at 0x9Fxx decoding from CPU address
+                        //
+                        if (cpu_ab_i[7:4] == 4'h0)
+                        begin
+                            // 0x9F00 VIA I/O controller #1
+                            nora_slv_req_VIA1_o <= 1;
+                        end 
+                        else if (cpu_ab_i[7:5] == 3'b001)
+                        begin
+                            // 0x9F20, 0x9F30 VERA video controller
+                            vera_csn_o <= LOW_ACTIVE;
+                            mem_rdn_o <= ~cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i;
+                        end
+                        else if (cpu_ab_i[7:4] == 4'h4)
+                        begin
+                            // 0x9F40-F AURA audio controller
+    `ifdef OPM_INTERNAL
+                            nora_slv_req_OPM_o <= 1;
+    `else
+                            aio_csn_o <= LOW_ACTIVE;
+                            mem_rdn_o <= ~cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i;
+    `endif
+                        end
+                        else if (cpu_ab_i[7:4] == 4'h5)
+                        begin
+                            // 0x9F50 NORA-SCRB
+                            nora_slv_req_SCRB_o <= 1;
+                        end
+                        else if (cpu_ab_i[7:4] == 4'h8)
+                        begin
+                            // 0x9F80 ENET LAN controller
+                            enet_csn_o <= LOW_ACTIVE;
+                            mem_rdn_o <= ~cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i;
+                        end
+                    end
+                    else 
+                    begin
+                        // rest: base low memory of CPU mapped to SRAM pages 0-4
+                        mem_abh_o <= { 5'h00, cpu_abh_i[15:12] };
+                        sram_csn_o <= LOW_ACTIVE;
+                        mem_rdn_o <= ~cpu_rw_i;
+                        mem_wrn_o <= cpu_rw_i;
+                    end
                 end
-                else if (cpu_ab_i[15:8] == 8'h9F)
-                begin
-                    //
-                    // IO area at 0x9Fxx decoding from CPU address
-                    //
-                    if (cpu_ab_i[7:4] == 4'h0)
-                    begin
-                        // 0x9F00 VIA I/O controller #1
-                        nora_slv_req_VIA1_o <= 1;
-                    end 
-                    else if (cpu_ab_i[7:5] == 3'b001)
-                    begin
-                        // 0x9F20, 0x9F30 VERA video controller
-                        vera_csn_o <= LOW_ACTIVE;
-                        mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_o <= cpu_rw_i;
-                    end
-                    else if (cpu_ab_i[7:4] == 4'h4)
-                    begin
-                        // 0x9F40-F AURA audio controller
-`ifdef OPM_INTERNAL
-                        nora_slv_req_OPM_o <= 1;
-`else
-                        aio_csn_o <= LOW_ACTIVE;
-                        mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_o <= cpu_rw_i;
-`endif
-                    end
-                    else if (cpu_ab_i[7:4] == 4'h5)
-                    begin
-                        // 0x9F50 NORA-SCRB
-                        nora_slv_req_SCRB_o <= 1;
-                    end
-                    else if (cpu_ab_i[7:4] == 4'h8)
-                    begin
-                        // 0x9F80 ENET LAN controller
-                        enet_csn_o <= LOW_ACTIVE;
-                        mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_o <= cpu_rw_i;
-                    end
-                end
-                else 
-                begin
-                    // rest: base low memory of CPU mapped to SRAM pages 184-191
-                    mem_abh_o <= { 5'h17, cpu_abh_i[15:12] };
+                else begin
+                    // 65c816 and CPU Bank != 0
+                    // -> linear 24-bit address => SRAM access:
+                    //              CPU Bank      CPU AddrHi
+                    mem_abh_o <= { cpu_db_i[4:0], cpu_abh_i[15:12] };
                     sram_csn_o <= LOW_ACTIVE;
                     mem_rdn_o <= ~cpu_rw_i;
                     mem_wrn_o <= cpu_rw_i;

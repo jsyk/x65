@@ -38,8 +38,8 @@ print("Loaded {} B of data from the file.".format(len(data)))
 
 # SRAM area always
 
-# CPU low memory starts at sram fix 0x170000
-start += + 0x170000
+# CPU low memory starts at sram fix 0x000000
+# start += + 0x170000
 
 areasize = ICD.SIZE_2MB
 if start < 0:

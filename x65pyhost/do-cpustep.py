@@ -69,30 +69,37 @@ w65c02_dismap = [
 ]
 
 # Read a byte via ICD memory access from the target.
-# The address is identified by captured MAH and CA.
+# The address is identified by captured CBA (CPU Bank Address [7:0]), MAH (Memory High Address = SRAM Page, [20:13]) and CA (CPU Address [15:0]).
 # MAH is decoded into the bank address.
-def read_byte_as_cpu(MAH, CA):
+def read_byte_as_cpu(CBA, MAH, CA):
     # rambank = banks[0]
     # rombank = banks[1]
-    if 0 <= CA < 2:
-        # bank regs
-        rdata = icd.bankregs_read(CA, 1)
-    elif CA < 0x9F00:
-        # CPU low memory starts at sram fix 0x170000
-        rdata = icd.sram_blockread(CA + 0x170000, 1)
-    elif 0xA000 <= CA < 0xC000:
-        # CPU RAM Bank starts at sram fix 0x000
-        rambank = MAH
-        rdata = icd.sram_blockread((CA - 0xA000) + rambank*ICD.PAGESIZE, 1)
-    elif 0xC000 <= CA:
-        # CPU ROM bank
-        rombank = (MAH >> 1) & 0x1F     # tbd: does not cover the PBL BANK!!
-        if rombank < 32:
-            # CPU ROM bank starts at sram fix 0x180000
-            rdata = icd.sram_blockread((CA - 0xC000) + 0x180000 + rombank*2*ICD.PAGESIZE, 1)
-        else:
-            # bootrom inside of NORA
-            rdata = icd.bootrom_blockread((CA - 0xC000), 1)
+    if CBA == 0:
+        # bank zero -> must decode carefuly
+        if 0 <= CA < 2:
+            # bank regs
+            rdata = icd.bankregs_read(CA, 1)
+        elif CA < 0x9F00:
+            # CPU low memory starts at sram fix 0x000000
+            rdata = icd.sram_blockread(CA + 0x000000, 1)
+        elif 0xA000 <= CA < 0xC000:
+            # CPU RAM Bank starts at sram fix 0x000
+            rambank = MAH
+            offs = (CA - 0xA000)
+            rdata = icd.sram_blockread(offs + rambank*ICD.PAGESIZE, 1)
+        elif 0xC000 <= CA:
+            # CPU ROM bank
+            offs = (CA - 0xC000)
+            rombank = (MAH >> 1) & 0x1F     # tbd: does not cover the PBL BANK!!
+            if rombank < 32:
+                # CPU ROM bank starts at sram fix 0x080000
+                rdata = icd.sram_blockread(offs + 0x080000 + rombank*2*ICD.PAGESIZE, 1)
+            else:
+                # bootrom inside of NORA
+                rdata = icd.bootrom_blockread(offs, 1)
+    else:
+        # CPU Bank non-zero -> linear address into SRAM
+        rdata = icd.sram_blockread(((MAH >> 3) << 16) | CA, 1)
     return rdata[0]
 
 
@@ -106,21 +113,21 @@ def read_byte_as_cpu(MAH, CA):
 
 def print_traceline(tbuf):
     # extract signal values from trace buffer array
-    CBA = tbuf[6]
-    MAH = tbuf[5]
-    CA = tbuf[4] * 256 + tbuf[3]
-    CD = tbuf[2]
+    CBA = tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
+    MAH = tbuf[5]           # Memory Address High = SRAM Page
+    CA = tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
+    CD = tbuf[2]                # CPU Data
     is_sync = (tbuf[0] & ISYNC) == ISYNC
     disinst = w65c02_dismap[tbuf[2]] if is_sync else ""
 
     # replace byte value
     if disinst.find('.1') >= 0:
-        byteval = read_byte_as_cpu(MAH, CA+1)
+        byteval = read_byte_as_cpu(CBA, MAH, CA+1)
         disinst = disinst.replace('.1', '${:x}'.format(byteval))
     
     # replace byte value displacement
     if disinst.find(':1') >= 0:
-        byteval = read_byte_as_cpu(MAH, CA+1)
+        byteval = read_byte_as_cpu(CBA, MAH, CA+1)
         # convert to signed: negative?
         if byteval > 127:
             byteval = byteval - 256
@@ -128,23 +135,30 @@ def print_traceline(tbuf):
 
     # replace word value
     if disinst.find('.2') >= 0:
-        wordval = read_byte_as_cpu(MAH, CA+1) + read_byte_as_cpu(MAH, CA+2)*256
+        wordval = read_byte_as_cpu(CBA, MAH, CA+1) + read_byte_as_cpu(CBA, MAH, CA+2)*256
         disinst = disinst.replace('.2', '${:x}'.format(wordval))
 
     is_io = (CA >= 0x9F00 and CA <= 0x9FFF)
     is_write = not(tbuf[0] & TRACE_FLAG_RWN)
     is_addr_invalid = not((tbuf[0] & TRACE_FLAG_SYNC_VPA) or (tbuf[0] & TRACE_FLAG_VDA))
 
-    if (MAH <= 183) or (188 <= MAH <= 191):
-        # High memory – mapped to CPU page 5 according to REG00 (RAMBANK)
-        mah_area = "RAMB:{:3}".format(MAH)
-    elif MAH <= 191:
+
+    if (MAH <= 4):
         # Low memory – fix-mapped at CPU pages 0-4 ; unused 5-7 due to alignment (can be accessed as high-mem pages 189-191)
         mah_area = "low :{:3}".format(MAH)
-    else:
-        # >= 192 to 255
+    elif (MAH >= 64) and (MAH <= 127):
         # ROM banks: 32 a 16kB, mapped to CPU pages 6-7 according to REG01
-        mah_area = "ROMB:{:3}".format(MAH - 192)
+        mah_area = "ROMB:{:3}".format((MAH - 64)//2)
+    else:
+        # some RAMB
+        mah_area = "RAMB:{:3}".format(MAH ^ 0x80)
+
+
+    # if (MAH <= 183) or (188 <= MAH <= 191):
+    #     # High memory – mapped to CPU page 5 according to REG00 (RAMBANK)
+    # elif MAH <= 191:
+    # else:
+    #     # >= 192 to 255
 
     addr_color = Fore.LIGHTBLACK_EX if is_addr_invalid \
                 else Fore.YELLOW if is_io  \

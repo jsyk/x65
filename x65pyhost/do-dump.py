@@ -75,19 +75,21 @@ elif args.area == 'cpu':
         # bank regs
         rdata = icd.bankregs_read(start, length)
     elif start < 0x9F00:
-        # CPU low memory starts at sram fix 0x170000
-        rdata = icd.sram_blockread(start + 0x170000, length)
+        # CPU low memory starts at sram fix 0x00000
+        rdata = icd.sram_blockread(start + 0x000000, length)
     elif 0xA000 <= start < 0xC000:
         # CPU RAM Bank starts at sram fix 0x000
-        rdata = icd.sram_blockread((start - 0xA000) + rambank*ICD.PAGESIZE, length)
+        offs = (start - 0xA000)
+        rdata = icd.sram_blockread(offs + (rambank ^ 0x80)*ICD.PAGESIZE, length)
     elif 0xC000 <= start:
         # CPU ROM bank
+        offs = (start - 0xC000)
         if rombank < 32:
-            # CPU ROM bank starts at sram fix 0x180000
-            rdata = icd.sram_blockread((start - 0xC000) + 0x180000 + rombank*2*ICD.PAGESIZE, length)
+            # CPU ROM bank starts at sram fix 0x080000
+            rdata = icd.sram_blockread(offs + 0x080000 + rombank*2*ICD.PAGESIZE, length)
         else:
             # bootrom inside of NORA
-            rdata = icd.bootrom_blockread((start - 0xC000), length)
+            rdata = icd.bootrom_blockread(offs, length)
 
 else:
     print('Unknown area {}'.format(args.area))
