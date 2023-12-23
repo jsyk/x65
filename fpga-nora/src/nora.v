@@ -62,8 +62,8 @@ module top (
     input CPUTYPE02,        // board assembly CPU type: 0 => 65C816 (16b), 1 => 65C02 (8b)
 
 // PS2 ports
-    input PS2K_CLK,
-    input PS2K_DATA,
+    inout PS2K_CLK,
+    inout PS2K_DATA,
     output PS2K_CLKDR,      // TBD remove
     output PS2K_DATADR,     // TBD remove
     
@@ -510,12 +510,17 @@ module top (
     // enable phaser to run the CPU?
     assign ph_run_cpu = busct_run_cpu && icd_run_cpu;
 
-    // assign PS2K_CLKDR = 1'b0;
-    // assign PS2K_DATADR = 1'b0;
     assign PS2M_CLKDR = 1'b0;           // unused
     assign PS2M_DATADR = 1'b0;          // unused
+    // PS2 Mouse port: drive ctrl signals
     wire ps2m_clkdr0;
     wire ps2m_datadr0;
+    // PS2 Keyboard port: drive ctrl signals
+    wire ps2k_clkdr0;
+    wire ps2k_datadr0;
+
+    assign PS2K_CLKDR = ps2k_clkdr0;            // unused on the 2nd board
+    assign PS2K_DATADR = ps2k_datadr0;          // unused on the 2nd board
 
     // System Management Controller
     smc smc1
@@ -530,8 +535,8 @@ module top (
         // PS2 Keyboard port
         .PS2K_CLK (PS2K_CLK),
         .PS2K_DATA (PS2K_DATA),
-        .PS2K_CLKDR (PS2K_CLKDR),
-        .PS2K_DATADR (PS2K_DATADR),
+        .PS2K_CLKDR (ps2k_clkdr0),
+        .PS2K_DATADR (ps2k_datadr0),
         // PS2 Mouse port
         .PS2M_CLK (PS2M_CLK),
         .PS2M_DATA (PS2M_DATA),
@@ -540,9 +545,14 @@ module top (
 
     );
 
+    // PS2 Mouse port: generate output signal: 0 or HiZ
     assign PS2M_CLK = (ps2m_clkdr0) ? 1'b0 : 1'bZ;
     assign PS2M_DATA = (ps2m_datadr0) ? 1'b0 : 1'bZ;
 
+    // PS2 Keyboard port: generate output signal: 0 or HiZ
+    // HACK: just on the 2nd ('816) board
+    assign PS2K_CLK = (ps2k_clkdr0 && !cputype02_r) ? 1'b0 : 1'bZ;
+    assign PS2K_DATA = (ps2k_datadr0 && !cputype02_r) ? 1'b0 : 1'bZ;
 
     // read data from BOOTROM
     wire [7:0]  bootrom_slv_datard;

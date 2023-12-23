@@ -48,6 +48,9 @@ module tb_nora ();
     wire CPULED0;
     wire CPULED1;
 
+    wire PS2K_CLK = 1'bZ;
+    wire PS2K_DATA = 1'bZ;
+
     wire PS2M_CLK = 1'bZ;
     wire PS2M_DATA = 1'bZ;
 
@@ -132,8 +135,8 @@ module tb_nora ();
         .CPUTYPE02 (1'b1),
 
     // PS2 ports
-        .PS2K_CLK (1'b1),
-        .PS2K_DATA (1'b1),
+        .PS2K_CLK (PS2K_CLK),
+        .PS2K_DATA (PS2K_DATA),
         // output PS2K_CLKDR,
         // output PS2K_DATADR,
         
