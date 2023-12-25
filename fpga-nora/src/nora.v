@@ -14,18 +14,18 @@ module top (
     output CRESn,           // CPU reset
     output CIRQn,           // CPU IRQ request
     output CNMIn,           // CPU NMI request
-    output CABORTn,         // CPU ABORT request (16b only)
+    output CABORTn,         // CPU ABORT request (65816 only)
     output CPHI2,           // CPU clock
     output CBE,             // CPU bus-enable
 
     inout CRDY,             // CPU ready signal
-    inout CSOB_MX,          // CPU SOB (set overflow - 8b) / MX (16b)
+    input CSOB_MX,          // CPU SOB (set overflow - 6502) / MX (65816)
 
-    input CSYNC_VPA,        // CPU SYNC (8b) / VPA (16b) signal
+    input CSYNC_VPA,        // CPU SYNC (6502) / VPA (65816) signal
     input CMLn,             // CPU memory lock
     input CVPn,             // CPU vector pull signal
-    input CVDA,             // CPU VDA (16b only)
-    input CEF,              // CPU EF (16b only)
+    input CVDA,             // CPU VDA (65816 only)
+    input CEF,              // CPU EF (65816 only)
     input CRWn,             // CPU R/W signal
 
 
@@ -505,7 +505,7 @@ module top (
     assign CNMIn = (nmi_req_n & cpu_force_nmin) | cpu_block_nmi;           // CPU NMI request
     assign CABORTn = cpu_force_abortn | cpu_block_abort;         // CPU ABORT request (16b only)
     assign CRDY = 1'bZ;             // CPU ready signal (output)
-    assign CSOB_MX = 1'bZ;          // CPU SOB (set overflow - 8b) / MX (16b)
+    // assign CSOB_MX = 1'bZ;          // CPU SOB (set overflow - 8b) / MX (16b)
 
     // enable phaser to run the CPU?
     assign ph_run_cpu = busct_run_cpu && icd_run_cpu;
