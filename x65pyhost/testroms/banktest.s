@@ -1,3 +1,12 @@
+; Trivial test: Walks through all the RAMBANK values.
+; Assemble with ca65 / ld65.
+;
+; To start:
+; ../do-cpureset.py --rombank 0
+; ../do-loadbin.py banktest.bin sram 0x080000
+; 
+; ../do-cpustep.py 10
+;
 
 ; .CODE
 ; .ORG $FFF0
