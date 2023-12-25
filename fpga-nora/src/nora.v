@@ -482,7 +482,7 @@ module top (
     // Put CPU data bus in Hi-Z as soon as RWB goes low (CPU is outputting write data).
     // I.E. Allow driving CD from NORA only iff CRWn=1 (CPU reads) and CPHI2=1 (second phase - necessary for '816)
     //                                            CPU_READ   CPU_WRITE
-    assign CD = (CRWn && (CPHI2 || release_cs)) ? cpu_db_o : 8'bZZZZZZZZ;
+    assign CD = (CRWn && (CPHI2 || (release_cs && clk6x))) ? cpu_db_o : 8'bZZZZZZZZ;
 
     // create a 1T delayed MRDn  
     reg    mrdn_delayed;
