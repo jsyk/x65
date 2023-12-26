@@ -1,7 +1,7 @@
 /**
- * Minimal HELLO WORLD.
+ * Minimal HELLO WORLD, in 6502 mode.
  * Compiler: llvm-mos, generates .prg file
- * Can be loaded through ICD do-loadprg.py
+ * Can be loaded through ICD do-loadprg.py directly into CX16 running system.
 */
 #include <stdio.h>
 
