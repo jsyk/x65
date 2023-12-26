@@ -81,3 +81,4 @@ fpga-aura/syn-icecube2/
 doc-private/
 *.bkp
 *.dtmp
+*.prg
