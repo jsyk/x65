@@ -69,8 +69,8 @@ module top (
     
     inout PS2M_CLK,         // via bidi level-shifter
     inout PS2M_DATA,        // via bidi level-shifter
-    output PS2M_CLKDR,      // not used on the PCB
-    output PS2M_DATADR,     // not used on the PCB
+    output PS2M_CLKDR,      // not used on the 1st PCB; TBD remove
+    output PS2M_DATADR,     // not used on the 1st PCB; TBD remove
 
 // UART port
     output UART_CTS,
@@ -482,7 +482,8 @@ module top (
     // Put CPU data bus in Hi-Z as soon as RWB goes low (CPU is outputting write data).
     // I.E. Allow driving CD from NORA only iff CRWn=1 (CPU reads) and CPHI2=1 (second phase - necessary for '816)
     //                                            CPU_READ   CPU_WRITE
-    assign CD = (CRWn && (CPHI2 || (release_cs && clk6x))) ? cpu_db_o : 8'bZZZZZZZZ;
+    assign CD = (CRWn && (CPHI2 || (release_cs && clk6x))) ? cpu_db_o : 8'bZZZZZZZZ;        // hold 10ns
+    // assign CD = (CRWn && (CPHI2 || release_cs)) ? cpu_db_o : 8'bZZZZZZZZ;           // hold 20ns, risk of driver clash between CPU and NORA
 
     // create a 1T delayed MRDn  
     reg    mrdn_delayed;
@@ -510,8 +511,6 @@ module top (
     // enable phaser to run the CPU?
     assign ph_run_cpu = busct_run_cpu && icd_run_cpu;
 
-    assign PS2M_CLKDR = 1'b0;           // unused
-    assign PS2M_DATADR = 1'b0;          // unused
     // PS2 Mouse port: drive ctrl signals
     wire ps2m_clkdr0;
     wire ps2m_datadr0;
@@ -519,8 +518,11 @@ module top (
     wire ps2k_clkdr0;
     wire ps2k_datadr0;
 
-    assign PS2K_CLKDR = ps2k_clkdr0;            // unused on the 2nd board
-    assign PS2K_DATADR = ps2k_datadr0;          // unused on the 2nd board
+    // TBD: these signal shall be removed, but are necessary on the rev01
+    assign PS2M_CLKDR = ps2m_clkdr0;            // unused on the 1st board; HACK
+    assign PS2M_DATADR = ps2m_datadr0;          // unused on the 1st board; HACK
+    assign PS2K_CLKDR = ps2k_clkdr0;            // unused on the 2nd board; HACK
+    assign PS2K_DATADR = ps2k_datadr0;          // unused on the 2nd board; HACK
 
     // System Management Controller
     smc smc1
@@ -546,11 +548,12 @@ module top (
     );
 
     // PS2 Mouse port: generate output signal: 0 or HiZ
-    assign PS2M_CLK = (ps2m_clkdr0) ? 1'b0 : 1'bZ;
-    assign PS2M_DATA = (ps2m_datadr0) ? 1'b0 : 1'bZ;
+    // HACK: just on the 1st ('02) board; in the future -> all boards!
+    assign PS2M_CLK = (ps2m_clkdr0 && cputype02_r) ? 1'b0 : 1'bZ;
+    assign PS2M_DATA = (ps2m_datadr0 && cputype02_r) ? 1'b0 : 1'bZ;
 
     // PS2 Keyboard port: generate output signal: 0 or HiZ
-    // HACK: just on the 2nd ('816) board
+    // HACK: just on the 2nd ('816) board; in the future -> all boards!
     assign PS2K_CLK = (ps2k_clkdr0 && !cputype02_r) ? 1'b0 : 1'bZ;
     assign PS2K_DATA = (ps2k_datadr0 && !cputype02_r) ? 1'b0 : 1'bZ;
 
