@@ -173,9 +173,11 @@ This project started in March 2023 when I saw a prototype of Commander X16 in on
 of the 8-bit guy. I immediately wanted to play with it but at the time his project was not released,
 the hardware could not be bought. So I decided to build one myself, based on public information available
 about the CX16. At the same time I was not too pleased with the architecture and implementation
-of the CX16, not satisfied with many design choices they did. The X65 tries to improve in many areas
-while being software-compatible.
-I had the first working boards in about May 2023. The project inevitably stalled during the summer due to the
+of the CX16, not satisfied with many design choices they did. 
+Consequently, my X65 tries to improve in many areas while being software-compatible.
+
+*Thus, Project X65 was born.*
+I had the first working boards in May 2023. The project inevitably stalled during the summer due to the
 necessity to attend other developments in the garden of my house. But as the garden falls for winter sleep,
 I restarted the X65 project in the Autumn. The pace of development everyone could judge by GIT logs.
 I have a daytime job with Siemens, developing PCIe PROFINET cards, and a family.

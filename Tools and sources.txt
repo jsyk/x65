@@ -1,18 +1,23 @@
 Tools and Sources
 ===================
 
-Kicad 6
+Kicad 6, 7
 
 Assembler: 
 * ca65 / ld65 -- used in vera at least, in C16 ROMs
     https://cc65.github.io/doc/
     https://cc65.github.io/doc/ca65.html#ss1.1
-* cc65 - eg in C16 ROMs
+* cc65 - eg in C16 ROMs; can do 6502 and 65816 (directive .p816)
     https://github.com/cc65/cc65/tree/master
-* ACME - used in some examples
+* ACME - used in some examples; has 6502 and 65816
+    https://github.com/martinpiper/ACME
+    https://github.com/meonwax/acme
 
 YosysHQ/IceStorm for iCE40 FPGA synthesis
-
+    https://clifford.at/icestorm
+    https://yosyshq.net/
+    https://github.com/YosysHQ
+    
 * compiler for 65c816
     http://forum.6502.org/viewtopic.php?f=2&t=7573
     https://github.com/lcc-816
@@ -22,3 +27,6 @@ YosysHQ/IceStorm for iCE40 FPGA synthesis
     https://www.calypsi.cc/
 
 https://llvm-mos.org/wiki/Welcome
+
+https://wiki.superfamicom.org/
+https://wiki.superfamicom.org/learning-65816-assembly
