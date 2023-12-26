@@ -29,7 +29,11 @@ args = apa.parse_args()
 
 step_count = int(args.count, 0)
 
+# define connection to the target board via the USB FTDI
 icd = ICD(x65ftdi.X65Ftdi())
+
+# which CPU is installed in the target?
+is_cputype02 = icd.com.is_cputype02()
 
 # CPU Status flags
 TRACE_FLAG_RWN =		1
@@ -141,8 +145,12 @@ def print_traceline(tbuf):
     CD = tbuf[2]                # CPU Data
     is_sync = (tbuf[0] & ISYNC) == ISYNC
     # is_emu = tbuf[0] & TRACE_FLAG_EF
-    # disinst = w65c02_dismap[tbuf[2]] if is_sync else ""
-    disinst = w65c816_dismap[tbuf[2]] if is_sync else ""
+    if is_cputype02:
+        # decode 6502 instruction
+        disinst = w65c02_dismap[tbuf[2]] if is_sync else ""
+    else:
+        # decode 65816 instruction
+        disinst = w65c816_dismap[tbuf[2]] if is_sync else ""
     m_flag = tbuf[0] & TRACE_FLAG_CSOB_M
     x_flag = tbuf[1] & TRACE_FLAG_CSOB_X
 
@@ -276,7 +284,7 @@ def print_tracebuffer():
 banks = icd.bankregs_read(0, 2)
 print('Options: block-irq={}, force-irq={}'.format(args.block_irq, args.force_irq))
 print('Active banks: RAMBANK={:2x}  ROMBANK={:2x}'.format(banks[0], banks[1]))
-
+print('CPU Type (FTDI strap): {}'.format("65C02" if is_cputype02 else "65C816"))
 print("CPU Step:\n")
 
 # // deactivate the reset, STOP the cpu

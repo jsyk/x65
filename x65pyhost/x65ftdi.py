@@ -18,10 +18,11 @@ class X65Ftdi:
     PIN_AURARSTN = 0x0400		        #// ACBUS2 (was ICD2VERAROM)
     PIN_AURAFCSN = 0x0800			    #// ACBUS3 (was VERA2FCS)
     PIN_VERAFCSN = 0x1000			    #// ACBUS4
+    PIN_CPUTYPE02 = 0x2000              #// ACBUS5
     PIN_VAFCDONE = 0x4000			    #// ACBUS6 (was VERADONE)
     PIN_VERARSTN = 0x8000			    #// ACBUS7
 
-    PINS_ALL = PIN_NORAFCSN | PIN_NORADONE | PIN_NORARSTN | PIN_ICD2NORAROM | PIN_ICDCSN | PIN_AURARSTN | PIN_AURAFCSN | PIN_VERAFCSN | PIN_VAFCDONE | PIN_VERARSTN
+    PINS_ALL = PIN_NORAFCSN | PIN_NORADONE | PIN_NORARSTN | PIN_ICD2NORAROM | PIN_ICDCSN | PIN_AURARSTN | PIN_AURAFCSN | PIN_VERAFCSN | PIN_VAFCDONE | PIN_VERARSTN | PIN_CPUTYPE02
 
     def __init__(self, url = 'ftdi://ftdi:2232/1'):
         if url is not None:
@@ -77,3 +78,7 @@ class X65Ftdi:
     def spiwriteonly(self, out):
         self.slave.write(out,  start=False, stop=False)
 
+    # Read the CPUTYPE02 signal available on FTDI pin ACBUS5.
+    # Returns TRUE in case of 65C02, and FALSE in case of 65C816 CPU is installed on the target board.
+    def is_cputype02(self):
+        return (self.gpio.read() & X65Ftdi.PIN_CPUTYPE02) != 0
