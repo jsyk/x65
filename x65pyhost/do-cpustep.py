@@ -144,13 +144,22 @@ def print_traceline(tbuf):
     CA = tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
     CD = tbuf[2]                # CPU Data
     is_sync = (tbuf[0] & ISYNC) == ISYNC
-    # is_emu = tbuf[0] & TRACE_FLAG_EF
+    is_emu = tbuf[0] & TRACE_FLAG_EF
+
     if is_cputype02:
         # decode 6502 instruction
         disinst = w65c02_dismap[tbuf[2]] if is_sync else ""
     else:
         # decode 65816 instruction
-        disinst = w65c816_dismap[tbuf[2]] if is_sync else ""
+        if is_sync:
+            disinst = w65c816_dismap[tbuf[2]]
+            # check for opcode collisions between 6502 and 65816
+            if is_emu and ((tbuf[2] & 0x07) == 7):
+                # yes -> warning!
+                disinst += "    ; WARNING: 6502-only opcode while in the EMU mode!"
+        else:
+            disinst = ""
+    
     m_flag = tbuf[0] & TRACE_FLAG_CSOB_M
     x_flag = tbuf[1] & TRACE_FLAG_CSOB_X
 
@@ -235,10 +244,10 @@ def print_traceline(tbuf):
                 else Fore.RED if is_write \
                 else Fore.WHITE
 
-    print("MAH:{:2x} ({})  CBA:{:2x}  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}{}{}{}{}{}     {}{}{}".format(
+    print("MAH:{:2x} ({})  CBA:{:2}  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}{}{}{}{}{}     {}{}{}".format(
             MAH,
             mah_area,
-            CBA,
+            (CBA if CBA==0 else Fore.BLUE+"{:2x}".format(CBA)+Style.RESET_ALL),
             addr_color,   
             CA,  #/*CA:*/
             Style.RESET_ALL,
@@ -251,14 +260,14 @@ def print_traceline(tbuf):
             tbuf[1], ('-' if (tbuf[1] & TRACE_FLAG_RESETN) else 'R'),
             ('-' if tbuf[1] & TRACE_FLAG_IRQN else 'I'),
             ('-' if tbuf[1] & TRACE_FLAG_NMIN else 'N'),
-            ('-' if tbuf[1] & TRACE_FLAG_ABORTN else 'A'),
+            ('-' if tbuf[1] & TRACE_FLAG_ABORTN else Fore.RED+'A'+Style.RESET_ALL),
             #/*sta:*/ 
             tbuf[0], ('r' if tbuf[0] & TRACE_FLAG_RWN else Fore.RED+'W'+Style.RESET_ALL), 
-            ('-' if tbuf[0] & TRACE_FLAG_VECTPULL else 'v'),        # vector pull, active low
+            ('-' if tbuf[0] & TRACE_FLAG_VECTPULL else Fore.YELLOW+'v'+Style.RESET_ALL),        # vector pull, active low
             ('-' if tbuf[0] & TRACE_FLAG_MLOCK else 'L'),           # mem lock, active low
-            ('E' if tbuf[0] & TRACE_FLAG_EF else '-'),              # emulation mode, active high
-            ('m' if tbuf[0] & TRACE_FLAG_CSOB_M else 'M'),          # '816 M-flag (acumulator): 0=> 16-bit, 1=> 8-bit
-            ('x' if tbuf[1] & TRACE_FLAG_CSOB_X else 'X'),          # '816 X-flag (index regs): 0=> 16-bit, 1=> 8-bit
+            ('e' if tbuf[0] & TRACE_FLAG_EF else Fore.BLUE+'N'+Style.RESET_ALL),        # 'e': emulation mode, active high; 'N' native mode
+            ('m' if tbuf[0] & TRACE_FLAG_CSOB_M else Fore.BLUE+'M'+Style.RESET_ALL),    # '816 M-flag (acumulator): 0=> 16-bit 'M', 1=> 8-bit 'm'
+            ('x' if tbuf[1] & TRACE_FLAG_CSOB_X else Fore.BLUE+'X'+Style.RESET_ALL),    # '816 X-flag (index regs): 0=> 16-bit 'X', 1=> 8-bit 'x'
             ('P' if tbuf[0] & TRACE_FLAG_SYNC_VPA else '-'),        # '02: SYNC, '816: VPA (valid program address)
             ('D' if tbuf[0] & TRACE_FLAG_VDA else '-'),             # '02: always 1, '816: VDA (valid data address)
             ('S' if is_sync else '-'),

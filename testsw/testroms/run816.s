@@ -1,10 +1,10 @@
 ; Assemble with ca65 / ld65.
 ;
 ; To start:
-; ../do-cpureset.py --rombank 0
-; ../do-loadbin.py run816.bin sram 0x080000
+; ../../x65pyhost/do-cpureset.py --rombank 0
+; ../../x65pyhost/do-loadbin.py run816.bin sram 0x080000
 ; 
-; ../do-cpustep.py 10
+; ../../x65pyhost/do-cpustep.py 10
 ;
 
 ; CPU=65C02

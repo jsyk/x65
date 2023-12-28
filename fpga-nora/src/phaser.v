@@ -1,3 +1,5 @@
+/* Copyright (c) 2023 Jaroslav Sykora.
+ * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /* 
  * Phaser generates CPU phased clock CPHI2
  * and supporting signals for control of the cpu and memory bus.
