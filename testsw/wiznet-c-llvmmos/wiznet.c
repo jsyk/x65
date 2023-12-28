@@ -43,6 +43,20 @@ volatile uint8_t *IDM_DR = (void*)(WIZNET_BASE + 0x03);      /* Indirect Mode Da
 #define SOCK_INIT               0x13
 #define SOCK_ESTABLISHED        0x17
 
+#define CMD_OPEN                0x01                /* OPEN command */
+#define CMD_CONNECT             0x04                /* CONNECT command */
+#define CMD_SEND                0x20                /* SEND command */
+#define CMD_RECV                0x40                /* RECV command */
+
+
+#define wiz_wr_u8(x)            do { *IDM_DR = (uint8_t)(x); } while (0)
+#define wiz_wr_u8_x4(x1,x2,x3,x4)         do { wiz_wr_u8(x1); wiz_wr_u8(x2); wiz_wr_u8(x3); wiz_wr_u8(x4); } while (0)
+#define wiz_wr_u16(xx)          do { uint16_t _tmp = (xx); wiz_wr_u8(_tmp >> 8); wiz_wr_u8(_tmp);  } while (0)          /* write u16 -> MSD-first! */
+
+#define wiz_rd_u8()             (*IDM_DR)
+#define wiz_rd_u16()            ((((uint16_t)wiz_rd_u8()) << 8) | ((uint16_t)wiz_rd_u8()))              /* read u16 -> MSD-first! */
+
+
 /**
  * Deactive reset pin via AURA GPIO
  */
@@ -76,7 +90,7 @@ void wiz_net_cfg_unlock()
     /* Network Unlock before set Network Information */
     //NETLCKR = 0x3A;
     wiz_setup_comreg(COMREG_NETLCKR);
-    *IDM_DR = 0x3A;
+    wiz_wr_u8(0x3A);
 }
 
 void wiz_net_cfg_lock()
@@ -84,7 +98,7 @@ void wiz_net_cfg_lock()
     /* Network lock */
     //NETLCKR = 0xA3;
     wiz_setup_comreg(COMREG_NETLCKR);
-    *IDM_DR = 0xA3;
+    wiz_wr_u8(0xA3);
 }
 
 void source_hw_address()
@@ -92,7 +106,7 @@ void source_hw_address()
     /* Source Hardware Address, 11:22:33:AA:BB:CC */
     //SHAR[0:5] = { 0x11, 0x22, 0x33, 0xAA, 0xBB, 0xCC };
     wiz_setup_comreg(COMREG_SHAR);
-    // HACK ->>>
+    // HACK ->>> MAC address must be globally unique!!!
     *IDM_DR = 0x11;
     *IDM_DR = 0x22;
     *IDM_DR = 0x33;
@@ -106,26 +120,29 @@ void ipv4_net_config()
     /* Gateway IP Address, 192.168.0.1 */
     //GAR[0:3] = { 0xC0, 0xA8, 0x00, 0x01 };
     wiz_setup_comreg(COMREG_GAR);
-    *IDM_DR = 192;
-    *IDM_DR = 168;
-    *IDM_DR = 0;
-    *IDM_DR = 1;
+    wiz_wr_u8_x4(192, 168, 0, 1);
+    // *IDM_DR = 192;
+    // *IDM_DR = 168;
+    // *IDM_DR = 0;
+    // *IDM_DR = 1;
 
     /* Subnet MASK Address, 255.255.255.0 */
     //SUBR[0:3] = { 0xFF, 0xFF, 0xFF, 0x00};
     wiz_setup_comreg(COMREG_SUBR);
-    *IDM_DR = 255;
-    *IDM_DR = 255;
-    *IDM_DR = 255;
-    *IDM_DR = 0;
+    wiz_wr_u8_x4(255, 255, 255, 0);
+    // *IDM_DR = 255;
+    // *IDM_DR = 255;
+    // *IDM_DR = 255;
+    // *IDM_DR = 0;
 
-    /* IP Address, 192.168.0.40 */
+    /* Our IP Address, 192.168.0.40 */
     //SIPR[0:3] = {0xC0, 0xA8,0x00, 0x64};
     wiz_setup_comreg(COMREG_SIPR);
-    *IDM_DR = 192;
-    *IDM_DR = 168;
-    *IDM_DR = 0;
-    *IDM_DR = 40;
+    wiz_wr_u8_x4(192, 168, 0, 40);
+    // *IDM_DR = 192;
+    // *IDM_DR = 168;
+    // *IDM_DR = 0;
+    // *IDM_DR = 40;
 }
 
 void wiz_config_buffers()
@@ -135,11 +152,11 @@ void wiz_config_buffers()
     {
         wiz_setup_reg(BSR_SOCKn_REG(n), SOCKREG_Sn_TX_BSR);
         //Sn_TX_BSR = 2; // assign 2 Kbytes TX buffer per SOCKET
-        *IDM_DR = 2;
+        wiz_wr_u8(2);
 
         wiz_setup_reg(BSR_SOCKn_REG(n), SOCKREG_Sn_RX_BSR);
         //Sn_RX_BSR = 2; // assign 2 Kbytes RX buffer per SOCKET
-        *IDM_DR = 2;
+        wiz_wr_u8(2);
     }
 }
 
@@ -151,7 +168,19 @@ void wiz_wait_linkup()
     do
     {
         wiz_setup_comreg(COMREG_PHYSR);
-    } while (!(*IDM_DR & 0x01));
+    } while (!(wiz_rd_u8() & 0x01));
+}
+
+void wiz_cmd(uint8_t cmd)
+{
+    wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
+    wiz_wr_u8(cmd);         // send the command
+
+    //while(Sn_CR != 0x00); /* wait until OPEN Command is cleared*/
+    do
+    {
+        wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
+    } while (wiz_rd_u8() != 0x00);      /* wait until OPEN Command is cleared*/
 }
 
 void tcp4_open()
@@ -161,28 +190,21 @@ void tcp4_open()
     {
         //Sn_MR[3:0] = ‘0001’; /* set TCP4 Mode */
         wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_MR);
-        *IDM_DR = 1;            // TCP4
+        wiz_wr_u8(1);           // TCP4
 
         
         //Sn_PORTR[0:1] = {0, 80}; /* set PORT Number, 80 */
         wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_PORTR);
-        *IDM_DR = 0x00;            // MSD
-        *IDM_DR = 80;              // LSD
+        wiz_wr_u16(8000);             // source port, can be any.
+        // *IDM_DR = 0x00;            // MSD
+        // *IDM_DR = 80;              // LSD
 
-        //Sn_CR[OPEN] = ‘1’; /* set OPEN Command */
-        wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
-        *IDM_DR = 0x01;         // OPEN command
-
-        //while(Sn_CR != 0x00); /* wait until OPEN Command is cleared*/
-        do
-        {
-            wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
-        } while (*IDM_DR != 0x00);      /* wait until OPEN Command is cleared*/
+        wiz_cmd(CMD_OPEN);
         
         /* check SOCKET Status */
         //if(Sn_SR != SOCK_INIT) goto START;
         wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_SR);
-    } while (*IDM_DR != SOCK_INIT);
+    } while (wiz_rd_u8() != SOCK_INIT);
 }
 
 void tcp4_connect()
@@ -190,30 +212,24 @@ void tcp4_connect()
     /* set destination IP address, 192.168.0.12 */
     //Sn_DIPR[0:3] ={ 0xC0, 0xA8, 0x00, 0x0C};
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_DIPR);
-    *IDM_DR = 192;
-    *IDM_DR = 168;
-    *IDM_DR = 0;
-    *IDM_DR = 12;
+    wiz_wr_u8_x4(192, 168, 0, 12);
+    // *IDM_DR = 192;
+    // *IDM_DR = 168;
+    // *IDM_DR = 0;
+    // *IDM_DR = 12;
 
     /* read back the DIPR to check! */
-    wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_DIPR);
-    printf("DIPR = %u.%u.%u.%u\n", *IDM_DR, *IDM_DR, *IDM_DR, *IDM_DR);
+    // wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_DIPR);
+    // printf("DIPR = %u.%u.%u.%u\n", *IDM_DR, *IDM_DR, *IDM_DR, *IDM_DR);
 
     /* set destination PORT number, 5000(0x1388) */
     //Sn_DPORTR[0:1] = {0x13, 0x88};
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_DPORTR);
-    *IDM_DR = 0x00;            // MSD
-    *IDM_DR = 80;              // LSD
+    wiz_wr_u16(80);
+    // *IDM_DR = 0x00;            // MSD
+    // *IDM_DR = 80;              // LSD
 
-    wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
-    //Sn_CR = CONNECT; /* set CONNECT command in TCP Mode */
-    *IDM_DR = 0x04;         // CONNECT command
-
-    //while(Sn_CR != 0x00); /* wait until CONNECT or CONNECT6 command is cleared */
-    do
-    {
-        wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
-    } while (*IDM_DR != 0x00);      /* wait until the Command is cleared*/
+    wiz_cmd(CMD_CONNECT);
     
     //goto ESTABLISHED?;
 }
@@ -225,62 +241,64 @@ void tcp4_established()
     {
         //if (Sn_SR == SOCK_ESTABLISHED)
         wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_SR);
-    } while (*IDM_DR != SOCK_ESTABLISHED);
+    } while (wiz_rd_u8() != SOCK_ESTABLISHED);
 
     // {
     //     Sn_IRCLR[CON] = ‘1’; /* clear SOCKET Interrupt */
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_IRCLR);
-    *IDM_DR = 0x01;
+    wiz_wr_u8(0x01);
 
     //     goto Received DATA? /* or goto Send DATA?; */
     // }
     // else if(Sn_IR[TIMEOUT] == ‘1’) goto Timeout?;
 }
 
+int wiz_wr_str(char *s)
+{
+    int cnt = 0;
+    while (*s)
+    {
+        wiz_wr_u8(*s);
+        s++;
+        cnt++;
+    }
+    return cnt;
+}
+
 void tcp4_send()
 {
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_TX_WR);
-    uint16_t wrofs = (*IDM_DR << 8) | *IDM_DR;
+    uint16_t wrofs = wiz_rd_u16(); //(*IDM_DR << 8) | *IDM_DR;
 
     wiz_setup_reg(BSR_SOCKn_TXBUF(0), wrofs);
-    *IDM_DR = 'G';
-    *IDM_DR = 'E';
-    *IDM_DR = 'T';
-    *IDM_DR = ' ';
-    *IDM_DR = '/';
-    // *IDM_DR = 'a';
-    // *IDM_DR = 'b';
-    *IDM_DR = '\r';
-    *IDM_DR = '\n';
-
-    int wrcount = 7;
+    int wrcount = wiz_wr_str("GET /\r\n");
+    // *IDM_DR = 'G';
+    // *IDM_DR = 'E';
+    // *IDM_DR = 'T';
+    // *IDM_DR = ' ';
+    // *IDM_DR = '/';
+    // // *IDM_DR = 'a';
+    // // *IDM_DR = 'b';
+    // *IDM_DR = '\r';
+    // *IDM_DR = '\n';
 
     wrofs += wrcount;
 
-    /* check what has been written */
-    wiz_setup_reg(BSR_SOCKn_TXBUF(0), wrofs);
-
-    for (int i = 0; i < wrcount; ++i)
-    {
-        printf("%c", *IDM_DR);
-    }
-    printf("\n");
+    /* check what has been written; does not work??!! is TX buffer readable? */
+    // wiz_setup_reg(BSR_SOCKn_TXBUF(0), wrofs);
+    // for (int i = 0; i < wrcount; ++i)
+    // {
+    //     printf("%c", *IDM_DR);
+    // }
+    // printf("\n");
 
     /* increase Sn_TX_WR as send_size */
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_TX_WR);
-    *IDM_DR = (wrofs >> 8);
-    *IDM_DR = (wrofs & 0xFF);
+    wiz_wr_u16(wrofs);
+    // *IDM_DR = (wrofs >> 8);
+    // *IDM_DR = (wrofs & 0xFF);
 
-    /* set SEND and SEND6 Command in each TCP and TCP6 Mode */
-    //Sn_CR = SEND; /* set SEND command in TCP Mode */
-    //while(Sn_CR != 0x00); /* wait until SEND or SEND6 Command is cleared */
-
-    wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
-    *IDM_DR = 0x20;         // SEND command
-    do
-    {
-        wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
-    } while (*IDM_DR != 0x00);      /* wait until the Command is cleared*/
+    wiz_cmd(CMD_SEND);
 }
 
 void tcp4_recv()
@@ -291,16 +309,17 @@ void tcp4_recv()
     do
     {
         wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_RX_RSR);
-        rx_size = (*IDM_DR << 8);       // MSD-first
-        rx_size |= (*IDM_DR & 0xFF);    // LSD
+        rx_size = wiz_rd_u16();
+        // rx_size = (*IDM_DR << 8);       // MSD-first
+        // rx_size |= (*IDM_DR & 0xFF);    // LSD
     } while (rx_size == 0);
 
     printf("GOT %d BYTES:\n", rx_size);
     
     /* get Read offset */
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_RX_RD);
-    uint16_t rd_offs = (*IDM_DR << 8);
-    rd_offs |= (*IDM_DR & 0xFF);
+    uint16_t rd_offs = wiz_rd_u16(); //(*IDM_DR << 8);
+    //rd_offs |= (*IDM_DR & 0xFF);
 
     printf("RD OFFS = %u\n", rd_offs);
 
@@ -309,7 +328,7 @@ void tcp4_recv()
 
     for (int i = 0; (i < rx_size) /*&& (i < 50)*/; ++i)
     {
-        uint8_t ch = *IDM_DR;
+        uint8_t ch = wiz_rd_u8();
         // printf("  %X'%c'", ch, ch);
         printf("%c", ch);
     }
@@ -319,17 +338,12 @@ void tcp4_recv()
     //Sn_RX_RD += get_size;
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_RX_RD);
     rd_offs += rx_size;
-    *IDM_DR = rd_offs >> 8;
-    *IDM_DR = rd_offs;
+    wiz_wr_u16(rd_offs);
+    // *IDM_DR = rd_offs >> 8;
+    // *IDM_DR = rd_offs;
 
     /* set RECV Command */
-    wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
-    *IDM_DR = 0x40;         // RECV command
-    do
-    {
-        wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_CR);
-    } while (*IDM_DR != 0x00);      /* wait until the Command is cleared*/
-
+    wiz_cmd(CMD_RECV);
 }
 
 
@@ -343,15 +357,15 @@ int main()
     do
     {
         wiz_setup_comreg(COMREG_CIDR0);
-        cidr0 = *IDM_DR;
-        cidr1 = *IDM_DR;
+        cidr0 = wiz_rd_u8();
+        cidr1 = wiz_rd_u8();
     } while ((cidr0 != 0x61) || (cidr1 != 0x00));
     
     wiz_setup_comreg(COMREG_CIDR0);
-    printf("CIDR0 = %X\n", *IDM_DR);
-    printf("CIDR1 = %X\n", *IDM_DR);
-    printf("VER0 = %X\n", *IDM_DR);
-    printf("VER1 = %X\n", *IDM_DR);
+    printf("CIDR0 = %X\n", wiz_rd_u8());
+    printf("CIDR1 = %X\n", wiz_rd_u8());
+    printf("VER0 = %X\n", wiz_rd_u8());
+    printf("VER1 = %X\n", wiz_rd_u8());
 
     // wait until PHY link up.
     printf("WAITING FOR LINKUP...\n");

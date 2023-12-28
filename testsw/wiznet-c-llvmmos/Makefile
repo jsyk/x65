@@ -1,6 +1,6 @@
 # using llvm-mos compiler to generate .prg file loadable by CX16
 
-CFLAGS=-Wall -O1
+CFLAGS=-Wall -Os
 PRG=wiznet.prg
 
 $(PRG): wiznet.c
