@@ -18,11 +18,19 @@ W25Q16JVSSIQ        8p-SOIC-208mil??
 --> a) make all footprints compatible with both 150mil and 208mil packages???
 --> b) for NORA, provide overlapping footprints for 8p-SOIC-150mil (208mil??) and 16p-SOIC-300mil
 
+
 W25Q512JVFIQ        16p-SOIC-300mil (10.3mm x 7.5mm)
 (64MB)
+
+IS25WP256D-xM
+(32MB)
 
 SOIC-16
 up to 1Gb devices available from Infineon
 
 also SOP2-16
 up to 1Gb devices available from Micron
+
+
+PSRAM:
+IS66WVS4M8BLL-104NLI-TR

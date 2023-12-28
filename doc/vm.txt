@@ -1,5 +1,5 @@
-Ideas how to do a VM with 65C816
-===================================
+Ideas how to do a VM with 65C816 [NOT IMPLEMENTED]
+=====================================================
 
 CPU address space: 2*24 = 16MB
 Page Size would be min. 12-bit 4096 B ==> phys page index max 12 b

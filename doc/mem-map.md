@@ -10,6 +10,10 @@ NORA can map the following four sub-spaces into this CPU address space:
 * **Bank switching registers - RAMBANK and ROMBANK: 2 Bytes**, normally at $0000 and $0001.
 
 
+TBD: BANK and PAGE is already defined in 65816!!
+Use SEGMENT or BLOCK or FRAME ?
+
+
 SRAM
 ------
 tbd
