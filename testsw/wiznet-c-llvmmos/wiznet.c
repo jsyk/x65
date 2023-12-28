@@ -1,3 +1,8 @@
+/**
+ * WIZNET ETHERNET DEMO/TEST, in 6502 mode.
+ * Compiler: llvm-mos, generates .prg file
+ * Can be loaded through ICD do-loadprg.py directly into CX16 running system.
+*/
 #include <stdio.h>
 #include <stdint.h>
 
@@ -107,12 +112,12 @@ void source_hw_address()
     //SHAR[0:5] = { 0x11, 0x22, 0x33, 0xAA, 0xBB, 0xCC };
     wiz_setup_comreg(COMREG_SHAR);
     // HACK ->>> MAC address must be globally unique!!!
-    *IDM_DR = 0x11;
-    *IDM_DR = 0x22;
-    *IDM_DR = 0x33;
-    *IDM_DR = 0xAA;
-    *IDM_DR = 0xBB;
-    *IDM_DR = 0xCC;
+    wiz_wr_u8(0x11);
+    wiz_wr_u8(0x22);
+    wiz_wr_u8(0x33);
+    wiz_wr_u8(0xAA);
+    wiz_wr_u8(0xBB);
+    wiz_wr_u8(0xCC);
 }
 
 void ipv4_net_config()
@@ -121,28 +126,16 @@ void ipv4_net_config()
     //GAR[0:3] = { 0xC0, 0xA8, 0x00, 0x01 };
     wiz_setup_comreg(COMREG_GAR);
     wiz_wr_u8_x4(192, 168, 0, 1);
-    // *IDM_DR = 192;
-    // *IDM_DR = 168;
-    // *IDM_DR = 0;
-    // *IDM_DR = 1;
 
     /* Subnet MASK Address, 255.255.255.0 */
     //SUBR[0:3] = { 0xFF, 0xFF, 0xFF, 0x00};
     wiz_setup_comreg(COMREG_SUBR);
     wiz_wr_u8_x4(255, 255, 255, 0);
-    // *IDM_DR = 255;
-    // *IDM_DR = 255;
-    // *IDM_DR = 255;
-    // *IDM_DR = 0;
 
     /* Our IP Address, 192.168.0.40 */
     //SIPR[0:3] = {0xC0, 0xA8,0x00, 0x64};
     wiz_setup_comreg(COMREG_SIPR);
     wiz_wr_u8_x4(192, 168, 0, 40);
-    // *IDM_DR = 192;
-    // *IDM_DR = 168;
-    // *IDM_DR = 0;
-    // *IDM_DR = 40;
 }
 
 void wiz_config_buffers()
@@ -191,13 +184,10 @@ void tcp4_open()
         //Sn_MR[3:0] = ‘0001’; /* set TCP4 Mode */
         wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_MR);
         wiz_wr_u8(1);           // TCP4
-
         
         //Sn_PORTR[0:1] = {0, 80}; /* set PORT Number, 80 */
         wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_PORTR);
         wiz_wr_u16(8000);             // source port, can be any.
-        // *IDM_DR = 0x00;            // MSD
-        // *IDM_DR = 80;              // LSD
 
         wiz_cmd(CMD_OPEN);
         
@@ -213,10 +203,6 @@ void tcp4_connect()
     //Sn_DIPR[0:3] ={ 0xC0, 0xA8, 0x00, 0x0C};
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_DIPR);
     wiz_wr_u8_x4(192, 168, 0, 12);
-    // *IDM_DR = 192;
-    // *IDM_DR = 168;
-    // *IDM_DR = 0;
-    // *IDM_DR = 12;
 
     /* read back the DIPR to check! */
     // wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_DIPR);
@@ -226,8 +212,6 @@ void tcp4_connect()
     //Sn_DPORTR[0:1] = {0x13, 0x88};
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_DPORTR);
     wiz_wr_u16(80);
-    // *IDM_DR = 0x00;            // MSD
-    // *IDM_DR = 80;              // LSD
 
     wiz_cmd(CMD_CONNECT);
     
@@ -268,19 +252,10 @@ int wiz_wr_str(char *s)
 void tcp4_send()
 {
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_TX_WR);
-    uint16_t wrofs = wiz_rd_u16(); //(*IDM_DR << 8) | *IDM_DR;
+    uint16_t wrofs = wiz_rd_u16();
 
     wiz_setup_reg(BSR_SOCKn_TXBUF(0), wrofs);
     int wrcount = wiz_wr_str("GET /\r\n");
-    // *IDM_DR = 'G';
-    // *IDM_DR = 'E';
-    // *IDM_DR = 'T';
-    // *IDM_DR = ' ';
-    // *IDM_DR = '/';
-    // // *IDM_DR = 'a';
-    // // *IDM_DR = 'b';
-    // *IDM_DR = '\r';
-    // *IDM_DR = '\n';
 
     wrofs += wrcount;
 
@@ -295,8 +270,6 @@ void tcp4_send()
     /* increase Sn_TX_WR as send_size */
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_TX_WR);
     wiz_wr_u16(wrofs);
-    // *IDM_DR = (wrofs >> 8);
-    // *IDM_DR = (wrofs & 0xFF);
 
     wiz_cmd(CMD_SEND);
 }
@@ -310,16 +283,13 @@ void tcp4_recv()
     {
         wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_RX_RSR);
         rx_size = wiz_rd_u16();
-        // rx_size = (*IDM_DR << 8);       // MSD-first
-        // rx_size |= (*IDM_DR & 0xFF);    // LSD
     } while (rx_size == 0);
 
     printf("GOT %d BYTES:\n", rx_size);
     
     /* get Read offset */
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_RX_RD);
-    uint16_t rd_offs = wiz_rd_u16(); //(*IDM_DR << 8);
-    //rd_offs |= (*IDM_DR & 0xFF);
+    uint16_t rd_offs = wiz_rd_u16();
 
     printf("RD OFFS = %u\n", rd_offs);
 
@@ -339,8 +309,6 @@ void tcp4_recv()
     wiz_setup_reg(BSR_SOCKn_REG(0), SOCKREG_Sn_RX_RD);
     rd_offs += rx_size;
     wiz_wr_u16(rd_offs);
-    // *IDM_DR = rd_offs >> 8;
-    // *IDM_DR = rd_offs;
 
     /* set RECV Command */
     wiz_cmd(CMD_RECV);
@@ -349,6 +317,7 @@ void tcp4_recv()
 
 int main()
 {
+    printf("%c", 14);               // switch to shifted petscii font set.
     printf("WIZNET TEST\r\n");
     reset_deact();
     
