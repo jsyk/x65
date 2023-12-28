@@ -42,7 +42,7 @@ module bus_controller (
     // Phase CPU clock control i/o
     output reg      run_cpu,
     input           stopped_cpu,
-    output reg      strech_cphi,      // TBD!!!
+    output reg [1:0] s4_ext_o,       // extend the S4H cycle by additional clk cycles
     //
     // NORA master interface (sink) - addressing from the internal debug controller.
     //      Any access from the master interface will pause the CPU in the S1L state
@@ -158,6 +158,7 @@ module bus_controller (
             nora_slv_req_BANKREG <= 0;
             mst_state <= MST_IDLE;
             nora_mst_driving_memdb <= 0;
+            s4_ext_o <= 2'b00;
         end else begin
             if (setup_cs)
             begin
@@ -166,6 +167,7 @@ module bus_controller (
                 memcpu_abl_o <= memcpu_abl_i;       // lower 12 bits are pass-through
                 nora_slv_addr_o <= cpu_ab_i;
                 nora_slv_rwn_o <= cpu_rw_i;
+                s4_ext_o <= 2'b00;              // no cycle extension by default necessary
 
                 if (cputype02_i)
                     cba_r <= 8'h00;           // fixed bank address 0 in 65C02
@@ -267,6 +269,7 @@ module bus_controller (
                             enet_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
                             mem_wrn_o <= cpu_rw_i;
+                            s4_ext_o <= 2'b01;              // extend S4H by 1cc (add 20ns of access time)
                         end
                     end
                     else 

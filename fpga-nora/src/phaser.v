@@ -24,6 +24,8 @@ module phaser (
     // The CPHI2 is stopped just always in the S1L phase!
     input   run,            // allows the CPU to run (1), or stops (0) it on S1L
     output reg  stopped,    // indicates that the CPU is stopped (in the safe phase S1L)
+    // cycle extension
+    input [1:0] s4_ext_i,       // extend the S4H cycle by additional clk cycles
     // generated CPU clock for 65C02
     output reg  cphi2,      // generated 65C02 PHI2 clock
     // state signals for controlling the bus cycle in the FPGA. See diagram above.
@@ -41,6 +43,7 @@ module phaser (
     localparam S5H = 3'b101;
 
     reg [2:0]   state_reg;      // FSM state
+    reg [1:0]   s4_ext_r;       // S4H phase extension
 
     // Phasing State Machine
     always @(posedge clk)
@@ -54,6 +57,7 @@ module phaser (
             release_wr <= 1'b0;
             release_cs <= 1'b0;
             stopped <= 1'b0;
+            s4_ext_r <= 2'b00;
         end else begin
             // default outputs:
             latch_ad <= 1'b0;
@@ -92,13 +96,25 @@ module phaser (
                     begin
                         state_reg <= S4H;
                         cphi2 <= 1'b1;
+                        s4_ext_r <= s4_ext_i;       // get the extension cycle count for S4H state
                     end
 
                 S4H:
                     begin
-                        state_reg <= S5H;
+                        // shall we extend the S4H ?
+                        if (s4_ext_r != 2'b00)
+                        begin
+                            // extend the S4H
+                            s4_ext_r <= s4_ext_r - 1;
+                            state_reg <= S4H;
+                        end else begin
+                            // no extension, or extension finished
+                            // go to S5H
+                            state_reg <= S5H;
+                            cphi2 <= 1'b1;
+                            release_wr <= 1'b1;     // release MWR signals in the next microcycle
+                        end
                         cphi2 <= 1'b1;
-                        release_wr <= 1'b1;     // release MWR signals in the next microcycle
                     end
 
                 S5H:

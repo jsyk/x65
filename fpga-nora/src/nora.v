@@ -141,6 +141,7 @@ module top (
     );
  
     wire  ph_run_cpu;
+    wire [1:0] s4_ext;
     wire  busct_run_cpu;
     wire  stopped_cpu;
     wire  latch_ad;     // address bus shall be registered; also, in the 24-bit mode, latch the upper 8b on the data bus
@@ -157,6 +158,7 @@ module top (
         .resetn   (resetn),
         .run    (ph_run_cpu),
         .stopped (stopped_cpu),
+        .s4_ext_i (s4_ext),
         .cphi2  (CPHI2),
         .latch_ad  (latch_ad),
         .setup_cs (setup_cs),
@@ -395,7 +397,7 @@ module top (
         .release_cs (release_cs),
         .run_cpu (busct_run_cpu),
         .stopped_cpu (stopped_cpu),
-        //.stretch_cphi (open),      // TBD!!!
+        .s4_ext_o (s4_ext),
         // NORA master interface - internal debug controller
         .nora_mst_addr_i (nora_mst_addr),
         .nora_mst_data_i (nora_mst_datawr),
