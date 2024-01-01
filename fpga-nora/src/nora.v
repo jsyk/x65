@@ -738,8 +738,8 @@ module top (
 
     // define unused output signals
     assign VIACS = 1'b1;
-    assign UART_TX = 1'b1;
-    assign UART_CTS = 1'b1;
+    assign UART_TX = UART_RX;
+    assign UART_CTS = UART_RTS;
     assign TCSn = 1'b1;
     assign PERIRESn = 1'b1;
     assign ILIDC = 1'b0;
