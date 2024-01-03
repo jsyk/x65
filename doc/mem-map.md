@@ -14,8 +14,8 @@ TBD: BANK and PAGE is already defined in 65816!!
 Use SEGMENT or BLOCK or FRAME ?
 
 
-SRAM
-------
+SRAM 2MB
+---------
 tbd
 
 
@@ -56,7 +56,7 @@ PBL (Primary Bootloader) ROM: 512 Bytes
 
 
 
-Bank switching registers - RAMBANK and ROMBANK: 2 Bytes
----------------------------------------------------------
+RAM/ROM-Block switching registers - RAMBLOCK and ROMBLOCK: 2 Bytes
+---------------------------------------------------------------------
 
 

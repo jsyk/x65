@@ -4,16 +4,28 @@
  * SPI Host controller implements the MEM/IO register interface between the CPU (NORA Slave Bus)
  * and the SPI Master core, which is actually driving FPGA pins.
  *
- * CONTROL & STATUS REGISTER:
- *  - CPU Writing - control bits:
+ * TBD: IRQ support
+ *
+ * CONTROL & STATUS REGISTER @ $9F52:
+ *  - CPU *Writing* -> control bits:
  *      [7:6] = 00 PAGE:TARGET/SPEED CONTROL
  *      [5:3] = set the SPI speed - clock frequency (prescaller)
+ *                  000 = 100kHz
+ *                  001 = 400kHz
+ *                  010 = 1MHz
+ *                  011 = 8MHz
+ *                  100 = 24MHz
+ *                  other = reserved.
+ *                  
  *      [2:0] = set the target SPI slave (1-7), or no slave (CS high) when 0.
+ *                  000 = no slave (all deselect)
+ *                  001 = UNIFIED ROM = NORA's SPI-Flash
+ *                  other = reserved.
  *
- *      [7:6] = 01 EXECUTE PULL -- TBD
+ *      [7:6] = 01 EXECUTE PULL -- TBD/reserved
  *      [5:0] = tbd
  *
- *  - CPU reading - status bits:
+ *  - CPU *reading* -> status bits:
  *      [0] = RX FIFO empty?
  *      [1] = RX FIFO full?
  *      [2] = TX FIFO empty?
@@ -21,7 +33,7 @@
  *      [4] = BUSY - TX/RX is in progress
  *      [7:5] = reserved, 0
  *
- * DATA REGISTER:
+ * DATA REGISTER @ $9F53:
  *  - CPU reading dequeues from the RX FIFO
  *  - CPU writing enqueues to the TX FIFO
  */

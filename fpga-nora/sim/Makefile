@@ -46,6 +46,8 @@ tb_ps2kbdhost.vp: ../src/tb_ps2kbdhost.v ../src/ps2_kbd_host.v ../src/pulser.v .
 
 tb_uart.vp: ../src/uart_tx.v ../src/uart_rx.v ../src/tb_uart.v 
 
+tb_uart_host.vp: ../src/uart_tx.v ../src/uart_rx.v ../src/uart_host.v ../src/tb_uart_host.v ../src/fifo.v
+
 show_phaser: tb_phaser.vcd
 	gtkwave $^
 
@@ -71,6 +73,9 @@ show_spi_master: tb_spi_master.vcd
 	gtkwave $^
 
 show_uart: tb_uart.vcd
+	gtkwave $^
+
+show_uart_host: tb_uart_host.vcd
 	gtkwave $^
 
 clean:
