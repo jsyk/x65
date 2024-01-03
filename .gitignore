@@ -75,7 +75,8 @@ x65icd
 x65prog
 pcb/vera-rev4
 fpga-nora/syn-icecube2
-
+x65-sbc-revA1-backups/
+fp-info-cache
 private/
 fpga-aura/syn-icecube2/
 doc-private/
