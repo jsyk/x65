@@ -124,7 +124,7 @@ The SPI-Master can access NORA's UNIFIED ROM (really the SPI-Flash primarilly fo
                                         [4] = reserved, 0
                                         [5] = reserved, 0
                                         [6] = reserved, 0
-                                        [7] = Is BUSY - is TX/RX is in progress?
+                                        [7] = Is BUSY - is TX/RX in progress?
 
     $9F54           N_SPI_DATA                      Reading dequeues data from the RX FIFO.
                                                     Writing enqueues to the TX FIFO.
@@ -151,14 +151,14 @@ The next three registers control the *USB_UART* periphery:
                                         [7] = Enable IRQ activation on not(TX-FIFO-full)
 
     $9F56           USB_UART_STAT                   USB(FTDI)-UART Status
-                                        [0] = Is RX FIFO empty?
+                                        [0] = reserved, 0.
                                         [1] = Is RX FIFO full?
                                         [2] = Is TX FIFO empty?
                                         [3] = Is TX FIFO full?
                                         [4] = Framing Error Flag, latching, clear by writing 0.
                                         [5] = Parity Error Flag, latching, clear by writing 0.
-                                        [6] = CTS signal Status: 1=CTS active (voltage=low), 0=CTS inactive (voltage=high).
-                                        [7] = reserved, 0.
+                                        [6] = CTS signal Status: 1=CTS inactive (voltage=high), 0=CTS active (voltage=low).
+                                        [7] = Is RX FIFO empty?
 
     $9F57           USB_UART_DATA       [7:0]       Reading dequeues data from the RX FIFO.
                                                     Writing enqueues to the TX FIFO.
@@ -180,8 +180,9 @@ The next three registers control the *I2C Master* periphery:
                                                 001 = START_ADDRESS: generate START condition, send ADDRESS (passed via the DATA register),
                                                         then read the ACK bit, which gets written into the DATA register.
                                                 010 = SEND_DATA_READ_ACK: send data to I2C from the DATA reg., read ACK bit and write it to the DATA reg.
-                                                011 = RECV_DATA_WRITE_ACK: receive data from the I2C bus into DATA reg, write ACK which was previously prepared in the DATA reg.
-                                                100 = STOP: generate stop condition
+                                                011 = RECV_DATA: receive data from the I2C bus into DATA reg
+                                                100 = WRITE_ACK: write ACK/NACK which was previously prepared in the DATA reg.
+                                                101 = STOP: generate stop condition
                                         
                                         [3] = Frequency: 0=100kHz, 1=400kHz.
                                         [6:4] = reserved, 0
@@ -192,15 +193,46 @@ The next three registers control the *I2C Master* periphery:
 
     $9F5D           I2C_DATA            [7:0]       Reads/writes the DATA register.
 
-The next five registers control the dual-PS/2 periphery:
+The next five registers control the dual-PS/2 periphery through the SMC:
 
     Address         Reg.name            Bits        Description
-    $9F5E           PS2_CTRL
-    $9F5F           PS2K_STAT
-    $9F60           PS2K_BUF
-    $9F61           PS2M_STAT
-    $9F62           PS2M_BUF
+    $9F5E           PS2_CTRL                        PS2 Control register
+                                        [0] = Disable scancode-to-keycode translation in HW. Default is 0 = translation enabled.
+                                        [1] = Enable IRQ when kbd or mouse buffer has a byte
+                                        [7:2] = reserved, 0
+
+    $9F5F           PS2_STAT                        PS2 Status Register
+                                        [5:0] = unused, 0
+                                        [6] = Mouse Buffer FIFO is non-empty
+                                        [7] = KBD Buffer FIFO is non-empty
+
+    $9F60           PS2K_BUF            [7:0]       Keyboard buffer (FIFO output).
+                                                    Reading gets the next keycode (scancode) received from the keyboard,
+                                                    or 0x00 if the buffer was empty.
+                                                    Writing will enqueue a 1-byte command for the keyboard.
+
+    $9F61           PS2K_RSTAT          [7:0]       Reply status from keyboard (in response from a command).
+                                                    Possible values:
+                                                        0x00 => idle (no transmission started)
+                                                        0x01 => transmission pending
+                                                        0xFA => ACK received
+                                                        0xFE => ERR received
+                                                    Special case: Writing will enqueue a 2-byte command for the keyboard
+                                                    (both bytes must be written in PS2K_RSTAT consequtevely.)
+
+
+ * [SMC] provides these registers over I2C:
+ *      0x07		Read from keyboard buffer
+ *      0x18		Read ps2 (keyboard) status
+ *      0x19	    00..FF	Send ps2 command
+ *      0x1A        00..FF  Send 2-byte ps2 command
+ *      0x21		Read from mouse buffer
+
+
+    $9F62           PS2M_BUF            [7:0]       Mouse buffer (FIFO output).
     
+
+
 The next register controls global IRQ/NMI masking:
 
 The next registers control UEXT GPIO:
