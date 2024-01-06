@@ -19,8 +19,6 @@
     (stroke (width 0.1) (type default)) (fill none) (layer "F.SilkS") (tstamp 847f4fac-fc52-481b-a024-34235c983571))
   (fp_rect (start -6.5 -3) (end -3.5 3)
     (stroke (width 0.1) (type default)) (fill none) (layer "Dwgs.User") (tstamp 3d9335aa-cb13-4604-acd2-f51bee09acfa))
-  (fp_line (start -3.5 -6) (end -3.5 6)
-    (stroke (width 0.1) (type default)) (layer "Margin") (tstamp 41f27c76-cfb3-4e2e-b260-3a2e0ffa6183))
   (fp_rect (start -3.5 -6) (end 7.5 6)
     (stroke (width 0.05) (type default)) (fill none) (layer "F.CrtYd") (tstamp 570dca53-316b-4f6c-913d-e95d6fcff9d9))
   (pad "1" thru_hole circle (at -2.5 -5) (size 2 2) (drill 1) (layers "*.Cu" "*.Mask") (tstamp a6786521-4415-4b49-8f6b-c72e018c6f23))
