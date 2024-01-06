@@ -10,7 +10,7 @@
       "+3V3",
       "+5V"
     ],
-    "high_contrast_mode": 0,
+    "high_contrast_mode": 1,
     "net_color_mode": 1,
     "opacity": {
       "images": 0.6,
@@ -68,7 +68,7 @@
       35,
       36
     ],
-    "visible_layers": "fffffcf_ffffffff",
+    "visible_layers": "fffffef_ffffffff",
     "zone_display_mode": 0
   },
   "meta": {
