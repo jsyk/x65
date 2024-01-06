@@ -75,6 +75,12 @@ module tb_nora ();
 
     reg  ATTBTN;
 
+    reg USBUART_CTS;
+    wire USBUART_RTS;
+    wire USBUART_TX;
+    wire USBUART_RX = USBUART_TX;
+
+
 
     top dut0 (
     // 12MHz FPGA clock input
@@ -146,10 +152,10 @@ module tb_nora ();
         // output PS2M_DATADR,
 
     // UART port
-        // output UART_CTS,
-        .UART_RTS (1'b1),
-        // output UART_TX,
-        .UART_RX (1'b1),
+        .UART_CTS (USBUART_CTS),
+        .UART_RTS (USBUART_RTS),
+        .UART_TX (USBUART_TX),
+        .UART_RX ( USBUART_RX ),
 
     // VERA FPGA
         .VERADONE (1'b1),
@@ -230,23 +236,23 @@ module tb_nora ();
     endtask
 
 
-    task IKAOPM_write;
-        input       [7:0]   i_TARGET_ADDR;
-        input       [7:0]   i_WRITE_DATA;
-    begin
-        // read OPM status reg and wait until BUSY flag is 0.
-        tb_cpuDataRead = 8'hFF;
-        while (tb_cpuDataRead[7] == 1)
-        begin
-            cpu_read(16'h9F40);
-        end
+    // task IKAOPM_write;
+    //     input       [7:0]   i_TARGET_ADDR;
+    //     input       [7:0]   i_WRITE_DATA;
+    // begin
+    //     // read OPM status reg and wait until BUSY flag is 0.
+    //     tb_cpuDataRead = 8'hFF;
+    //     while (tb_cpuDataRead[7] == 1)
+    //     begin
+    //         cpu_read(16'h9F40);
+    //     end
 
-        #2000;
-        cpu_write(16'h9F40, i_TARGET_ADDR);
-        #2000;
-        cpu_write(16'h9F41, i_WRITE_DATA);
-        #2000;
-    end endtask
+    //     #2000;
+    //     cpu_write(16'h9F40, i_TARGET_ADDR);
+    //     #2000;
+    //     cpu_write(16'h9F41, i_WRITE_DATA);
+    //     #2000;
+    // end endtask
 
     initial
     begin
@@ -261,11 +267,13 @@ module tb_nora ();
         CSYNC_VPA = 1'b0;
         // ICD_MISO = 1'b1;
         ATTBTN <= 1;
+        USBUART_CTS <= 0;
 
         @(negedge CPHI2);
         @(negedge CPHI2);
         @(posedge CRESn);
 
+        // ============================================
         // test-writes CPU->SRAM
         cpu_write(16'h0010, 8'h12);
         cpu_write(16'h0011, 8'h34);
@@ -278,6 +286,7 @@ module tb_nora ();
         cpu_read(16'h0012);  `assert(tb_cpuDataRead, 8'h56);
         cpu_read(16'h0013);  `assert(tb_cpuDataRead, 8'h78);
 
+        // ============================================
         // write to bank regs
         cpu_write(16'h0000, 8'hAB);         // RAMBANK
         cpu_write(16'h0001, 8'h0C);         // ROMBANK
@@ -286,6 +295,7 @@ module tb_nora ();
         cpu_read(16'h0000);  `assert(tb_cpuDataRead, 8'hAB);
         cpu_read(16'h0001);  `assert(tb_cpuDataRead, 8'h0C);
 
+        // ============================================
         // write to VIA
         cpu_write(16'h9F02, 8'h03);         // VIA1/DDRB [1:0] config to outputs
         cpu_write(16'h9F00, 8'h00);         // VIA1/ORB set to 00
@@ -294,9 +304,11 @@ module tb_nora ();
         cpu_write(16'h9F00, 8'h02);         // VIA1/ORB set to 01
         cpu_read(16'h9F00);     `assert(tb_cpuDataRead, 8'hC2);         // fixed upper signal's levels
 
+        // ============================================
         // write to VERA
         cpu_write(16'h9F20, 8'h12);
 
+        // ============================================
         // go to the BOOTROM
         cpu_write(16'h0001, 8'h3F);         // ROMBANK
         // test read from BOOTROM
@@ -310,6 +322,9 @@ module tb_nora ();
         cpu_read(16'hFE00);  `assert(tb_cpuDataRead, 8'hA2);
         cpu_read(16'hFE50);  `assert(tb_cpuDataRead, 8'hDE);
 
+
+        // ============================================
+        // TEST OF SPI-MASTER 
         // activate SPI Master for flash access
         cpu_write(16'h9F52, 8'b00_100_001);  #100; `assert(FLASHCSn, 0);
         // write data to the SPI master DATA REG for TX
@@ -329,6 +344,27 @@ module tb_nora ();
         cpu_read(16'h9F53);
         cpu_read(16'h9F53);
 
+        // ============================================
+        // TEST OF USB-UART INTERFACE
+
+        // read USB_UART_CTRL
+        cpu_read(16'h9F55); `assert(tb_cpuDataRead, 8'h04);     // just 115200 Bd
+        // read USB_UART_STAT
+        cpu_read(16'h9F56); `assert(tb_cpuDataRead, 8'h84);     // RXFifoEmpty, TXfifoempty
+        // write $9F57           USB_UART_DATA       
+        cpu_write(16'h9F57, 8'hA5);
+        // wait until character is received in the loopback
+        cpu_read(16'h9F56);     // USB_UART_STAT
+        while (tb_cpuDataRead[7])   // bit [7] = Is RX FIFO empty?
+        begin
+            cpu_read(16'h9F56);
+        end
+        // bit is zero -> some char in the buffer
+        cpu_read(16'h9F57); `assert(tb_cpuDataRead, 8'hA5);
+        // read USB_UART_STAT
+        cpu_read(16'h9F56); `assert(tb_cpuDataRead, 8'h84);     // RXFifoEmpty, TXfifoempty
+
+        // ============================================
         // test of IKAOPM
         // KC
         // cpu_write(16'h9F40, 8'h28);
@@ -373,11 +409,11 @@ module tb_nora ();
 
         #100_000;
 
-        ATTBTN <= 0;
-
-        #100_000;
-        #100_000;
-        #100_000;
+        // ============================================
+        // ATTBTN <= 0;
+        // #100_000;
+        // #100_000;
+        // #100_000;
         // #100_000_000;
 
         #1000;

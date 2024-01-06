@@ -1,4 +1,4 @@
-/* Copyright (c) 2023 Jaroslav Sykora.
+/* Copyright (c) 2023-2024 Jaroslav Sykora.
  * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
  * External CPU and Memory Bus controller
@@ -145,7 +145,6 @@ module bus_controller (
             aio_csn_o <= HIGH_INACTIVE;
             enet_csn_o <= HIGH_INACTIVE;
             run_cpu <= 0;
-            strech_cphi <= 0;
             nora_mst_ack_o <= 0;
             nora_slv_req_BOOTROM_o <= 0;
             nora_slv_req_SCRB_o <= 0;

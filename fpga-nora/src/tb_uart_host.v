@@ -114,7 +114,7 @@ module tb_uart_host ( );
         reg_rd_i <= 1;
         reg_cs_stat_i <= 1;
         @(posedge clk);
-        while (reg_d_o[0])
+        while (reg_d_o[7])
         begin
             @(posedge clk); // wait
         end
@@ -133,7 +133,7 @@ module tb_uart_host ( );
         reg_rd_i <= 1;
         reg_cs_stat_i <= 1;
         @(posedge clk);
-        while (reg_d_o[0])
+        while (reg_d_o[7])
         begin
             @(posedge clk); // wait
         end

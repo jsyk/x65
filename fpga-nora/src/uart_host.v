@@ -3,7 +3,7 @@
 /**
  * UART Host Controller
  *
- *
+ * TBD: HWFlowCtrl with RTS/CTS!!
  */
 module uart_host #(
     parameter RXFIFO_DEPTH_BITS = 4,
@@ -160,7 +160,7 @@ module uart_host #(
     reg         parity_err_flag_r;
     reg         framing_err_flag_r;
 
-    wire [7:0] reg_stat = { 1'b0, ~cts_pin_i, parity_err_flag_r, framing_err_flag_r, txf_full, txf_empty, rxf_full, rxf_empty };
+    wire [7:0] reg_stat = { rxf_empty, cts_pin_i, parity_err_flag_r, framing_err_flag_r, txf_full, txf_empty, rxf_full, 1'b0 };
 
     // calculate REG READ output:
     assign reg_d_o = (reg_cs_ctrl_i) ? reg_ctrl : 
@@ -227,7 +227,7 @@ module uart_host #(
             3'b001:     prescaler_top = 9'h1FF;         // reserved!
             3'b010:     prescaler_top = 9'd312;         // 9600 Bd
             3'b011:     prescaler_top = 9'd51;         // 57600 Bd
-            3'b100:     prescaler_top = 9'd25;          // 115200 Bd
+            3'b100:     prescaler_top = 9'd25;          // 115200 Bd <- default
             3'b101:     prescaler_top = 9'd12;          // 230400 Bd
             3'b110:     prescaler_top = 9'd1;          // 1000000 Bd
             3'b111:     prescaler_top = 9'd0;          // 3000000 Bd

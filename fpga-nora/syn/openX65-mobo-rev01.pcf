@@ -97,8 +97,8 @@ set_io PS2K_CLKDR   107
 #   Pins 110 - 144
 #
 set_io CPUTYPE02    110
-set_io UART_CTS     112
-set_io UART_RTS     113
+set_io UART_RTS     112
+set_io UART_CTS     113
 set_io UART_TX      114
 set_io UART_RX      115
 set_io VERADONE     116

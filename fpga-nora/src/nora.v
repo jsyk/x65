@@ -73,8 +73,8 @@ module top (
     output PS2M_DATADR,     // not used on the 1st PCB; TBD remove
 
 // UART port
-    output UART_CTS,
-    input UART_RTS,
+    input UART_CTS,
+    output UART_RTS,
     output UART_TX,
     input UART_RX,
 
@@ -664,6 +664,47 @@ module top (
         .reg_ad_i (spireg_ad)            // target register select: 0=CONTROL REG, 1=DATA REG.
     );
 
+    // USB_UART REGISTER INTERFACE SIGNALS
+    wire [7:0] usbuart_dr;            // read data output from the core (from the CONTROL or DATA REG)
+    wire [7:0] usbuart_dw;            // write data input to the core (to the CONTROL or DATA REG)
+    wire usbuart_wr;           // write signal
+    wire usbuart_rd;           // read signal
+    wire usbuart_cs_ctrl;           // target register select: CTRL REG
+    wire usbuart_cs_stat;            // target register select: STAT REG
+    wire usbuart_cs_data;            // target register select: DATA REG (FIFO)
+    wire usbuart_irq;               // IRQ output, active high
+
+
+    // USB_UART periphery
+    uart_host #(
+        .RXFIFO_DEPTH_BITS (4),
+        .TXFIFO_DEPTH_BITS (4)
+    ) usbuarthst (
+        // Global signals
+        .clk (clk6x),                    // 48MHz
+        .resetn (resetn),                 // sync reset
+        //
+        // UART INTERFACE
+        // UART RX/TX signal to the FPGA pin
+        .rx_pin_i (UART_RX),
+        .tx_pin_o (UART_TX),
+        .txde_o (open),              // tx drive enable, active high
+        .cts_pin_i (UART_CTS),
+        .rts_pin_o (UART_RTS),
+        //
+        // REGISTER INTERFACE
+        .reg_d_o (usbuart_dr),            // read data output from the core (from the CONTROL or DATA REG)
+        .reg_d_i (usbuart_dw),            // write data input to the core (to the CONTROL or DATA REG)
+        .reg_wr_i (usbuart_wr),           // write signal
+        .reg_rd_i (usbuart_rd),           // read signal
+        .reg_cs_ctrl_i (usbuart_cs_ctrl),           // target register select: CTRL REG
+        .reg_cs_stat_i (usbuart_cs_stat),            // target register select: STAT REG
+        .reg_cs_data_i (usbuart_cs_data),            // target register select: DATA REG (FIFO)
+        .irq_o (usbuart_irq)               // IRQ output, active high
+    );
+
+
+
     // SCRB output data
     wire [7:0] SCRB_slv_datard;
 
@@ -687,7 +728,15 @@ module top (
         .spireg_d_i (spireg_dr),            // write data input to the core (to the CONTROL or DATA REG)
         .spireg_wr_i (spireg_wr),           // write signal
         .spireg_rd_i (spireg_rd),           // read signal
-        .spireg_ad_i (spireg_ad)            // target register select: 0=CONTROL REG, 1=DATA REG.
+        .spireg_ad_i (spireg_ad),            // target register select: 0=CONTROL REG, 1=DATA REG.
+        // USB UART
+        .usbuart_d_i (usbuart_dr),            // read data output from the core (from the CONTROL or DATA REG)
+        .usbuart_d_o (usbuart_dw),            // write data input to the core (to the CONTROL or DATA REG)
+        .usbuart_wr_o (usbuart_wr),           // write signal
+        .usbuart_rd_o (usbuart_rd),           // read signal
+        .usbuart_cs_ctrl_o (usbuart_cs_ctrl),           // target register select: CTRL REG
+        .usbuart_cs_stat_o (usbuart_cs_stat),            // target register select: STAT REG
+        .usbuart_cs_data_o (usbuart_cs_data)            // target register select: DATA REG (FIFO)
     );
 
     // OPM output data
@@ -738,8 +787,8 @@ module top (
 
     // define unused output signals
     assign VIACS = 1'b1;
-    assign UART_TX = UART_RX;
-    assign UART_CTS = UART_RTS;
+    // assign UART_TX = UART_RX;
+    // assign UART_CTS = UART_RTS;
     assign TCSn = 1'b1;
     assign PERIRESn = 1'b1;
     assign ILIDC = 1'b0;
