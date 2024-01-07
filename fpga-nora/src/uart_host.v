@@ -6,6 +6,7 @@
  * TBD: HWFlowCtrl with RTS/CTS!!
  */
 module uart_host #(
+    // FIFO depth vs ICE40: up to 3b => RAM in LUTS, from 4b to 9b => RAM in 3*BlockRAM, from 10b => add 2*BlockRAM
     parameter RXFIFO_DEPTH_BITS = 4,
     parameter TXFIFO_DEPTH_BITS = 4
 ) (
@@ -19,7 +20,7 @@ module uart_host #(
     output          tx_pin_o,
     output          txde_o,              // tx drive enable, active high
     input           cts_pin_i,
-    output          rts_pin_o,
+    output reg      rts_pin_o,
     //
     // REGISTER INTERFACE
     output [7:0]    reg_d_o,            // read data output from the core (from the CONTROL or DATA REG)
@@ -41,6 +42,22 @@ module uart_host #(
     wire [7:0] ua_rx_byte;
     wire ua_rx_en;
     wire frame_err, parity_err;
+
+    // control register
+    reg [2:0]   baudrate_r;
+    reg         ena_hwflow_r;
+    reg         ena_irq_rx_r;
+    reg         ena_irq_tx_r;
+
+    wire [7:0] reg_ctrl = { ena_irq_tx_r, ena_irq_rx_r, ena_hwflow_r, parity_type_r, parity_en_r, baudrate_r };
+
+    // CTS input
+    reg         cts_r;
+
+    always @(posedge clk)
+    begin
+        cts_r <= cts_pin_i;
+    end
 
     uart_rx ua_rx
     (
@@ -93,8 +110,8 @@ module uart_host #(
     // status output from TX FIFO
     wire txf_full;
     wire txf_empty;
-    // we request SPI-TX as soon as TX-FIFO is non-empty
-    assign ua_tx_en = !txf_empty;
+    // normally we request SPI-TX as soon as TX-FIFO is non-empty;
+    assign ua_tx_en = !txf_empty && (!ena_hwflow_r || !cts_r);
 
     // Transmission bytes FIFO
     fifo  #(
@@ -125,6 +142,9 @@ module uart_host #(
     // read (dequeue) data from the RX FIFO: when Reading from the DATA REG
     wire rxf_deq = reg_rd_i && reg_cs_data_i && !rxf_empty;
     wire [7:0] rxf_rdata;
+    wire [RXFIFO_DEPTH_BITS:0] rxf_count;
+
+    localparam [RXFIFO_DEPTH_BITS:0] RXFIFO_ALMOST_FULL = 2**RXFIFO_DEPTH_BITS - 1;
 
     // Receive bytes FIFO
     fifo  #(
@@ -144,23 +164,17 @@ module uart_host #(
         // Status signals
         .full_o (rxf_full),                 // FIFO is full?
         .empty_o (rxf_empty),                // FIFO is empty?
-        .count_o ()       // count of elements in the FIFO now; mind the width of the reg!
+        .count_o (rxf_count)       // count of elements in the FIFO now; mind the width of the reg!
     );
 
 
-    // control register
-    reg [2:0]   baudrate_r;
-    reg         ena_hwflow_r;
-    reg         ena_irq_rx_r;
-    reg         ena_irq_tx_r;
-
-    wire [7:0] reg_ctrl = { ena_irq_tx_r, ena_irq_rx_r, ena_hwflow_r, parity_type_r, parity_en_r, baudrate_r };
 
     // status register
     reg         parity_err_flag_r;
     reg         framing_err_flag_r;
 
-    wire [7:0] reg_stat = { rxf_empty, cts_pin_i, parity_err_flag_r, framing_err_flag_r, txf_full, txf_empty, rxf_full, 1'b0 };
+
+    wire [7:0] reg_stat = { rxf_empty, cts_r, parity_err_flag_r, framing_err_flag_r, txf_full, txf_empty, rxf_full, 1'b0 };
 
     // calculate REG READ output:
     assign reg_d_o = (reg_cs_ctrl_i) ? reg_ctrl : 
@@ -181,6 +195,7 @@ module uart_host #(
             ena_irq_tx_r <= 0;
             parity_err_flag_r <= 0;
             framing_err_flag_r <= 0;
+            rts_pin_o <= 0;
         end else begin
             // normal oper
             if (reg_wr_i && reg_cs_ctrl_i)
@@ -208,6 +223,10 @@ module uart_host #(
             begin
                 framing_err_flag_r <= 1;
             end
+            // RTS of HwFlowControl is always generated.
+            // RTS = Request To Send, active low.
+            // rts_pin_o <= rxf_full || (rxf_count == RXFIFO_ALMOST_FULL);
+            rts_pin_o <= !rxf_empty;
         end
     end
 
