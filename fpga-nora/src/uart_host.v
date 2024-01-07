@@ -144,7 +144,7 @@ module uart_host #(
     wire [7:0] rxf_rdata;
     wire [RXFIFO_DEPTH_BITS:0] rxf_count;
 
-    localparam [RXFIFO_DEPTH_BITS:0] RXFIFO_ALMOST_FULL = 2**RXFIFO_DEPTH_BITS - 1;
+    // localparam [RXFIFO_DEPTH_BITS:0] RXFIFO_ALMOST_FULL = 2**RXFIFO_DEPTH_BITS - 1;
 
     // Receive bytes FIFO
     fifo  #(
@@ -168,13 +168,27 @@ module uart_host #(
     );
 
 
+    // Compute RTS signal based on RX FIFO depth and count.
+    // RTS is active low: RTS=0 => we can receive; RTS=1 => we CANNOT receive!
+    wire rts;
+
+    generate
+        // HwFlow control RTS
+        if (RXFIFO_DEPTH_BITS < 4)
+            // RX FIFO 1 to 8 elemets is too short -> allow just 1 character
+            assign rts = !rxf_empty;
+        else
+            // RX FIFO >= 16 elements
+            assign rts = rxf_full || (& rxf_count[RXFIFO_DEPTH_BITS-1:3]);
+    endgenerate
+
 
     // status register
     reg         parity_err_flag_r;
     reg         framing_err_flag_r;
 
-
-    wire [7:0] reg_stat = { rxf_empty, cts_r, parity_err_flag_r, framing_err_flag_r, txf_full, txf_empty, rxf_full, 1'b0 };
+    wire txf_done = txf_empty & !txde_o;     // TX FIFO is done iff it is empty and no ongoing TXD.
+    wire [7:0] reg_stat = { rxf_empty, cts_r, parity_err_flag_r, framing_err_flag_r, txf_full, txf_done, rxf_full, 1'b0 };
 
     // calculate REG READ output:
     assign reg_d_o = (reg_cs_ctrl_i) ? reg_ctrl : 
@@ -225,8 +239,7 @@ module uart_host #(
             end
             // RTS of HwFlowControl is always generated.
             // RTS = Request To Send, active low.
-            // rts_pin_o <= rxf_full || (rxf_count == RXFIFO_ALMOST_FULL);
-            rts_pin_o <= !rxf_empty;
+            rts_pin_o <= rts;
         end
     end
 

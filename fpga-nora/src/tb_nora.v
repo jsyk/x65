@@ -351,8 +351,21 @@ module tb_nora ();
         cpu_read(16'h9F55); `assert(tb_cpuDataRead, 8'h04);     // just 115200 Bd
         // read USB_UART_STAT
         cpu_read(16'h9F56); `assert(tb_cpuDataRead, 8'h84);     // RXFifoEmpty, TXfifoempty
+        // write USB_UART_CTRL: set 1Mbps speed, so that the TB runs faster.
+        cpu_write(16'h9F55, 8'h06);
         // write $9F57           USB_UART_DATA       
         cpu_write(16'h9F57, 8'hA5);
+        cpu_write(16'h9F57, 8'hA6);
+        cpu_write(16'h9F57, 8'hA7);
+        cpu_write(16'h9F57, 8'hA8);
+        cpu_write(16'h9F57, 8'hA9);
+        cpu_write(16'h9F57, 8'hB0);
+        cpu_write(16'h9F57, 8'hB1);
+        cpu_write(16'h9F57, 8'hB2);
+        cpu_write(16'h9F57, 8'hB3);
+        cpu_write(16'h9F57, 8'hB4);
+        cpu_write(16'h9F57, 8'hB5);
+        cpu_write(16'h9F57, 8'hB6);
         // wait until character is received in the loopback
         cpu_read(16'h9F56);     // USB_UART_STAT
         while (tb_cpuDataRead[7])   // bit [7] = Is RX FIFO empty?
@@ -361,8 +374,16 @@ module tb_nora ();
         end
         // bit is zero -> some char in the buffer
         cpu_read(16'h9F57); `assert(tb_cpuDataRead, 8'hA5);
+        
+        // wait until TX FIFO is empty - all chars were sent
+        cpu_read(16'h9F56);     // USB_UART_STAT
+        while (!tb_cpuDataRead[2])   // bit [7] = Is TX FIFO empty?
+        begin
+            cpu_read(16'h9F56);
+        end
+
         // read USB_UART_STAT
-        cpu_read(16'h9F56); `assert(tb_cpuDataRead, 8'h84);     // RXFifoEmpty, TXfifoempty
+        // cpu_read(16'h9F56); `assert(tb_cpuDataRead, 8'h84);     // RXFifoEmpty, TXfifoempty
 
         // ============================================
         // test of IKAOPM

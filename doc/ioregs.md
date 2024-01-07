@@ -153,8 +153,8 @@ The next three registers control the *USB_UART* periphery:
     $9F56           USB_UART_STAT                   USB(FTDI)-UART Status
                                         [0] = reserved, 0.
                                         [1] = Is RX FIFO full?
-                                        [2] = Is TX FIFO empty?
-                                        [3] = Is TX FIFO full?
+                                        [2] = Is TX FIFO empty AND all chars were sent?
+                                        [3] = Is TX FIFO full (no more TX chars can be accepted)?
                                         [4] = Framing Error Flag, latching, clear by writing 0.
                                         [5] = Parity Error Flag, latching, clear by writing 0.
                                         [6] = CTS signal Status: 1=CTS inactive (voltage=high), 0=CTS active (voltage=low).

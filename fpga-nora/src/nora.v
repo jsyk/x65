@@ -642,8 +642,9 @@ module top (
     spi_master_hostctrl
     #(
         .NUM_TARGETS (1),                // number of supported targets (slaves), min 1.
-        .RXFIFO_DEPTH_BITS (4),
-        .TXFIFO_DEPTH_BITS (4)
+        // FIFO depth vs ICE40: up to 3b => RAM in LUTS, from 4b to 9b => RAM in 3*BlockRAM, from 10b => add 2*BlockRAM
+        .RXFIFO_DEPTH_BITS (9),
+        .TXFIFO_DEPTH_BITS (9)
     ) spimhstc (
         // Global signals
         .clk (clk6x),                    // 48MHz
@@ -677,8 +678,9 @@ module top (
 
     // USB_UART periphery
     uart_host #(
-        .RXFIFO_DEPTH_BITS (4),
-        .TXFIFO_DEPTH_BITS (4)
+        // FIFO depth vs ICE40: up to 3b => RAM in LUTS, from 4b to 9b => RAM in 3*BlockRAM, from 10b => add 2*BlockRAM
+        .RXFIFO_DEPTH_BITS (9),
+        .TXFIFO_DEPTH_BITS (9)
     ) usbuarthst (
         // Global signals
         .clk (clk6x),                    // 48MHz

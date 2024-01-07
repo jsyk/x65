@@ -39,6 +39,7 @@
  */
 module spi_host #(
     parameter NUM_TARGETS = 1,                // number of supported targets (slaves), min 1.
+    // FIFO depth vs ICE40: up to 3b => RAM in LUTS, from 4b to 9b => RAM in 3*BlockRAM, from 10b => add 2*BlockRAM
     parameter RXFIFO_DEPTH_BITS = 4,
     parameter TXFIFO_DEPTH_BITS = 4
 ) (
