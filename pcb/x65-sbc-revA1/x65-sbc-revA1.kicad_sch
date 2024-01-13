@@ -6,7 +6,7 @@
 
   (title_block
     (title "X65-SBC")
-    (date "2023-12-29")
+    (date "2024-01-10")
     (rev "revA1")
     (company "FOR X65.EU DESIGNED BY JSYKORA.INFO")
     (comment 1 "X65 Single Board Computer")
@@ -602,7 +602,7 @@
     (stroke (width 0) (type default))
     (uuid 7e5f7ff1-f048-480f-ab5c-d1e193e3bc5c)
   )
-  (polyline (pts (xy 120.015 104.775) (xy 118.11 104.775))
+  (polyline (pts (xy 120.015 105.41) (xy 118.11 105.41))
     (stroke (width 0) (type solid))
     (uuid 83120097-1f30-44aa-91a5-7d60872b48e8)
   )
@@ -673,7 +673,7 @@
     (stroke (width 0) (type default))
     (uuid c8b15cfe-ed99-407f-acb2-835277403140)
   )
-  (polyline (pts (xy 118.11 104.775) (xy 118.11 97.155))
+  (polyline (pts (xy 118.11 105.41) (xy 118.11 97.155))
     (stroke (width 0) (type solid))
     (uuid cbc53523-42e0-4cdb-95bf-0edd286a1df5)
   )
@@ -870,6 +870,14 @@
     (uuid f82fc2c0-f928-4976-8e00-606c01c8f266)
   )
 
+  (text_box "Important Links:\nx65.eu\nwww.jsykora.info\ngithub.com/jsyk/x65"
+    (at 81.915 172.72 0) (size 40.005 20.32)
+    (stroke (width 0) (type default))
+    (fill (type none))
+    (effects (font (size 2 2)) (justify left top))
+    (uuid d04605ec-c73b-44aa-bc46-efbfa4f02147)
+  )
+
   (text "Amp." (at 110.49 142.24 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 0353ec35-f066-41e9-9a59-85aeed9f9fe7)
@@ -984,7 +992,7 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 8757e16f-e3d1-4f11-88a5-e4700f9a7901)
   )
-  (text "revA1 / xx.1.2024" (at 125.73 66.04 0)
+  (text "revA1 / 12.1.2024" (at 125.73 66.04 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 96baeba5-6194-49cb-aca2-21f3b082140f)
   )
@@ -1036,7 +1044,7 @@
     (effects (font (size 5 5)) (justify left bottom))
     (uuid c6ab3566-2133-4c90-97d9-2b8079d503fc)
   )
-  (text "X65 IS\nOPEN SOURCE =>\n+ VERILOG FPGA DESIGN\n+ CIRCUIT SCHEMATIC\n+ PCB LAYOUT\n+ ORIGINAL SOFTWARE"
+  (text "X65 IS\nOPEN SOURCE:\n+ CIRCUIT SCHEMATIC\n+ PCB LAYOUT\n+ VERILOG FPGA DESIGN\n+ TOOLS USED\n+ ORIGINAL SOFTWARE"
     (at 137.16 194.31 0)
     (effects (font (size 2 2) (thickness 0.254) bold (color 132 0 0 1)) (justify left bottom))
     (uuid c8414316-219f-4714-92fe-226e62c0da61)
@@ -1284,7 +1292,7 @@
   (symbol (lib_id "power:GND") (at 40.64 187.96 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid be903c78-f422-44ac-8827-9da89b8f0899)
-    (property "Reference" "#PWR0207" (at 40.64 194.31 0)
+    (property "Reference" "#PWR01" (at 40.64 194.31 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (at 40.64 193.04 0)
@@ -1299,9 +1307,6 @@
     (pin "1" (uuid f7c287f4-1360-450b-9a9b-aaca6cd43779))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/9c40083a-a45d-4b41-ab0a-cc2b752c6926"
-          (reference "#PWR0207") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f"
           (reference "#PWR01") (unit 1)
         )
@@ -1334,28 +1339,28 @@
     )
   )
 
-  (symbol (lib_id "Graphic:Logo_Open_Hardware_Large") (at 160.02 168.275 0) (unit 1)
+  (symbol (lib_id "Graphic:Logo_Open_Hardware_Large") (at 159.385 165.1 0) (unit 1)
     (in_bom no) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid e469ecbd-bbe2-41ce-938f-21428b220e95)
-    (property "Reference" "#SYM101" (at 160.02 155.575 0)
+    (property "Reference" "SYM101" (at 159.385 152.4 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "Logo_Open_Hardware_Large" (at 160.02 178.435 0)
+    (property "Value" "Logo_Open_Hardware_Large" (at 159.385 175.26 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Footprint" "Symbol:OSHW-Logo2_7.3x6mm_SilkScreen" (at 160.02 168.275 0)
+    (property "Footprint" "Symbol:OSHW-Logo2_7.3x6mm_SilkScreen" (at 159.385 165.1 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "~" (at 160.02 168.275 0)
+    (property "Datasheet" "~" (at 159.385 165.1 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Sim.Enable" "0" (at 160.02 168.275 0)
+    (property "Sim.Enable" "0" (at 159.385 165.1 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (instances
       (project "x65-sbc-revA1"
         (path "/85750bea-43a1-4629-9575-611e72af7f9f"
-          (reference "#SYM101") (unit 1)
+          (reference "SYM101") (unit 1)
         )
       )
     )

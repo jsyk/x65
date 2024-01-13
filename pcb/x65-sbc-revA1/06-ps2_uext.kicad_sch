@@ -6,7 +6,7 @@
 
   (title_block
     (title "X65-SBC")
-    (date "2023-12-29")
+    (date "2024-01-10")
     (rev "revA1")
     (company "FOR X65.EU DESIGNED BY JSYKORA.INFO")
     (comment 1 "Extension Connectors, PS2 KBD and Mouse ports")
@@ -5116,7 +5116,7 @@
   (symbol (lib_id "Device:D_Schottky") (at 47.625 61.595 180) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 17a315b7-5894-4a02-824b-35ac0254eaa3)
-    (property "Reference" "D301" (at 47.9425 55.88 0)
+    (property "Reference" "D604" (at 47.9425 55.88 0)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "CUS10S30,H3F" (at 47.9425 58.42 0)
@@ -5132,9 +5132,6 @@
     (pin "2" (uuid 77452007-cc97-4fd0-8bf2-c8f3aa03311b))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/17c238d7-f888-4cc2-8790-8144029e69c2"
-          (reference "D301") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/9450b3cd-ef01-4353-a64a-2812b3ee45c9"
           (reference "D604") (unit 1)
         )
@@ -5439,7 +5436,7 @@
   (symbol (lib_id "power:+5V") (at 40.64 69.215 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 55be165d-2870-4ac0-959a-bbf9e8604b5c)
-    (property "Reference" "#PWR0712" (at 40.64 73.025 0)
+    (property "Reference" "#PWR0607" (at 40.64 73.025 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "+5V" (at 40.64 65.405 0)
@@ -5454,9 +5451,6 @@
     (pin "1" (uuid 154a0785-bbf6-4a39-9d32-2934c7803061))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/a59c40b6-4c79-43f8-90db-e6d1d1476407"
-          (reference "#PWR0712") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/9450b3cd-ef01-4353-a64a-2812b3ee45c9"
           (reference "#PWR0607") (unit 1)
         )
@@ -5467,10 +5461,10 @@
   (symbol (lib_id "Jumper:SolderJumper_2_Open") (at 47.625 69.85 180) (unit 1)
     (in_bom no) (on_board yes) (dnp no)
     (uuid 591fb969-9037-4b09-ad34-df0ca827db16)
-    (property "Reference" "JP701" (at 47.625 67.31 0)
+    (property "Reference" "JP601" (at 47.625 67.31 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Value" "SolderJumper_2_Bridged" (at 53.34 66.675 0)
+    (property "Value" "SolderJumper_2_Open" (at 53.34 66.675 0)
       (effects (font (size 1 1)) hide)
     )
     (property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm" (at 47.625 69.85 0)
@@ -5483,9 +5477,6 @@
     (pin "2" (uuid 611f9ad2-d5b6-4eaa-b3ee-7f16899ac1cc))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/a59c40b6-4c79-43f8-90db-e6d1d1476407"
-          (reference "JP701") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/9450b3cd-ef01-4353-a64a-2812b3ee45c9"
           (reference "JP601") (unit 1)
         )
@@ -5848,10 +5839,10 @@
   (symbol (lib_id "Device:C") (at 183.515 121.92 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 9985ba3f-3033-4ee5-b20e-652f4b2edd8d)
-    (property "Reference" "C602" (at 177.8 120.65 0)
+    (property "Reference" "C602" (at 177.8 119.38 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "1u" (at 177.8 123.19 0)
+    (property "Value" "1u" (at 177.8 121.92 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder" (at 184.4802 125.73 0)
@@ -6267,10 +6258,10 @@
   (symbol (lib_id "Device:C") (at 174.625 27.305 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid e96f4cf4-118d-443d-ae9d-33f73e274c07)
-    (property "Reference" "C601" (at 168.91 26.035 0)
+    (property "Reference" "C601" (at 168.91 24.765 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "1u" (at 168.91 28.575 0)
+    (property "Value" "1u" (at 168.91 27.305 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder" (at 175.5902 31.115 0)
@@ -6293,7 +6284,7 @@
   (symbol (lib_id "Device:D_Schottky") (at 96.52 121.92 90) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid e9eabe82-aae7-434c-ad2c-2dd5450d3af4)
-    (property "Reference" "D301" (at 99.06 120.9674 90)
+    (property "Reference" "D603" (at 99.06 120.9674 90)
       (effects (font (size 1.27 1.27)) (justify right))
     )
     (property "Value" "CUS10S30,H3F" (at 99.06 123.5074 90)
@@ -6309,9 +6300,6 @@
     (pin "2" (uuid 75665b52-88d4-486b-8404-0b66c92c4be6))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/17c238d7-f888-4cc2-8790-8144029e69c2"
-          (reference "D301") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/9450b3cd-ef01-4353-a64a-2812b3ee45c9"
           (reference "D603") (unit 1)
         )

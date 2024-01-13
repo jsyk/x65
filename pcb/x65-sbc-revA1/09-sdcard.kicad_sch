@@ -6,7 +6,7 @@
 
   (title_block
     (title "X65-SBC")
-    (date "2023-12-29")
+    (date "2024-01-10")
     (rev "revA1")
     (company "FOR X65.EU DESIGNED BY JSYKORA.INFO")
     (comment 1 "SD-Card slot, SPI-Flash for VERA")
@@ -1359,7 +1359,7 @@
     (stroke (width 0) (type default))
     (uuid b2c1d25a-015c-4040-8133-695ef271f612)
   )
-  (polyline (pts (xy 167.64 71.12) (xy 167.64 76.2))
+  (polyline (pts (xy 167.64 71.755) (xy 167.64 76.835))
     (stroke (width 0) (type default))
     (uuid b60c7f8a-1f86-422c-b50b-982dd0579471)
   )
@@ -2262,7 +2262,7 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 93215adc-1a16-4f03-91e0-284c75eff0f0)
   )
-  (text "Secure Digital Interface - like an \"FDD\"" (at 29.21 121.92 0)
+  (text "Secure Digital Interface" (at 39.37 121.92 0)
     (effects (font (size 2 2)) (justify left bottom))
     (uuid a01b970d-e4c1-4776-a256-84ee442aad8a)
   )
@@ -2523,37 +2523,6 @@
     )
   )
 
-  (symbol (lib_id "Device:C_Small") (at 226.06 45.72 0) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no)
-    (uuid 07ed184c-8ed3-46ea-9483-68cb5a445efd)
-    (property "Reference" "C904" (at 228.3968 44.5516 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Value" "1u" (at 228.3968 46.863 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Footprint" "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder" (at 226.06 45.72 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (at 226.06 45.72 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (pin "1" (uuid 3478845c-c9d7-4ea7-87e2-e140a05d6d25))
-    (pin "2" (uuid f9eb5f0f-2e6d-4ec9-99cc-87963a6c0f70))
-    (instances
-      (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "C904") (unit 1)
-        )
-      )
-      (project "openX65-vabo"
-        (path "/b8085944-4b3e-4781-a52b-94fe64f9a100/24ab6e58-c39a-4580-a4ca-24b4eca62ff3"
-          (reference "C404") (unit 1)
-        )
-      )
-    )
-  )
-
   (symbol (lib_id "power:+3V3") (at 78.74 160.02 0) (mirror y) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 09e477ed-8b30-4449-bb48-e576299e5647)
@@ -2749,36 +2718,6 @@
     )
   )
 
-  (symbol (lib_id "power:+3V3") (at 226.06 43.18 0) (mirror y) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no)
-    (uuid 26cfcb3a-307d-421e-822e-241180389d3c)
-    (property "Reference" "#PWR0923" (at 226.06 46.99 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Value" "+3V3" (at 225.679 38.7858 0)
-      (effects (font (size 1.27 1.27)))
-    )
-    (property "Footprint" "" (at 226.06 43.18 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "" (at 226.06 43.18 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (pin "1" (uuid 94c28180-d9dd-4625-9df4-6f8675b1e45d))
-    (instances
-      (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "#PWR0923") (unit 1)
-        )
-      )
-      (project "openX65-vabo"
-        (path "/b8085944-4b3e-4781-a52b-94fe64f9a100/24ab6e58-c39a-4580-a4ca-24b4eca62ff3"
-          (reference "#PWR0418") (unit 1)
-        )
-      )
-    )
-  )
-
   (symbol (lib_id "Device:R_Small") (at 253.365 121.285 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 2b39b258-1b01-44d1-964a-3d5b2a2b1b27)
@@ -2940,36 +2879,6 @@
       (project "openX65-vabo"
         (path "/b8085944-4b3e-4781-a52b-94fe64f9a100/24ab6e58-c39a-4580-a4ca-24b4eca62ff3"
           (reference "U402") (unit 1)
-        )
-      )
-    )
-  )
-
-  (symbol (lib_id "power:GND") (at 226.06 48.26 0) (mirror y) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no)
-    (uuid 37ff46ab-cfee-4e9b-b113-0369b5e1fc27)
-    (property "Reference" "#PWR0924" (at 226.06 54.61 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Value" "GND" (at 225.933 52.6542 0)
-      (effects (font (size 1.27 1.27)))
-    )
-    (property "Footprint" "" (at 226.06 48.26 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "" (at 226.06 48.26 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (pin "1" (uuid 7e988f20-4ac8-4248-91cb-4d3b0a07fdfa))
-    (instances
-      (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "#PWR0924") (unit 1)
-        )
-      )
-      (project "openX65-vabo"
-        (path "/b8085944-4b3e-4781-a52b-94fe64f9a100/24ab6e58-c39a-4580-a4ca-24b4eca62ff3"
-          (reference "#PWR0419") (unit 1)
         )
       )
     )

@@ -6,7 +6,7 @@
 
   (title_block
     (title "X65-SBC")
-    (date "2023-12-29")
+    (date "2024-01-10")
     (rev "revA1")
     (company "FOR X65.EU DESIGNED BY JSYKORA.INFO")
     (comment 1 "Power supplies 3.3V and 1.2V")
@@ -1074,7 +1074,7 @@
   (symbol (lib_id "Device:C") (at 97.155 47.625 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 29b64e0b-ff59-4b89-8456-0fed028b681f)
-    (property "Reference" "C510" (at 89.535 46.355 0)
+    (property "Reference" "C705" (at 89.535 46.355 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Value" "1u" (at 92.075 48.26 0)
@@ -1090,9 +1090,6 @@
     (pin "2" (uuid e629f613-fc56-4a0c-b3d4-73448b1498f9))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/3a4f5a92-8b22-4d71-ac4e-37e2fe30ebbe"
-          (reference "C510") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/a59c40b6-4c79-43f8-90db-e6d1d1476407"
           (reference "C705") (unit 1)
         )
@@ -1566,6 +1563,31 @@
     )
   )
 
+  (symbol (lib_id "power:GND") (at 114.3 147.32 270) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no)
+    (uuid ae665fd7-204c-43e7-936e-89ae75ef9014)
+    (property "Reference" "#PWR0718" (at 107.95 147.32 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Value" "GND" (at 106.68 147.32 90)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "" (at 114.3 147.32 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "" (at 114.3 147.32 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 722b9d93-aa40-426e-8830-8fbf02812022))
+    (instances
+      (project "x65-sbc-revA1"
+        (path "/85750bea-43a1-4629-9575-611e72af7f9f/a59c40b6-4c79-43f8-90db-e6d1d1476407"
+          (reference "#PWR0718") (unit 1)
+        )
+      )
+    )
+  )
+
   (symbol (lib_id "Device:C") (at 137.795 54.61 90) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid aeec6ccd-99eb-4422-b6c6-3874af586db3)
@@ -1815,6 +1837,31 @@
       (project "x65-sbc-revA1"
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/a59c40b6-4c79-43f8-90db-e6d1d1476407"
           (reference "J703") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "Connector_Generic:Conn_01x01") (at 119.38 147.32 0) (unit 1)
+    (in_bom no) (on_board yes) (dnp yes) (fields_autoplaced)
+    (uuid e1646c1d-273d-46b4-a8ba-f1e0e0f0ed1b)
+    (property "Reference" "J704" (at 121.92 146.0499 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "Conn_01x01" (at 121.92 148.5899 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical" (at 119.38 147.32 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 119.38 147.32 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 219b9fc2-8f34-43be-b631-a00ee65ba004))
+    (instances
+      (project "x65-sbc-revA1"
+        (path "/85750bea-43a1-4629-9575-611e72af7f9f/a59c40b6-4c79-43f8-90db-e6d1d1476407"
+          (reference "J704") (unit 1)
         )
       )
     )

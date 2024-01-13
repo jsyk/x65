@@ -6,7 +6,7 @@
 
   (title_block
     (title "X65-SBC")
-    (date "2023-12-29")
+    (date "2024-01-10")
     (rev "revA1")
     (company "FOR X65.EU DESIGNED BY JSYKORA.INFO")
     (comment 1 "VERA FPGA - VGA Adapter")
@@ -5561,7 +5561,7 @@
   (symbol (lib_id "Device:R_Small") (at 225.425 145.415 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 09526955-2421-45c8-b253-393a9b66a06c)
-    (property "Reference" "R331" (at 225.425 140.4366 90)
+    (property "Reference" "R828" (at 225.425 140.4366 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "150R" (at 225.425 142.748 90)
@@ -5577,9 +5577,6 @@
     (pin "2" (uuid f3b70216-a41a-4ea1-ae7a-f698a1494f79))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R331") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R828") (unit 1)
         )
@@ -5625,7 +5622,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 99.695 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 0f765ee1-7422-48cd-8458-a42a2206fbfc)
-    (property "Reference" "R313" (at 218.44 94.7166 90)
+    (property "Reference" "R812" (at 218.44 94.7166 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "510R" (at 218.44 97.028 90)
@@ -5641,9 +5638,6 @@
     (pin "2" (uuid ac24eff0-0f9d-4d42-9445-9a441ac7b5c9))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R313") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R812") (unit 1)
         )
@@ -5798,7 +5792,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 153.035 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 29f60852-4638-4dfb-9a3c-370129d96ef9)
-    (property "Reference" "R320" (at 218.44 148.0566 90)
+    (property "Reference" "R819" (at 218.44 148.0566 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "4k3" (at 218.44 150.368 90)
@@ -5814,9 +5808,6 @@
     (pin "2" (uuid 1a74befd-318f-4db7-a650-94e090a3fd17))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R320") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R819") (unit 1)
         )
@@ -5832,7 +5823,7 @@
   (symbol (lib_id "Connector:DB15_Female_HighDensity_MountingHoles") (at 254.635 86.995 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 3072f5f1-85d5-41d6-8bf1-8b03c97bb83e)
-    (property "Reference" "J303" (at 254.635 64.9732 0)
+    (property "Reference" "J801" (at 254.635 64.9732 0)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "ICD15S13E4GV00LF" (at 259.08 67.31 0)
@@ -5862,9 +5853,6 @@
     (pin "9" (uuid dcca6dd8-c0ce-4c94-a751-f72ce784df08))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "J303") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "J801") (unit 1)
         )
@@ -5880,7 +5868,7 @@
   (symbol (lib_id "power:GND") (at 238.76 98.425 0) (mirror y) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 307cf18c-b5a3-4eda-b866-443de6af6c20)
-    (property "Reference" "#PWR0312" (at 238.76 104.775 0)
+    (property "Reference" "#PWR0814" (at 238.76 104.775 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (at 238.633 102.8192 0)
@@ -5895,9 +5883,6 @@
     (pin "1" (uuid 00e87182-c726-48dc-a7a4-70aff3b307b9))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "#PWR0312") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "#PWR0814") (unit 1)
         )
@@ -5944,7 +5929,7 @@
   (symbol (lib_id "Device:R_Small") (at 225.425 76.835 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 3706db88-91b5-4b08-bcf1-ab328a4326a2)
-    (property "Reference" "R324" (at 225.425 71.8566 90)
+    (property "Reference" "R821" (at 225.425 71.8566 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "160R" (at 225.425 74.168 90)
@@ -5960,9 +5945,6 @@
     (pin "2" (uuid 783f52cb-9999-4ee2-9708-ceb4c90b1536))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R324") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R821") (unit 1)
         )
@@ -6009,7 +5991,7 @@
   (symbol (lib_id "Device:R_Small") (at 260.985 113.665 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 40a9aa68-5190-44bc-87e8-fbd9b49ed909)
-    (property "Reference" "R321" (at 260.985 108.6866 90)
+    (property "Reference" "R829" (at 260.985 108.6866 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "820R" (at 260.985 110.998 90)
@@ -6025,9 +6007,6 @@
     (pin "2" (uuid 9f46892b-5285-4360-a87e-e53f712b5f87))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R321") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R829") (unit 1)
         )
@@ -6074,7 +6053,7 @@
   (symbol (lib_id "Device:R_Small") (at 225.425 99.695 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 4679044b-9778-4b66-abf6-144ffbb14308)
-    (property "Reference" "R326" (at 225.425 94.7166 90)
+    (property "Reference" "R823" (at 225.425 94.7166 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "27R" (at 225.425 97.028 90)
@@ -6090,9 +6069,6 @@
     (pin "2" (uuid 8a3f71d1-3b41-4825-8f0a-505f361e7ade))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R326") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R823") (unit 1)
         )
@@ -6139,7 +6115,7 @@
   (symbol (lib_id "power:+5V") (at 247.015 89.535 90) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 48818887-03e6-4942-9fde-eea95623f66d)
-    (property "Reference" "#PWR0503" (at 250.825 89.535 0)
+    (property "Reference" "#PWR0815" (at 250.825 89.535 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "+5V" (at 241.935 89.535 90)
@@ -6154,9 +6130,6 @@
     (pin "1" (uuid f8dce38f-e1b8-4b25-aa6d-20b18e656acb))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "#PWR0503") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "#PWR0815") (unit 1)
         )
@@ -6206,7 +6179,7 @@
   (symbol (lib_id "Device:R_Small") (at 225.425 84.455 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 64edbfae-aa73-4398-b816-ecd00edfb374)
-    (property "Reference" "R325" (at 225.425 79.4766 90)
+    (property "Reference" "R822" (at 225.425 79.4766 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "150R" (at 225.425 81.788 90)
@@ -6222,9 +6195,6 @@
     (pin "2" (uuid 12724da1-8d3f-41fe-aa41-99dc9b8e3c8d))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R325") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R822") (unit 1)
         )
@@ -6240,7 +6210,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 137.795 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 66e5bdb6-92dd-4d5e-b279-5165b0968186)
-    (property "Reference" "R318" (at 218.44 132.8166 90)
+    (property "Reference" "R817" (at 218.44 132.8166 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "910R" (at 218.44 135.128 90)
@@ -6256,9 +6226,6 @@
     (pin "2" (uuid 559f58d1-a736-4111-909f-c3aad5943544))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R318") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R817") (unit 1)
         )
@@ -6274,7 +6241,7 @@
   (symbol (lib_id "Device:R_Small") (at 225.425 69.215 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 68bd92fb-34e0-4ba2-ac82-a9e7cf829faf)
-    (property "Reference" "R323" (at 225.425 64.2366 90)
+    (property "Reference" "R820" (at 225.425 64.2366 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "27R" (at 225.425 66.548 90)
@@ -6290,9 +6257,6 @@
     (pin "2" (uuid 39a25e79-7f46-4bd8-a3bf-ef1e139ec144))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R323") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R820") (unit 1)
         )
@@ -6338,7 +6302,7 @@
   (symbol (lib_id "Device:R_Small") (at 225.425 130.175 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 76df2076-7fff-4e52-aad8-e238eac3d926)
-    (property "Reference" "R329" (at 225.425 125.1966 90)
+    (property "Reference" "R826" (at 225.425 125.1966 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "27R" (at 225.425 127.508 90)
@@ -6354,9 +6318,6 @@
     (pin "2" (uuid df2e6f57-ece3-4d50-b015-98dff388c413))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R329") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R826") (unit 1)
         )
@@ -6586,7 +6547,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 69.215 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid a0364cb8-37bb-45e9-a360-53a7234def1a)
-    (property "Reference" "R309" (at 218.44 64.2366 90)
+    (property "Reference" "R808" (at 218.44 64.2366 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "510R" (at 218.44 66.548 90)
@@ -6602,9 +6563,6 @@
     (pin "2" (uuid cbae15fa-3443-42ba-8c64-1dd56fef7494))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R309") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R808") (unit 1)
         )
@@ -6744,7 +6702,7 @@
   (symbol (lib_id "Device:R_Small") (at 225.425 107.315 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid b1da4f8c-d9cc-4349-9c88-3a3f1cb834cf)
-    (property "Reference" "R327" (at 225.425 102.3366 90)
+    (property "Reference" "R824" (at 225.425 102.3366 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "160R" (at 225.425 104.648 90)
@@ -6760,9 +6718,6 @@
     (pin "2" (uuid 5b25e9e0-3346-46c9-849a-0bbdc181b3ee))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R327") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R824") (unit 1)
         )
@@ -6809,7 +6764,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 107.315 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid b9f1ca48-05c2-4ab4-80fa-1e6e222ade0f)
-    (property "Reference" "R314" (at 218.44 102.3366 90)
+    (property "Reference" "R813" (at 218.44 102.3366 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "910R" (at 218.44 104.648 90)
@@ -6825,9 +6780,6 @@
     (pin "2" (uuid 62089185-0537-450a-9bc0-ff3dff0af3c8))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R314") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R813") (unit 1)
         )
@@ -6843,7 +6795,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 84.455 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid bed4d392-e0fe-4571-8d71-0ac6875f9aa2)
-    (property "Reference" "R311" (at 218.44 79.4766 90)
+    (property "Reference" "R810" (at 218.44 79.4766 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "2k" (at 218.44 81.788 90)
@@ -6859,9 +6811,6 @@
     (pin "2" (uuid ce8f228e-75b1-47db-9a8e-0d114bfd4b89))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R311") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R810") (unit 1)
         )
@@ -6938,7 +6887,7 @@
   (symbol (lib_id "Device:R_Small") (at 225.425 114.935 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid c7a93e42-f7e5-4626-b9cb-e09555d2a4d1)
-    (property "Reference" "R328" (at 225.425 109.9566 90)
+    (property "Reference" "R825" (at 225.425 109.9566 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "150R" (at 225.425 112.268 90)
@@ -6954,9 +6903,6 @@
     (pin "2" (uuid 914a1682-b766-4c7c-bbe5-03defd6d11f0))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R328") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R825") (unit 1)
         )
@@ -7002,7 +6948,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 122.555 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid cc749bff-8d8d-4ec9-b6f5-f6d551c2124c)
-    (property "Reference" "R316" (at 218.44 117.5766 90)
+    (property "Reference" "R815" (at 218.44 117.5766 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "4k3" (at 218.44 119.888 90)
@@ -7018,9 +6964,6 @@
     (pin "2" (uuid bd0231f2-aa23-49ff-8a9c-e2245d009a90))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R316") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R815") (unit 1)
         )
@@ -7036,7 +6979,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 130.175 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid cddc7fa3-7d40-415d-9399-745e29cf339a)
-    (property "Reference" "R317" (at 218.44 125.1966 90)
+    (property "Reference" "R816" (at 218.44 125.1966 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "510R" (at 218.44 127.508 90)
@@ -7052,9 +6995,6 @@
     (pin "2" (uuid ca8ca6ae-42de-4430-8ee7-f04d59918175))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R317") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R816") (unit 1)
         )
@@ -7070,7 +7010,7 @@
   (symbol (lib_id "Device:R_Small") (at 260.985 121.285 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid d3f55748-67cd-4322-878d-541889251ece)
-    (property "Reference" "R322" (at 260.985 116.3066 90)
+    (property "Reference" "R830" (at 260.985 116.3066 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "820R" (at 260.985 118.618 90)
@@ -7086,9 +7026,6 @@
     (pin "2" (uuid e18bae0b-77c1-447e-bcbd-d4eeb99eecbf))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R322") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R830") (unit 1)
         )
@@ -7104,7 +7041,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 114.935 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid d5539ef7-db28-4792-856d-8c96875928f9)
-    (property "Reference" "R315" (at 218.44 109.9566 90)
+    (property "Reference" "R814" (at 218.44 109.9566 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "2k" (at 218.44 112.268 90)
@@ -7120,9 +7057,6 @@
     (pin "2" (uuid 5e61d2ea-e12d-4f32-ae61-16831a729135))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R315") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R814") (unit 1)
         )
@@ -7138,7 +7072,7 @@
   (symbol (lib_id "power:GND") (at 254.635 104.775 0) (mirror y) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid d818a78c-c580-4e82-ac4d-55a09944bd3f)
-    (property "Reference" "#PWR0313" (at 254.635 111.125 0)
+    (property "Reference" "#PWR0816" (at 254.635 111.125 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (at 254.508 109.1692 0)
@@ -7153,9 +7087,6 @@
     (pin "1" (uuid 14dd7208-45f1-4fce-80b2-6f9dd1382614))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "#PWR0313") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "#PWR0816") (unit 1)
         )
@@ -7171,7 +7102,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 145.415 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid dae30ce7-957e-473d-890b-5eb395a651dc)
-    (property "Reference" "R319" (at 218.44 140.4366 90)
+    (property "Reference" "R818" (at 218.44 140.4366 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "2k" (at 218.44 142.748 90)
@@ -7187,9 +7118,6 @@
     (pin "2" (uuid 05f77e91-6f00-4430-bb24-70f5c354b5ac))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R319") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R818") (unit 1)
         )
@@ -7298,7 +7226,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 76.835 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid f1218100-9d9e-463e-ad5b-f6d666bf1668)
-    (property "Reference" "R310" (at 218.44 71.8566 90)
+    (property "Reference" "R809" (at 218.44 71.8566 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "910R" (at 218.44 74.168 90)
@@ -7314,9 +7242,6 @@
     (pin "2" (uuid 742816f5-4811-405c-a0b1-06abd5518151))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R310") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R809") (unit 1)
         )
@@ -7392,7 +7317,7 @@
   (symbol (lib_id "Device:R_Small") (at 218.44 92.075 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid f9b16a1a-2101-4891-98b0-98474601d7ba)
-    (property "Reference" "R312" (at 218.44 87.0966 90)
+    (property "Reference" "R811" (at 218.44 87.0966 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "4k3" (at 218.44 89.408 90)
@@ -7408,9 +7333,6 @@
     (pin "2" (uuid a4e69cae-708e-40b6-8fbf-10eb7d72d5d7))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R312") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R811") (unit 1)
         )
@@ -7426,7 +7348,7 @@
   (symbol (lib_id "Device:R_Small") (at 225.425 137.795 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid fe05d826-2291-45f9-a266-e9b3e5a3b4ec)
-    (property "Reference" "R330" (at 225.425 132.8166 90)
+    (property "Reference" "R827" (at 225.425 132.8166 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "160R" (at 225.425 135.128 90)
@@ -7442,9 +7364,6 @@
     (pin "2" (uuid ad92df6a-9923-49b6-9014-a972920eeeab))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/00150742-fc5e-4d8a-b33f-e79b4d66582a"
-          (reference "R330") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/ccadd080-4540-46b4-871b-c090a4eaa310"
           (reference "R827") (unit 1)
         )

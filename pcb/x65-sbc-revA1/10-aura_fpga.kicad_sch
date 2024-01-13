@@ -6,7 +6,7 @@
 
   (title_block
     (title "X65-SBC")
-    (date "2023-12-29")
+    (date "2024-01-10")
     (rev "revA1")
     (company "FOR X65.EU DESIGNED BY JSYKORA.INFO")
     (comment 1 "AURA FPGA - OPM Sound Adapter")
@@ -1018,7 +1018,10 @@
   )
 
   (no_connect (at 56.515 90.805) (uuid 24d1971c-058d-4c8e-9473-6f5d56f418bd))
+  (no_connect (at 191.77 62.23) (uuid 3d42c528-1a43-4966-9e69-88f258b79337))
+  (no_connect (at 191.77 54.61) (uuid 503aeebb-543f-4a0b-91bd-61ad4503c1f6))
   (no_connect (at 56.515 88.265) (uuid 76a7c53b-64f6-42a9-a6c9-37c4bbf90849))
+  (no_connect (at 191.77 52.07) (uuid 89e7f1b6-685c-43c0-9bbe-5444df35c6d0))
   (no_connect (at 56.515 85.725) (uuid 9dfe0a6e-ff83-4617-b8af-b92933691aeb))
   (no_connect (at 116.84 55.245) (uuid a76231d4-01c1-4b59-ad58-0f8e5ddb6f0e))
 
@@ -1494,6 +1497,10 @@
   (text "package QFN-48" (at 59.69 100.965 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid a682eb1f-099a-4a17-8dfc-f027a5b690d0)
+  )
+  (text "\"SDC ACTIVITY\"" (at 137.16 153.67 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid b0b73149-2c0b-40a3-8f1b-f28c0a0521c6)
   )
   (text "AURA Bypass" (at 69.215 170.18 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
@@ -2236,12 +2243,12 @@
   )
 
   (symbol (lib_id "Device:R") (at 193.675 127.635 0) (mirror y) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (in_bom yes) (on_board yes) (dnp no)
     (uuid 2cf43fbe-eb30-4522-8914-fa0429a835c3)
-    (property "Reference" "R1010" (at 196.215 126.3649 0)
+    (property "Reference" "R1010" (at 186.055 125.73 0)
       (effects (font (size 1.27 1.27)) (justify right))
     )
-    (property "Value" "10k" (at 196.215 128.9049 0)
+    (property "Value" "10k" (at 186.055 128.27 0)
       (effects (font (size 1.27 1.27)) (justify right))
     )
     (property "Footprint" "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder" (at 195.453 127.635 90)
@@ -2608,7 +2615,7 @@
   (symbol (lib_id "Device:LED") (at 143.51 146.685 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 44fc0141-cbf4-4666-ad75-e38ada92c41e)
-    (property "Reference" "D402" (at 141.9225 139.7 0)
+    (property "Reference" "D1003" (at 141.9225 139.7 0)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "AA4040LCGCK-AMT" (at 144.145 142.875 0)
@@ -2624,9 +2631,6 @@
     (pin "2" (uuid 6efe4106-aaa1-4c19-a37f-789fb134baac))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/a0a926f8-222f-4537-8c1a-4e84db3f94e8"
-          (reference "D402") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/2791830c-aa1e-450d-95c0-111f156ac8ab"
           (reference "D1003") (unit 1)
         )
@@ -2953,7 +2957,7 @@
   (symbol (lib_id "Device:R") (at 128.27 138.43 90) (unit 1)
     (in_bom no) (on_board yes) (dnp yes)
     (uuid 803df208-53e2-4161-8c05-c0f00aed74c1)
-    (property "Reference" "R415" (at 128.27 135.89 90)
+    (property "Reference" "R1015" (at 128.27 135.89 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "470R" (at 128.27 140.97 90)
@@ -2969,9 +2973,6 @@
     (pin "2" (uuid 68dfa927-debf-44ac-89f6-3d9ac5f6b9a7))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/a0a926f8-222f-4537-8c1a-4e84db3f94e8"
-          (reference "R415") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/2791830c-aa1e-450d-95c0-111f156ac8ab"
           (reference "R1015") (unit 1)
         )
@@ -3249,7 +3250,7 @@
   (symbol (lib_id "Device:R") (at 128.27 146.685 90) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid a2200f83-8744-4033-8b34-824da6047809)
-    (property "Reference" "R415" (at 128.27 144.145 90)
+    (property "Reference" "R1014" (at 128.27 144.145 90)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "470R" (at 128.27 149.225 90)
@@ -3265,9 +3266,6 @@
     (pin "2" (uuid ad2903cc-50c7-4dc3-9298-590eeea90a9e))
     (instances
       (project "x65-sbc-revA1"
-        (path "/85750bea-43a1-4629-9575-611e72af7f9f/a0a926f8-222f-4537-8c1a-4e84db3f94e8"
-          (reference "R415") (unit 1)
-        )
         (path "/85750bea-43a1-4629-9575-611e72af7f9f/2791830c-aa1e-450d-95c0-111f156ac8ab"
           (reference "R1014") (unit 1)
         )
