@@ -4263,7 +4263,7 @@
     (property "Value" "PTS645VM13SMTR92 LFS" (at 187.96 100.965 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "switches:PTS645VM13SMTR92 LFS" (at 188.595 107.95 0)
+    (property "Footprint" "x65_footprints:PTS645VM13SMTR92 LFS" (at 188.595 107.95 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (at 188.595 107.95 0)
