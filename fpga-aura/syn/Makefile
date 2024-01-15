@@ -1,5 +1,6 @@
 PROJ = aura
 PIN_DEF = aura-vabo-rev01.pcf
+# PIN_DEF = aura-sbc-revA1.pcf
 DEVICE = up5k
 PACKAGE = sg48
 
@@ -9,7 +10,7 @@ IKAOPMSRC = ../IKAOPM/HDL/IKAOPM.v ../IKAOPM/HDL/IKAOPM_modules/IKAOPM_acc.v  ..
 		../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timer.v  ../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timinggen.v
 
 
-SYNSRC = $(IKAOPMSRC) ../src/aura.v ../src/i2s_encoder.v ../src/i2s_decoder.v
+SYNSRC = $(IKAOPMSRC) ../src/aura.v ../src/i2s_encoder.v ../src/i2s_decoder.v ../src/actblinker.v
 
 all: $(PROJ).rpt $(PROJ).bin
 

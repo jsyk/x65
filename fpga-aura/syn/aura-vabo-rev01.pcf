@@ -31,3 +31,8 @@ set_io      ASPI_MOSI   14
 set_io      ASPI_MISO   17
 set_io      ASPI_SCK    15
 set_io      AFLASH_SSELN    16
+
+# these are NOT implemented on VABO-rev01
+set_io      SD_SSELN    4
+set_io      MUTEN       3
+set_io      AURALED     19

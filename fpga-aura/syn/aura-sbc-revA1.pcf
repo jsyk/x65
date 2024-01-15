@@ -1,0 +1,38 @@
+# OpenX65 VABO rev 01 - AURA FPGA pins
+
+set_io      DB[0]       25
+set_io      MWRN        23
+set_io      DB[2]       27
+set_io      DB[1]       26
+set_io      VCS0N       28
+set_io      DB[3]       31
+set_io      DB[4]       32
+set_io      DB[5]       34
+set_io      DB[7]       37
+set_io      ASYSCLK     35
+set_io      DB[6]       36
+set_io      SD_SSELN    43
+set_io      MUTEN       38
+set_io      AURALED     42
+
+# set_io      ARSTN       8     # pin 8 cannot be assigned in UL
+set_io      IOCSN       6       # unused in SBC
+set_io      AUDIO_BCK   9
+set_io      VAUDIO_LRCK 10
+set_io      VAUDIO_DATA 11
+set_io      VAUDIO_BCK  12
+set_io      AB[4]       21
+set_io      AB[3]       13
+set_io      MRDN        20
+set_io      AB[2]       19
+set_io      AB[1]       18
+set_io      ASPI_MOSI   14
+set_io      ASPI_MISO   17
+set_io      ASPI_SCK    15
+set_io      AFLASH_SSELN    16
+
+set_io      ACS1N       46
+set_io      AIRQN       48
+set_io      AB[0]       45
+set_io      AUDIO_LRCK  4
+set_io      AUDIO_DATA  3

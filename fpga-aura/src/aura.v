@@ -23,6 +23,9 @@ module aura
     output       AUDIO_BCK,
     output       AUDIO_DATA,
     output       AUDIO_LRCK,
+    // SD-Card sense and LED output
+    input       SD_SSELN,
+    output      AURALED,
     // SPI Flash
     output      ASPI_MOSI,
     input       ASPI_MISO,
@@ -199,6 +202,27 @@ module aura
     // assign AUDIO_BCK = opm_right_chan[5];
     // assign AUDIO_DATA = opm_left_chan[7];
     // assign AUDIO_LRCK = opm_right_chan[9];
+
+    reg  sd_sseln_r;
+
+    always @(posedge clk) 
+    begin
+        sd_sseln_r <= SD_SSELN;
+    end
+
+    // activity-blinking on SD-Card access
+    actblinker ablink 
+    (
+        // Global Inputs
+        .clk        (clk),                        // 25MHz
+        .resetn     (resetn),                     // reset is active-low, synchronous with clk
+        // Blinking Enable (1), otherwise (0) the LED is off.
+        .blink_en   (~sd_sseln_r),
+        // LED output signal
+        .led_o      (AURALED)
+    );
+
+
 
     /* IOCSN gets activated in the address range 0x9F4C - 0x9F4F */
     assign IOCSN = ACS1N | ~AB[3] | ~AB[2];
