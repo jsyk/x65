@@ -85,8 +85,8 @@ module top (
     // input ICD2VERAROM,
 
     output VCS0n,               // VERA
-    output VCS1n,               // AURA, rename
-    output VCS2n,               // ENET, rename
+    output ACS1n,               // AURA, rename
+    output ECS2n,               // ENET, rename
     input VIRQn,            // IRQ from VERA & AURA & ENET, active low.
         // TBD: this is separated in SBC!!
 
@@ -452,8 +452,8 @@ module top (
         .sram_csn_o (M1CSn),           // SRAM chip-select
         // .via_csn_o (VIACS),             // VIA chip-select
         .vera_csn_o (VCS0n),              // VERA chip-select
-        .aio_csn_o (VCS1n),
-        .enet_csn_o (VCS2n),
+        .aio_csn_o (ACS1n),
+        .enet_csn_o (ECS2n),
         // Phaser for CPU clock
         .setup_cs (setup_cs),
         .release_wr (release_wr),

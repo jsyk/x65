@@ -108,11 +108,11 @@ set_io ICD2VERAROM  119
 set_io ICD_CSn      120
 set_io ICD_MOSI     121
 set_io ICD_MISO     122
-set_io VCS2n        124
+set_io ECS2n        124
 set_io VIRQn        125
 set_io ICD_SCK      128
 set_io FPGACLK      129
-set_io VCS1n        130
+set_io ACS1n        130
 set_io AUDIO_LRCK   134
 set_io VCS0n        135
 set_io AUDIO_DATA   136
