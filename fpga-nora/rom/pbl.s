@@ -19,11 +19,12 @@ VIA1_DDRB_REG = $9F02
 ; NORA registers:
 RAMBANK_MASK_REG = $9F50
 ; NORA SPI to access the SPI-Flash memory of NORA
-SPI_CTRLSTAT_REG = $9F52
-SPI_DATA_REG = $9F53
+SPI_CTRL_REG = $9F52
+SPI_STAT_REG = $9F53
+SPI_DATA_REG = $9F54
 
-; BUSY flag mask in the SPI_CTRLSTAT_REG
-SPI_CTRLSTAT__BUSY = (1 << 4)
+; BUSY flag mask in the SPI_STAT_REG
+SPI_STAT__BUSY = (1 << 7)
 
 ; Working Variables in the zero page
 LOAD_POINTER = $10          ; 2B
@@ -49,15 +50,15 @@ START:
 
     ; set SPI CONTROL REG: target the slave #1 = flash memory, at the normal speed (8MHz)
     LDA #$19
-    STA SPI_CTRLSTAT_REG
+    STA SPI_CTRL_REG
     ; send to the SPI Flash the 0xAB RELEASE FROM POWER DOWN
     LDA #$AB
     STA SPI_DATA_REG
-    ; wait until done - test the BUSY flag in SPI_CTRLSTAT_REG
+    ; wait until done - test the BUSY flag in SPI_STAT_REG
     JSR SPI_waitNonBusy
     ; de-select the SPI Flash to complete the release command in the flash
     LDA #$00
-    STA SPI_CTRLSTAT_REG
+    STA SPI_CTRL_REG
     ; 
     ; MIN 3 us WAIT NECESSARY HERE!
     LDA #32
@@ -67,7 +68,7 @@ L2_wait3us:
     
     ; set SPI CONTROL REG: target the slave #1 = flash memory, at the normal speed (8MHz)
     LDA #$19
-    STA SPI_CTRLSTAT_REG
+    STA SPI_CTRL_REG
     ; send to the SPI Flash the command = 0x03 READ DATA
     LDA #$03
     STA SPI_DATA_REG
@@ -136,7 +137,7 @@ L1:
 
     ; de-select the SPI Flash
     LDA #$00
-    STA SPI_CTRLSTAT_REG
+    STA SPI_CTRL_REG
 
     ; load target ROMBANK => 0
     LDA #0
@@ -196,10 +197,10 @@ L1_load_8kB:
 
 
 ; SUBROUTINE ---------------------------------------------------
-; Wait until SPI is done - test the BUSY flag in SPI_CTRLSTAT_REG
+; Wait until SPI is done - test the BUSY flag in SPI_STAT_REG
 SPI_waitNonBusy:
-    LDA SPI_CTRLSTAT_REG
-    AND #SPI_CTRLSTAT__BUSY
+    LDA SPI_STAT_REG
+    AND #SPI_STAT__BUSY
     BNE SPI_waitNonBusy          ; loop while BUSY is not Zero
     ; done.
     RTS

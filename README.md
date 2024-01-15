@@ -30,6 +30,10 @@ See the section `Status of hardware testing' below.
 
 ----------------------------------------------------------------------------
 
+3D-render of the SBC version - a work in progress:
+
+![Version SBC - in progress](pcb/x65-sbc-revA1/pictures/sbc-render-1.png)
+
 
 General Project Features:
 -------------------------

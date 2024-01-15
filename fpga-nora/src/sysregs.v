@@ -20,9 +20,12 @@ module sysregs (
     // SPI Master interface for accessing the flash memory
     output [7:0]    spireg_d_o,            // read data output from the core (from the CONTROL or DATA REG)
     input  [7:0]    spireg_d_i,            // write data input to the core (to the CONTROL or DATA REG)
-    output          spireg_wr_i,           // write signal
-    output          spireg_rd_i,           // read signal
-    output          spireg_ad_i,            // target register select: 0=CONTROL REG, 1=DATA REG.
+    output          spireg_wr_o,           // write signal
+    output          spireg_rd_o,           // read signal
+    // output          spireg_ad_i,            // target register select: 0=CONTROL REG, 1=DATA REG.
+    output reg      spireg_cs_ctrl_o,
+    output reg      spireg_cs_stat_o,
+    output reg      spireg_cs_data_o,
     // USB UART
     input [7:0]     usbuart_d_i,            // read data output from the core (from the CONTROL or DATA REG)
     output [7:0]    usbuart_d_o,            // write data input to the core (to the CONTROL or DATA REG)
@@ -35,28 +38,41 @@ module sysregs (
 );
     // IMPLEMENTATION
 
-    reg spireg_cs;
+    // reg spireg_cs;
     reg rambank_mask_cs;
 
 
     // calculate the slave data read output
-    always @(slv_addr_i, rambank_mask_o, spireg_d_i, slv_req_i, usbuart_d_i) 
+    // always @(slv_addr_i, rambank_mask_o, spireg_d_i, slv_req_i, usbuart_d_i) 
+    always @(*) 
     begin
         slv_datard_o = 8'h00;
-        spireg_cs = 0;
+        // spireg_cs = 0;
         rambank_mask_cs = 0;
         usbuart_cs_ctrl_o = 0;
         usbuart_cs_stat_o = 0;
         usbuart_cs_data_o = 0;
+        spireg_cs_ctrl_o = 0;
+        spireg_cs_stat_o = 0;
+        spireg_cs_data_o = 0;
 
         case (slv_addr_i ^ 5'b10000)
             5'h00: begin            // 0x9F50
                 slv_datard_o = rambank_mask_o;       // RAMBANK_MASK
                 rambank_mask_cs = slv_req_i;
             end
-            5'h02, 5'h03: begin     // 0x9F52, 9F53
+            5'h02: begin        // $9F52        N_SPI_CTRL
                 slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
-                spireg_cs = slv_req_i;
+                spireg_cs_ctrl_o = slv_req_i;
+            end
+            5'h03: begin        // $9F53        N_SPI_STAT
+                slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
+                spireg_cs_stat_o = slv_req_i;
+            end
+            5'h04: begin        // $9F54        N_SPI_DATA
+                slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
+                // spireg_cs = slv_req_i;
+                spireg_cs_data_o = slv_req_i;
             end
             5'h05: begin        // $9F55           USB_UART_CTRL
                 slv_datard_o = usbuart_d_i;
@@ -74,13 +90,15 @@ module sysregs (
     end
 
     assign spireg_d_o = slv_datawr_i;
-    assign spireg_wr_i = spireg_cs && !slv_rwn_i && slv_datawr_valid;
-    assign spireg_rd_i = spireg_cs && slv_rwn_i && slv_datawr_valid;
-    assign spireg_ad_i = slv_addr_i[0];
+    wire spireg_cs = (spireg_cs_ctrl_o | spireg_cs_data_o | spireg_cs_stat_o);
+    assign spireg_wr_o = spireg_cs && !slv_rwn_i && slv_datawr_valid;
+    assign spireg_rd_o = spireg_cs && slv_rwn_i && slv_datawr_valid;
+    // assign spireg_ad_i = slv_addr_i[0];
 
     assign usbuart_d_o = slv_datawr_i;
-    assign usbuart_wr_o = (usbuart_cs_ctrl_o | usbuart_cs_stat_o | usbuart_cs_data_o) && !slv_rwn_i && slv_datawr_valid;
-    assign usbuart_rd_o = (usbuart_cs_ctrl_o | usbuart_cs_stat_o | usbuart_cs_data_o) && slv_rwn_i && slv_datawr_valid;
+    wire usbuart_cs = (usbuart_cs_ctrl_o | usbuart_cs_stat_o | usbuart_cs_data_o);
+    assign usbuart_wr_o = usbuart_cs && !slv_rwn_i && slv_datawr_valid;
+    assign usbuart_rd_o = usbuart_cs && slv_rwn_i && slv_datawr_valid;
 
     // registers
     always @(posedge clk)

@@ -6,36 +6,36 @@
  *
  * TBD: IRQ support
  *
- * CONTROL & STATUS REGISTER @ $9F52:
- *  - CPU *Writing* -> control bits:
- *      [7:6] = 00 PAGE:TARGET/SPEED CONTROL
- *      [5:3] = set the SPI speed - clock frequency (prescaller)
- *                  000 = 100kHz
- *                  001 = 400kHz
- *                  010 = 1MHz
- *                  011 = 8MHz
- *                  100 = 24MHz
- *                  other = reserved.
- *                  
- *      [2:0] = set the target SPI slave (1-7), or no slave (CS high) when 0.
- *                  000 = no slave (all deselect)
- *                  001 = UNIFIED ROM = NORA's SPI-Flash
- *                  other = reserved.
- *
- *      [7:6] = 01 EXECUTE PULL -- TBD/reserved
- *      [5:0] = tbd
- *
- *  - CPU *reading* -> status bits:
- *      [0] = RX FIFO empty?
- *      [1] = RX FIFO full?
- *      [2] = TX FIFO empty?
- *      [3] = TX FIFO full?
- *      [4] = BUSY - TX/RX is in progress
- *      [7:5] = reserved, 0
- *
- * DATA REGISTER @ $9F53:
- *  - CPU reading dequeues from the RX FIFO
- *  - CPU writing enqueues to the TX FIFO
+    Address         Reg.name            Bits        Description
+    $9F52           N_SPI_CTRL
+                                        [7:6] = reserved, 0
+                                        TBD: IRQ???
+                                        [5:3] = set the SPI speed - SCK clock frequency:
+                                                000 = 100kHz
+                                                001 = 400kHz
+                                                010 = 1MHz
+                                                011 = 8MHz
+                                                100 = 24MHz
+                                                other = reserved.
+                   
+                                        [2:0] = set the target SPI slave (1-7), or no slave (CS high) when 0.
+                                                000 = no slave (all deselect)
+                                                001 = UNIFIED ROM = NORA's SPI-Flash
+                                                010 = UEXT SPI-Bus
+                                                other = reserved.
+
+    $9F53           N_SPI_STAT                      SPI Status
+                                        [0] = Is RX FIFO empty?
+                                        [1] = Is RX FIFO full?
+                                        [2] = Is TX FIFO empty?
+                                        [3] = Is TX FIFO full?
+                                        [4] = reserved, 0
+                                        [5] = reserved, 0
+                                        [6] = reserved, 0
+                                        [7] = Is BUSY - is TX/RX in progress?
+
+    $9F54           N_SPI_DATA                      Reading dequeues data from the RX FIFO.
+                                                    Writing enqueues to the TX FIFO.
  */
 module spi_host #(
     parameter NUM_TARGETS = 1,                // number of supported targets (slaves), min 1.
@@ -67,12 +67,15 @@ module spi_host #(
     input  [7:0]    reg_d_i,            // write data input to the core (to the CONTROL or DATA REG)
     input           reg_wr_i,           // write signal
     input           reg_rd_i,           // read signal
-    input           reg_ad_i            // target register select: 0=CONTROL REG, 1=DATA REG.
+    // input           reg_ad_i            // target register select: 0=CONTROL REG, 1=DATA REG.
+    input           spireg_cs_ctrl_i,
+    input           spireg_cs_stat_i,
+    input           spireg_cs_data_i
 );
     // IMPLEMENTATION
 
     // write enqueue signal to the TX FIFO: when Writing to the DATA REG
-    wire txf_enq = reg_wr_i && reg_ad_i && !txf_full;
+    wire txf_enq = reg_wr_i && spireg_cs_data_i && !txf_full;
     // read dequeue signal for the TXFIFO: when we request SPI-TX and it is Ready now.
     wire txf_deq = sm_tx_en_o && sm_tx_ready_i;
     // status output from TX FIFO
@@ -108,7 +111,7 @@ module spi_host #(
     wire rxf_empty;
     
     // read (dequeue) data from the RX FIFO: when Reading from the DATA REG
-    wire rxf_deq = reg_rd_i && reg_ad_i && !rxf_empty;
+    wire rxf_deq = reg_rd_i && spireg_cs_data_i && !rxf_empty;
     wire [7:0] rxf_rdata;
 
     // Receive bytes FIFO
@@ -132,10 +135,19 @@ module spi_host #(
         .count_o ()       // count of elements in the FIFO now; mind the width of the reg!
     );
 
+    // STATUS_REG contents:
+    wire [7:0] statusr = { sm_rxtx_busy_i, 3'b000, txf_full, txf_empty, rxf_full, rxf_empty };
+
+    // CONTROL_REG contents:
+    wire [7:0] controlr = { 2'b00, slave_speed_r, slave_addr_r };
+
     // calculate REG READ output:
     // AD = 1 -> RX FIFO output data
     // AD = 0 -> STATUS REG
-    assign reg_d_o = (reg_ad_i) ? rxf_rdata : { 3'b000, sm_rxtx_busy_i, txf_full, txf_empty, rxf_full, rxf_empty };
+    assign reg_d_o = (spireg_cs_data_i) ? rxf_rdata : 
+                        (spireg_cs_ctrl_i) ? controlr : 
+                        statusr;
+
 
     // CONTROL REGISTER HANDLING
     reg [2:0] slave_addr_r;
@@ -150,7 +162,7 @@ module spi_host #(
             slave_speed_r <= 0;
         end else begin
             // normal oper
-            if (reg_wr_i && !reg_ad_i)
+            if (reg_wr_i && spireg_cs_ctrl_i)
             begin
                 // CPU writing to CONTROL REG
                 slave_addr_r <= reg_d_i[2:0];
@@ -191,113 +203,3 @@ module spi_host #(
     end
 
 endmodule
-
-
-module spi_master_hostctrl
-#(
-    parameter NUM_TARGETS = 1,                // number of supported targets (slaves), min 1.
-    parameter RXFIFO_DEPTH_BITS = 4,
-    parameter TXFIFO_DEPTH_BITS = 4
-) (
-    // Global signals
-    input           clk,                    // 48MHz
-    input           resetn,                 // sync reset
-    //
-    // SPI Master Peripheral signals
-    output          spi_clk_o,
-    output   [NUM_TARGETS-1:0]   spi_csn_o,           // active low
-    output          spi_mosi_o,
-    output          spi_mosi_drive_o,
-    input           spi_miso_i,
-    //
-    // REGISTER INTERFACE
-    output [7:0]    reg_d_o,            // read data output from the core (from the CONTROL or DATA REG)
-    input  [7:0]    reg_d_i,            // write data input to the core (to the CONTROL or DATA REG)
-    input           reg_wr_i,           // write signal
-    input           reg_rd_i,           // read signal
-    input           reg_ad_i            // target register select: 0=CONTROL REG, 1=DATA REG.
-);
-
-    // SPI MASTER INTERFACE
-    // Prescaler for the SPI clock freq
-    wire [7:0]    sm_prescaler;
-    // Target addressing
-    wire [NUM_TARGETS-1:0]   sm_target_id;
-    wire          sm_target_en;         // bus enable -> generates csn signal to the target
-    // Data to send to the SPI bus to the addressed target
-    wire [7:0]    sm_tx_byte;          // transmit data byte
-    wire          sm_tx_en;            // flag: catch the transmit byte
-    wire           sm_tx_ready;         // flag: it is possible to enqueue next tx byte now.
-    // Received data from the SPI bus
-    wire [7:0]     sm_rx_byte;          // received byte data
-    wire           sm_rx_en;             // flag: received a byte
-    wire           sm_rxtx_busy;        // flag: ongoing SPI activity
-
-
-    spi_master #(
-        .NUM_TARGETS (NUM_TARGETS)                // number of supported targets (slaves), min 1.
-    ) spim
-    (
-        // Global signals
-        .clk (clk),                    // 48MHz
-        .resetn (resetn),                 // sync reset
-        // Prescaler for the SPI clock freq
-        .prescaler_i (sm_prescaler),
-        // SPI Master Peripheral signals
-        .spi_clk_o (spi_clk_o),
-        .spi_csn_o (spi_csn_o),           // active low
-        .spi_mosi_o (spi_mosi_o),
-        .spi_mosi_drive_o (spi_mosi_drive_o),
-        .spi_miso_i (spi_miso_i),
-        // Target addressing
-        .target_id_i (sm_target_id),
-        .target_en_i (sm_target_en),         // bus enable -> generates csn signal to the target
-        // Data to send to the SPI bus to the addressed target
-        .tx_byte_i (sm_tx_byte),          // transmit data byte
-        .tx_en_i (sm_tx_en),            // flag: catch the transmit byte
-        .tx_ready_o (sm_tx_ready),         // flag: it is possible to enqueue next tx byte now.
-        // Received data from the SPI bus
-        .rx_byte_o (sm_rx_byte),          // received byte data
-        .rx_en_o (sm_rx_en),            // flag: received a byte
-        .rxtx_busy_o (sm_rxtx_busy)           // flag: ongoing SPI activity
-    );
-
-
-
-    spi_host #(
-        .NUM_TARGETS (NUM_TARGETS),                // number of supported targets (slaves), min 1.
-        .RXFIFO_DEPTH_BITS (RXFIFO_DEPTH_BITS),
-        .TXFIFO_DEPTH_BITS (TXFIFO_DEPTH_BITS)
-    ) spihst (
-        // Global signals
-        .clk (clk),                    // 48MHz
-        .resetn (resetn),                 // sync reset
-        //
-        // SPI MASTER INTERFACE
-        // Prescaler for the SPI clock freq
-        .sm_prescaler_o (sm_prescaler),
-        // Target addressing
-        .sm_target_id_o (sm_target_id),
-        .sm_target_en_o (sm_target_en),         // bus enable -> generates csn signal to the target
-        // Data to send to the SPI bus to the addressed target
-        .sm_tx_byte_o (sm_tx_byte),          // transmit data byte
-        .sm_tx_en_o (sm_tx_en),            // flag: catch the transmit byte
-        .sm_tx_ready_i (sm_tx_ready),         // flag: it is possible to enqueue next tx byte now.
-        // Received data from the SPI bus
-        .sm_rx_byte_i (sm_rx_byte),          // received byte data
-        .sm_rx_en_i (sm_rx_en),             // flag: received a byte
-        .sm_rxtx_busy_i (sm_rxtx_busy),        // flag: ongoing SPI activity
-        //
-        // REGISTER INTERFACE
-        .reg_d_o (reg_d_o),            // read data output from the core (from the CONTROL or DATA REG)
-        .reg_d_i (reg_d_i),            // write data input to the core (to the CONTROL or DATA REG)
-        .reg_wr_i (reg_wr_i),           // write signal
-        .reg_rd_i (reg_rd_i),           // read signal
-        .reg_ad_i (reg_ad_i)            // target register select: 0=CONTROL REG, 1=DATA REG.
-    );
-
-
-endmodule
-
-
-

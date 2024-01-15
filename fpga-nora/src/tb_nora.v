@@ -158,19 +158,19 @@ module tb_nora ();
         .UART_RX ( USBUART_RX ),
 
     // VERA FPGA
-        .VERADONE (1'b1),
-        .VERARSTn (1'b1),
-        .VERAFCSn (1'b1),
-        .ICD2VERAROM (1'b1),
+        // .VERADONE (1'b1),
+        // .VERARSTn (1'b1),
+        // .VERAFCSn (1'b1),
+        // .ICD2VERAROM (1'b1),
 
         .VCS0n (VCS0n_VERA),
-        .VCS1n (VCS1n_AIO),
-        .VCS2n (VCS2n_ENET),
+        .ACS1n (VCS1n_AIO),
+        .ECS2n (VCS2n_ENET),
         .VIRQn (1'b1),
 
-        .AUDIO_DATA (AUDIO_DATA),          // was: VAUX0
-        .AUDIO_BCK (AUDIO_BCK),           // was: VAUX1
-        .AUDIO_LRCK (AUDIO_LRCK),          // was: VAUX2
+        // .AUDIO_DATA (AUDIO_DATA),          // was: VAUX0
+        // .AUDIO_BCK (AUDIO_BCK),           // was: VAUX1
+        // .AUDIO_LRCK (AUDIO_LRCK),          // was: VAUX2
 
     // ICD SPI-slave interface
         .ICD_CSn (ICD_CSn),
@@ -326,23 +326,23 @@ module tb_nora ();
         // ============================================
         // TEST OF SPI-MASTER 
         // activate SPI Master for flash access
-        cpu_write(16'h9F52, 8'b00_100_001);  #100; `assert(FLASHCSn, 0);
+        cpu_write(16'h9F52, 8'b00_100_001);  
+        cpu_read(16'h9F52);  `assert(tb_cpuDataRead, 8'b00_100_001);
+        `assert(FLASHCSn, 0);
         // write data to the SPI master DATA REG for TX
-        cpu_write(16'h9F53, 8'h03);  
-        cpu_write(16'h9F53, 8'h00);  
-        cpu_write(16'h9F53, 8'h00);  
-        // read SPIM CTR REG and poll until rx/tx is done
-        cpu_read(16'h9F52);
-        cpu_read(16'h9F52);
-        cpu_read(16'h9F52);
-        cpu_read(16'h9F52);
-        cpu_read(16'h9F52);
-        cpu_read(16'h9F52);
-        cpu_read(16'h9F52);
+        cpu_write(16'h9F54, 8'h03);  
+        cpu_write(16'h9F54, 8'h12);  
+        cpu_write(16'h9F54, 8'h34);  
+        // read SPIM STAT REG and poll until rx/tx is done
+        cpu_read(16'h9F53);
+        while (tb_cpuDataRead[7])   // bit [7] = Is BUSY?
+        begin
+            cpu_read(16'h9F53);
+        end
         // read SPI DATA REG to pull out the RX bytes
-        cpu_read(16'h9F53);
-        cpu_read(16'h9F53);
-        cpu_read(16'h9F53);
+        cpu_read(16'h9F54);  `assert(tb_cpuDataRead, ~8'h03);
+        cpu_read(16'h9F54);  `assert(tb_cpuDataRead, ~8'h12);
+        cpu_read(16'h9F54);  `assert(tb_cpuDataRead, ~8'h34);
 
         // ============================================
         // TEST OF USB-UART INTERFACE

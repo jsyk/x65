@@ -646,7 +646,10 @@ module top (
     wire  [7:0]    spireg_dw;            // write data input to the core (to the CONTROL or DATA REG)
     wire          spireg_wr;           // write signal
     wire          spireg_rd;           // read signal
-    wire          spireg_ad;           // target register select: 0=CONTROL REG, 1=DATA REG.
+    // wire          spireg_ad;           // target register select: 0=CONTROL REG, 1=DATA REG.
+    wire        spireg_cs_ctrl;
+    wire        spireg_cs_stat;
+    wire        spireg_cs_data;
 
     spi_master_hostctrl
     #(
@@ -671,7 +674,10 @@ module top (
         .reg_d_i (spireg_dw),            // write data input to the core (to the CONTROL or DATA REG)
         .reg_wr_i (spireg_wr),           // write signal
         .reg_rd_i (spireg_rd),           // read signal
-        .reg_ad_i (spireg_ad)            // target register select: 0=CONTROL REG, 1=DATA REG.
+        // .reg_ad_i (spireg_ad)            // target register select: 0=CONTROL REG, 1=DATA REG.
+        .spireg_cs_ctrl_i (spireg_cs_ctrl),
+        .spireg_cs_stat_i (spireg_cs_stat),
+        .spireg_cs_data_i (spireg_cs_data)
     );
 
     // USB_UART REGISTER INTERFACE SIGNALS
@@ -737,9 +743,12 @@ module top (
         // SPI Master interface for accessing the flash memory
         .spireg_d_o (spireg_dw),            // read data output from the core (from the CONTROL or DATA REG)
         .spireg_d_i (spireg_dr),            // write data input to the core (to the CONTROL or DATA REG)
-        .spireg_wr_i (spireg_wr),           // write signal
-        .spireg_rd_i (spireg_rd),           // read signal
-        .spireg_ad_i (spireg_ad),            // target register select: 0=CONTROL REG, 1=DATA REG.
+        .spireg_wr_o (spireg_wr),           // write signal
+        .spireg_rd_o (spireg_rd),           // read signal
+        // .spireg_ad_i (spireg_ad),            // target register select: 0=CONTROL REG, 1=DATA REG.
+        .spireg_cs_ctrl_o (spireg_cs_ctrl),
+        .spireg_cs_stat_o (spireg_cs_stat),
+        .spireg_cs_data_o (spireg_cs_data),
         // USB UART
         .usbuart_d_i (usbuart_dr),            // read data output from the core (from the CONTROL or DATA REG)
         .usbuart_d_o (usbuart_dw),            // write data input to the core (to the CONTROL or DATA REG)
@@ -797,13 +806,12 @@ module top (
 
 
     // define unused output signals
-    assign VIACS = 1'b1;
+    // assign VIACS = 1'b1;
     // assign UART_TX = UART_RX;
     // assign UART_CTS = UART_RTS;
-    assign TCSn = 1'b1;
-    assign PERIRESn = 1'b1;
-    assign ILIDC = 1'b0;
-
-    assign ILICSn = nora_slv_req_VIA1;          // for debug
+    // assign TCSn = 1'b1;
+    // assign PERIRESn = 1'b1;
+    // assign ILIDC = 1'b0;
+    // assign ILICSn = nora_slv_req_VIA1;          // for debug
 
 endmodule
