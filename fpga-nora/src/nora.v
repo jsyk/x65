@@ -41,7 +41,7 @@ module top (
     // output VIAPHI2,         // TBD remove
     // output VIACS,           // TBD remove
     // input VIAIRQ,           // TBD remove
-    output PERIRESn,        // TBD maybe remove
+    // output PERIRESn,        // TBD maybe remove
 
     inout I2C_SCL,
     inout I2C_SDA,
@@ -55,9 +55,9 @@ module top (
     output CPULED1,
 
 // additional ILI SPI ports
-    output ILICSn,      // TBD remove
-    output ILIDC,       // TBD remove
-    output TCSn,        // TBD remove
+    // output ILICSn,      // TBD remove
+    // output ILIDC,       // TBD remove
+    // output TCSn,        // TBD remove
 
     input CPUTYPE02,        // board assembly CPU type: 0 => 65C816 (16b), 1 => 65C02 (8b)
 
@@ -79,19 +79,20 @@ module top (
     input UART_RX,
 
 // VERA FPGA
-    input VERADONE,
-    input VERARSTn,
-    input VERAFCSn,
-    input ICD2VERAROM,
+    // input VERADONE,
+    // input VERARSTn,
+    // input VERAFCSn,
+    // input ICD2VERAROM,
 
     output VCS0n,               // VERA
-    output VCS1n,               // AURA
-    output VCS2n,               // ENET
+    output VCS1n,               // AURA, rename
+    output VCS2n,               // ENET, rename
     input VIRQn,            // IRQ from VERA & AURA & ENET, active low.
+        // TBD: this is separated in SBC!!
 
-    output AUDIO_DATA,          // was: VAUX0
-    output AUDIO_BCK,           // was: VAUX1
-    output AUDIO_LRCK,          // was: VAUX2
+    // output AUDIO_DATA,          // was: VAUX0
+    // output AUDIO_BCK,           // was: VAUX1
+    // output AUDIO_LRCK,          // was: VAUX2
 
 // ICD SPI-slave interface
     input ICD_CSn,
@@ -109,6 +110,14 @@ module top (
     output FLASHCSn
 );
 // IMPLEMENTATION
+
+    // HACK!
+    // wire PS2K_CLKDR;      // TBD remove
+    // wire PS2K_DATADR;     // TBD remove
+    // wire PS2M_CLKDR;      // not used on the 1st PCB; TBD remove
+    // wire PS2M_DATADR;     // not used on the 1st PCB; TBD remove
+
+
     wire clk6x;
     wire clk6x_locked;
     wire rst_req;
