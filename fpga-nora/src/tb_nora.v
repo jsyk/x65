@@ -386,6 +386,18 @@ module tb_nora ();
         // cpu_read(16'h9F56); `assert(tb_cpuDataRead, 8'h84);     // RXFifoEmpty, TXfifoempty
 
         // ============================================
+        // TEST OF PS2 REGS
+        // read PS2_CTRL, expect 0
+        cpu_read(16'h9F5E); `assert(tb_cpuDataRead, 8'h00);
+        // write PS2_CTRL
+        cpu_write(16'h9F5E, 8'hFF);
+        // read PS2_CTRL, expect 11
+        cpu_read(16'h9F5E); `assert(tb_cpuDataRead, 8'h03);
+        // write to KBD buffer
+        cpu_write(16'h9F60, 8'hAA); 
+
+
+        // ============================================
         // test of IKAOPM
         // KC
         // cpu_write(16'h9F40, 8'h28);

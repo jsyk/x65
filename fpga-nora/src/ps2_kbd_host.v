@@ -1,3 +1,5 @@
+/* Copyright (c) 2023-2024 Jaroslav Sykora.
+ * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
  * Host controller for PS2 keyboard.
  *
@@ -23,6 +25,7 @@ module ps2_kbd_host #(
     //      0xFE => ERR received
     output reg [7:0] kbd_stat_o,
     output          kbd_bat_ok_o,      // received the BAT OK code (0xAA) from the keyboard
+    input           xlat_keycode_en_i,          // translate scancodes to keycodes
     // Write to keyboard:
     input [7:0]     kbd_wcmddata_i,           // byte for TX FIFO to send into PS2 keyboard
     input           kbd_enq_cmd1_i,           // enqueu 1Byte command
@@ -103,6 +106,10 @@ module ps2_kbd_host #(
             assign ps2k_keycodevalid = ps2k_rxcodevalid;
         end else begin
             // implement scancode to keycode translation in HW. Uff...
+
+            wire [7:0]  ps2k_keycode_tmp;        // received keycode
+            wire        ps2k_keycodevalid_tmp;   // validity flag of the keycode
+
             ps2_scancode_to_keycode sc2kc
             (
                 // Global signals
@@ -112,9 +119,12 @@ module ps2_kbd_host #(
                 .ps2k_scancode_i (ps2k_rxcode),        // received byte from PS2 port
                 .ps2k_scodevalid_i (ps2k_rxcodevalid),   // validity flag of the PS2 port received byte
                 // PS2 key code
-                .ps2k_keycode_o (ps2k_keycode),       // translated keycode
-                .ps2k_kcvalid_o (ps2k_keycodevalid)          // validity flag of keycode
+                .ps2k_keycode_o (ps2k_keycode_tmp),       // translated keycode
+                .ps2k_kcvalid_o (ps2k_keycodevalid_tmp)          // validity flag of keycode
             );
+
+            assign ps2k_keycode = (xlat_keycode_en_i) ?  ps2k_keycode_tmp : ps2k_rxcode;
+            assign ps2k_keycodevalid = (xlat_keycode_en_i) ? ps2k_keycodevalid_tmp : ps2k_rxcodevalid;
         end
     endgenerate
 

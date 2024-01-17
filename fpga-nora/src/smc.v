@@ -1,4 +1,4 @@
-/* Copyright (c) 2023 Jaroslav Sykora.
+/* Copyright (c) 2023-2024 Jaroslav Sykora.
  * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
  * System Management Controller defined by CX16.
@@ -42,9 +42,24 @@ module smc (
     input           PS2M_CLK,
     input           PS2M_DATA,
     output          PS2M_CLKDR0,
-    output          PS2M_DATADR0
+    output          PS2M_DATADR0,
+    //
+    // REGISTER INTERFACE FOR PS2
+    output reg [7:0] reg_d_o,            // read data output from the core (from the CONTROL or DATA REG)
+    input  [7:0]    reg_d_i,            // write data input to the core (to the CONTROL or DATA REG)
+    input           reg_wr_i,           // write signal
+    input           reg_rd_i,           // read signal
+    input           reg_cs_ctrl_i,           // target register select: CTRL REG
+    input           reg_cs_stat_i,            // target register select: STAT REG
+    input           reg_cs_kbuf_i,            // target register select: KBD BUF DATA (FIFO)
+    input           reg_cs_krstat_i,            // target register select: KBD RSTAT REG
+    input           reg_cs_mbuf_i,            // target register select: MOUSE BUF DATA REG (FIFO)
+    output reg      irq_o               // IRQ output, active high
 );
     // IMPLEMENTATION ----------------------------------------------------------------------------
+
+    // ctrl register
+    reg   ps2_ctrl_ena_irq, ps2_ctrl_dis_keymap;
 
     // I2C bus interface signals ---------------------------------------------------------
     wire        devsel;           // the device is selected, ongoing transmission for the SLAVE_ADDRESS
@@ -124,6 +139,7 @@ module smc (
         //      0xFE => ERR received
         .kbd_stat_o (kbd_stat),
         .kbd_bat_ok_o (kbd_bat_ok),      // received the BAT OK code (0xAA) from the keyboard
+        .xlat_keycode_en_i (~ps2_ctrl_dis_keymap),
         // Write to keyboard:
         .kbd_wcmddata_i (kbd_wcmddata),           // byte for TX FIFO to send into PS2 keyboard
         .kbd_enq_cmd1_i (kbd_enq_cmd1),           // enqueu 1Byte command
@@ -168,7 +184,7 @@ module smc (
     reg [3:0]       ms_init_state;
 
     // Mouse. reuse of kbd_host
-    ps2_kbd_host #(.RXBUF_DEPTH_BITS (4)) mouse
+    ps2_kbd_host #(.RXBUF_DEPTH_BITS (4), .XLAT_KEYCODE (0)) mouse
     (
         // Global signals
         .clk6x (clk6x),      // 48MHz
@@ -183,6 +199,7 @@ module smc (
         // Keyboard reply status register -- not used for the mouse
         .kbd_stat_o (ms_stat),
         .kbd_bat_ok_o (ms_bat_ok),      // received the BAT OK code (0xAA) from the keyboard
+        .xlat_keycode_en_i (1'b0),         // disabled anyway
         // Write to keyboard:
         .kbd_wcmddata_i (ms_wcmddata),           // byte for TX FIFO to send into PS2 keyboard
         .kbd_enq_cmd1_i (ms_enq_cmd1),           // enqueu 1Byte command
@@ -194,6 +211,34 @@ module smc (
         .PS2K_DATADR (PS2M_DATADR0)         // 1=drive PS2K_DATA to zero (L)
     );
 
+    // ---------------------------------------------------------------------------
+
+    wire ms_rcount_3more = (ms_rcount >= 3);
+
+    // generate the reg_d_o. This handles passive reads.
+    always @(posedge clk6x) 
+    begin
+        reg_d_o <= 8'h00;
+
+        if (reg_cs_ctrl_i)
+            reg_d_o <= { 6'b000000, ps2_ctrl_ena_irq, ps2_ctrl_dis_keymap };
+        else begin
+            if (reg_cs_stat_i)
+                reg_d_o <= { kbd_rvalid, ms_rvalid, ms_rcount_3more, 5'b00000 };
+            else begin
+                if (reg_cs_kbuf_i)
+                    reg_d_o <= kbd_rdata;
+                else begin
+                    if (reg_cs_krstat_i)
+                        reg_d_o <= kbd_stat;
+                    else begin
+                        // reg_cs_mbuf_i
+                        reg_d_o <= ms_rdata;
+                    end
+                end
+            end
+        end
+    end
 
     // SMC -----------------------------------------------------------------------
     // SMC / I2C registers
@@ -237,7 +282,10 @@ module smc (
             ms_init_state <= MS_BAT_WAIT;
             smc_msbuf_squashing <= 0;
             smc_msbuf_skipping <= 0;
-
+            // register interface
+            ps2_ctrl_ena_irq <= 0;
+            ps2_ctrl_dis_keymap <= 0;
+            irq_o <= 0;
         end else begin
             // clear one-off signals
             kbd_rdeq <= 0;
@@ -247,7 +295,52 @@ module smc (
             ms_enq_cmd1 <= 0;           // enqueu 1Byte command
             ms_enq_cmd2 <= 0;
 
+            // IRQ output
+            irq_o <= ps2_ctrl_ena_irq && (kbd_rvalid || ms_rcount_3more);
 
+            // handle active reads from the register interface
+            if (reg_rd_i)
+            begin
+                // only the KBUF and MBUF registers need active read handling (FIFO dequeu),
+                // the other are just passive and handled in the process above.
+                if (reg_cs_kbuf_i)
+                begin
+                    kbd_rdeq <= 1;
+                end
+
+                if (reg_cs_mbuf_i)
+                begin
+                    ms_rdeq <= 1;
+                end
+            end
+
+            // handle writes from the register interface
+            if (reg_wr_i)
+            begin
+                if (reg_cs_ctrl_i)
+                begin
+                    ps2_ctrl_ena_irq <= reg_d_i[1];
+                    ps2_ctrl_dis_keymap <= reg_d_i[0];
+                end
+
+                // if (reg_cs_stat_i)  -> writes ignored
+
+                if (reg_cs_kbuf_i)
+                begin
+                    kbd_wcmddata <= reg_d_i;
+                    kbd_enq_cmd1 <= 1;           // enqueu 1Byte command
+                end
+
+                if (reg_cs_krstat_i)
+                begin
+                    kbd_wcmddata <= reg_d_i;
+                    kbd_enq_cmd2 <= 1;           // enqueu 2Byte command
+                end
+
+                // if (reg_cs_mbuf_i)   -> writes ignored
+            end
+
+            // handle the I2C interface with devsel
             if (devsel)
             begin
                 // the device is selected by master
@@ -388,6 +481,7 @@ module smc (
                 kbd_init_insert_second <= 0;
             end
 
+            // mouse initialization
             case (ms_init_state)
                 MS_BAT_WAIT:        // = 4'h0;          // waiting for BAT from the mouse
                     begin

@@ -257,7 +257,7 @@ module bus_controller (
                             mem_wrn_o <= cpu_rw_i;
     `endif
                         end
-                        else if (cpu_ab_i[7:4] == 4'h5)
+                        else if ((cpu_ab_i[7:4] == 4'h5) || (cpu_ab_i[7:4] == 4'h6))
                         begin
                             // 0x9F50 NORA-SCRB
                             nora_slv_req_SCRB_o <= 1;

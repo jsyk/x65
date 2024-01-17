@@ -589,6 +589,18 @@ module top (
     assign PS2K_CLKDR = ps2k_clkdr0;            // unused on the 2nd board; HACK
     assign PS2K_DATADR = ps2k_datadr0;          // unused on the 2nd board; HACK
 
+    // REGISTER INTERFACE FOR PS2
+    wire [7:0]      ps2_dr;            // read data output from the core (from the CONTROL or DATA REG)
+    wire [7:0]      ps2_dw;            // write data input to the core (to the CONTROL or DATA REG)
+    wire            ps2_wr;           // write signal
+    wire            ps2_rd;           // read signal
+    wire            ps2_cs_ctrl;           // target register select: CTRL REG
+    wire            ps2_cs_stat;            // target register select: STAT REG
+    wire            ps2_cs_kbuf;            // target register select: KBD BUF DATA (FIFO)
+    wire            ps2_cs_krstat;            // target register select: KBD RSTAT REG
+    wire            ps2_cs_mbuf;            // target register select: MOUSE BUF DATA REG (FIFO)
+    wire            ps2_irq;               // IRQ output, active high
+
     // System Management Controller
     smc smc1
     (
@@ -608,8 +620,18 @@ module top (
         .PS2M_CLK (PS2M_CLK),
         .PS2M_DATA (PS2M_DATA),
         .PS2M_CLKDR0 (ps2m_clkdr0),
-        .PS2M_DATADR0 (ps2m_datadr0)
-
+        .PS2M_DATADR0 (ps2m_datadr0),
+        // REGISTER INTERFACE FOR PS2
+        .reg_d_o (ps2_dr),            // read data output from the core (from the CONTROL or DATA REG)
+        .reg_d_i (ps2_dw),            // write data input to the core (to the CONTROL or DATA REG)
+        .reg_wr_i (ps2_wr),           // write signal
+        .reg_rd_i (ps2_rd),           // read signal
+        .reg_cs_ctrl_i (ps2_cs_ctrl),           // target register select: CTRL REG
+        .reg_cs_stat_i (ps2_cs_stat),            // target register select: STAT REG
+        .reg_cs_kbuf_i (ps2_cs_kbuf),            // target register select: KBD BUF DATA (FIFO)
+        .reg_cs_krstat_i (ps2_cs_krstat),            // target register select: KBD RSTAT REG
+        .reg_cs_mbuf_i (ps2_cs_mbuf),            // target register select: MOUSE BUF DATA REG (FIFO)
+        .irq_o (ps2_irq)               // IRQ output, active high
     );
 
     // PS2 Mouse port: generate output signal: 0 or HiZ
@@ -756,7 +778,17 @@ module top (
         .usbuart_rd_o (usbuart_rd),           // read signal
         .usbuart_cs_ctrl_o (usbuart_cs_ctrl),           // target register select: CTRL REG
         .usbuart_cs_stat_o (usbuart_cs_stat),            // target register select: STAT REG
-        .usbuart_cs_data_o (usbuart_cs_data)            // target register select: DATA REG (FIFO)
+        .usbuart_cs_data_o (usbuart_cs_data),            // target register select: DATA REG (FIFO)
+        // PS2 KBD and MOUSE
+        .ps2_d_i (ps2_dr),            // read data output from the core (from the CONTROL or DATA REG)
+        .ps2_d_o (ps2_dw),            // write data input to the core (to the CONTROL or DATA REG)
+        .ps2_wr_o (ps2_wr),           // write signal
+        .ps2_rd_o (ps2_rd),           // read signal
+        .ps2_cs_ctrl_o (ps2_cs_ctrl),           // target register select: CTRL REG
+        .ps2_cs_stat_o (ps2_cs_stat),            // target register select: STAT REG
+        .ps2_cs_kbuf_o (ps2_cs_kbuf),            // target register select: KBD BUF DATA (FIFO)
+        .ps2_cs_krstat_o (ps2_cs_krstat),            // target register select: KBD RSTAT REG
+        .ps2_cs_mbuf_o (ps2_cs_mbuf)            // target register select: MOUSE BUF DATA REG (FIFO)
     );
 
     // OPM output data
