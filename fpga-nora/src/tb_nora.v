@@ -310,7 +310,7 @@ module tb_nora ();
 
         // ============================================
         // go to the BOOTROM
-        cpu_write(16'h0001, 8'h3F);         // ROMBANK
+        cpu_write(16'h0001, 8'hFF);         // ROMBANK PBL
         // test read from BOOTROM
         cpu_read(16'hFFFC);  `assert(tb_cpuDataRead, 8'h00);
         cpu_read(16'hFFFD);  `assert(tb_cpuDataRead, 8'hFE);

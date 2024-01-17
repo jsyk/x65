@@ -112,7 +112,7 @@ module bus_controller (
     // Current Banks - remap
     reg   [7:0]   rambank_nr;
     reg   [7:0]   rambank_masked_nr;
-    reg   [5:0]   rombank_nr;
+    reg   [7:0]   romblock_nr;
 
     // BANKREGs are handled directly in this module
     reg         nora_slv_req_BANKREG;
@@ -152,8 +152,8 @@ module bus_controller (
             nora_slv_req_OPM_o <= 0;
             cba_r <= 8'h00;
             rambank_nr <= 8'h00;
-            rombank_nr <= 6'b11_1111;        // rombank 63 - starts in BOOTROM
-            // rombank_nr <= 6'b000000;        // rombank 0 - starts at 0x18_0000
+            romblock_nr <= 8'b1000_0000;        // rombank 128 - starts in BOOTROM
+            // romblock_nr <= 6'b000000;        // rombank 0 - starts at 0x18_0000
             nora_slv_req_BANKREG <= 0;
             mst_state <= MST_IDLE;
             nora_mst_driving_memdb <= 0;
@@ -196,9 +196,9 @@ module bus_controller (
                     else if (cpu_abh_i[15:14] == 2'b11)
                     begin
                         // CPU address 0xC000 - 0xF000 => 32x 16k ROM pages mapped at SRAM pages 64 to 127;
-                        if (rombank_nr[5] == 1'b1)
+                        if (romblock_nr[7] == 1'b1)
                         begin
-                            // special PBL ROM bank #33 is inside of FPGA
+                            // special PBL ROM bank is inside of FPGA
                             nora_slv_req_BOOTROM_o <= 1;
                             // NOTE: when BOOTROM is selected as the ROMBANK, 
                             // then Vector Pull always happens inside it, and not from
@@ -213,7 +213,7 @@ module bus_controller (
                                 mem_abh_o <= { 2'b01, 5'b00000, cpu_abh_i[13:12] };
                             end else begin
                                 // normal access through the active rompage, starting at SRAM Page 64
-                                mem_abh_o <= { 2'b01, rombank_nr[4:0], cpu_abh_i[13:12] };
+                                mem_abh_o <= { 2'b01, romblock_nr[4:0], cpu_abh_i[13:12] };
                             end
                             sram_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
@@ -317,11 +317,11 @@ module bus_controller (
                         // writing
                         if (!nora_slv_addr_o[0])
                         begin
-                            // 0x00 = RAMBANK
+                            // 0x00 = RAMBLOCK
                             rambank_nr <= nora_slv_datawr_o; // & rambank_mask_i;
                         end else begin
-                            // 0x01 = ROMBANK
-                            rombank_nr <= nora_slv_datawr_o[5:0];
+                            // 0x01 = ROMBLOCK
+                            romblock_nr <= nora_slv_datawr_o[7:0];
                         end
                     end
                 end
@@ -492,7 +492,7 @@ module bus_controller (
                     //     begin
                     //         nora_mst_datard_o <= 8'h12; //rambank_nr;
                     //     end else begin
-                    //         nora_mst_datard_o <= 8'h34; //{ 3'b000, rombank_nr };
+                    //         nora_mst_datard_o <= 8'h34; //{ 3'b000, romblock_nr };
                     //     end
                     // end else begin
                     nora_mst_datard_o <= cpu_db_o;          // read data is valid now!
@@ -536,7 +536,7 @@ module bus_controller (
                 cpu_db_o <= rambank_nr;
             end else begin
                 // 0x01 = ROMBANK
-                cpu_db_o <= { 3'b000, rombank_nr };
+                cpu_db_o <= romblock_nr;
             end
         end
         else if (nora_slv_req_SCRB_o || nora_slv_req_VIA1_o || nora_slv_req_BOOTROM_o || nora_slv_req_OPM_o)
