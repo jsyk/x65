@@ -105,7 +105,7 @@ L1:
     JSR load_8kB
     ; invert the RED LED
     LDA VIA1_ORB_IRB_REG
-    EOR $02
+    EOR #$02
     STA VIA1_ORB_IRB_REG
     ; increment the RAMBANK
     INC RAMBANK_REG
