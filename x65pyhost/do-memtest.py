@@ -23,4 +23,5 @@ print('Default Banks: RAMBANK={:2x}  ROMBANK={:2x}'.format(newbanks[0], newbanks
 
 # run complete sram memory test
 icd.sram_memtest(myseed, 0, ICD.SIZE_2MB)
+#icd.sram_memtest(myseed, 0, 10240)
 

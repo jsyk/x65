@@ -119,7 +119,7 @@ class ICD:
         for b in range(0, blocks):
             buf = random.randbytes(ICD.BLOCKSIZE)
             if ((b * ICD.BLOCKSIZE) % ICD.PAGESIZE == 0):
-                print("  Writing page 0x{:x} (0x{:x} to 0x{:x})...".format(int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE / ICD.PAGESIZE),
+                print("  Writing block 0x{:x} (0x{:x} to 0x{:x})...".format(int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE / ICD.PAGESIZE),
                         int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE), int((b+1) + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE - 1))
             
             self.sram_blockwrite(mstart + b * ICD.BLOCKSIZE, buf);
@@ -131,7 +131,7 @@ class ICD:
 
         for b in range(0, blocks):
             if ((b * ICD.BLOCKSIZE) % ICD.PAGESIZE == 0):
-                print("  Reading page 0x{:x} (0x{:x} to 0x{:x})...".format(int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE / ICD.PAGESIZE),
+                print("  Reading block 0x{:x} (0x{:x} to 0x{:x})...".format(int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE / ICD.PAGESIZE),
                         int(b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE, int((b+1) + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE - 1))
             
             buf1 = self.sram_blockread(mstart + b * ICD.BLOCKSIZE, ICD.BLOCKSIZE)
@@ -140,7 +140,7 @@ class ICD:
             # print('buf2={}'.format(buf2.hex()))
             if buf1 != buf2:
                 errors += 1
-                print("  Error in page 0x{:x} (0x{:x} to 0x{:x})!".format(int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE / ICD.PAGESIZE),
+                print("  Error in block 0x{:x} (0x{:x} to 0x{:x})!".format(int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE / ICD.PAGESIZE),
                             mstart + b*ICD.BLOCKSIZE, mstart + (b-1)*ICD.BLOCKSIZE - 1))
 
         print("Memtest done with {} errors.".format(errors))

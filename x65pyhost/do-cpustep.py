@@ -116,12 +116,19 @@ def read_byte_as_cpu(CBA, MAH, CA):
         elif 0xC000 <= CA:
             # CPU ROM bank
             offs = (CA - 0xC000)
-            rombank = (MAH >> 1) & 0x1F     # tbd: does not cover the PBL BANK!!
-            if rombank < 32:
+            # rombank = (MAH >> 1)
+            # print("read_by_as_cpu: cpu-rom-bank; rombank={}".format(rombank))
+            # MAH is the top 8 bits from SRAM addressing. 
+            # If MAH[7] is set while CBA=0 and CA is in ROMBLOCK, then this flags access to the bootrom.
+            if (MAH & 0x80) == 0:
+                # MAH[0] is part of the offset within a 16kB ROMBLOCK. So we must shift right by 1 to skip it.
+                # There are just 32 ROMBLOCKs, but the higher bits of MAH are offset within SRAM, which must be cleared out here.
+                rombank = (MAH >> 1) & 0x1F
                 # CPU ROM bank starts at sram fix 0x080000
                 rdata = icd.sram_blockread(offs + 0x080000 + rombank*2*ICD.PAGESIZE, 1)
             else:
                 # bootrom inside of NORA
+                # print("[bootrom_blockread({})]".format(offs))
                 rdata = icd.bootrom_blockread(offs, 1)
     else:
         # CPU Bank non-zero -> linear address into SRAM
