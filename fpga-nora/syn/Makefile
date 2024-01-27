@@ -1,6 +1,6 @@
 PROJ = nora
-PIN_DEF = nora-mobo-rev01.pcf
-# PIN_DEF = nora-sbc-revA1.pcf
+# PIN_DEF = nora-mobo-rev01.pcf
+PIN_DEF = nora-sbc-revA1.pcf
 DEVICE = hx4k
 PACKAGE = tq144
 

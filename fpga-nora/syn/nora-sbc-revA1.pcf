@@ -78,8 +78,7 @@ set_io I2C_SDA      87
 set_io EIRQn        88
 set_io AIRQn        90
 set_io VIRQn        91
-# set_io ACS1n        93
-set_io VCS1n        93
+set_io ACS1n        93
 set_io VCS0n        94
 set_io UE_CS3n      95
 set_io UE_SCK       96
@@ -109,8 +108,7 @@ set_io ARSTn        119
 set_io ICD_CSn      120
 set_io ICD_MOSI     121
 set_io ICD_MISO     122
-# set_io ECS2n        124
-set_io VCS2n        124
+set_io ECS2n        124
 set_io DIPLED0      125
 set_io ICD_SCK      128
 set_io FPGACLK      129
@@ -134,5 +132,3 @@ set_io FMOSI        67
 set_io FMISO        68
 set_io FSCK         70
 set_io FLASHCSn     71
-
-# set_io CDONE        65
