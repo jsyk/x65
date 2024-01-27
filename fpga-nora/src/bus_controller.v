@@ -65,6 +65,7 @@ module bus_controller (
     output reg      nora_slv_req_BOOTROM_o,     // a request to internal BOOTROM (PBL)
     output reg      nora_slv_req_SCRB_o,        // a request to the SCRB at 0x9F50
     output reg      nora_slv_req_VIA1_o,        // a request to VIA1 at 0x9F00
+    output reg      nora_slv_req_VIA2_o,        // a request to VIA2 at 0x9F10
     output reg      nora_slv_req_OPM_o,         // a request to internal OPM
     output reg      nora_slv_rwn_o,             // reading (1) or writing (0) to the slave
     //
@@ -149,6 +150,7 @@ module bus_controller (
             nora_slv_req_BOOTROM_o <= 0;
             nora_slv_req_SCRB_o <= 0;
             nora_slv_req_VIA1_o <= 0;
+            nora_slv_req_VIA2_o <= 0;
             nora_slv_req_OPM_o <= 0;
             cba_r <= 8'h00;
             rambank_nr <= 8'h00;
@@ -238,6 +240,11 @@ module bus_controller (
                         begin
                             // 0x9F00 VIA I/O controller #1
                             nora_slv_req_VIA1_o <= 1;
+                        end 
+                        else if (cpu_ab_i[7:4] == 4'h1)
+                        begin
+                            // 0x9F10 VIA I/O controller #2
+                            nora_slv_req_VIA2_o <= 1;
                         end 
                         else if (cpu_ab_i[7:5] == 3'b001)
                         begin
@@ -344,6 +351,7 @@ module bus_controller (
                 nora_slv_req_BANKREG <= 0;
                 nora_slv_req_SCRB_o <= 0;
                 nora_slv_req_VIA1_o <= 0;
+                nora_slv_req_VIA2_o <= 0;
                 nora_slv_req_OPM_o <= 0;
             end
 
@@ -434,6 +442,11 @@ module bus_controller (
                         begin
                             // 0x9F00 VIA I/O controller #1
                             nora_slv_req_VIA1_o <= 1;
+                        end 
+                        else if (nora_mst_addr_i[7:4] == 4'h1)
+                        begin
+                            // 0x9F00 VIA I/O controller #2
+                            nora_slv_req_VIA2_o <= 1;
                         end 
                         else if (nora_mst_addr_i[7:5] == 3'b001)
                         begin
@@ -539,7 +552,7 @@ module bus_controller (
                 cpu_db_o <= romblock_nr;
             end
         end
-        else if (nora_slv_req_SCRB_o || nora_slv_req_VIA1_o || nora_slv_req_BOOTROM_o || nora_slv_req_OPM_o)
+        else if (nora_slv_req_SCRB_o || nora_slv_req_VIA1_o || nora_slv_req_VIA2_o || nora_slv_req_BOOTROM_o || nora_slv_req_OPM_o)
         begin
             // internal slave reading
             cpu_db_o <= nora_slv_data_i;

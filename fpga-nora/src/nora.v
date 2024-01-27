@@ -51,8 +51,11 @@ module top (
     input NESDATA1,
     input NESDATA0,
 
-    output CPULED0,
-    output CPULED1,
+    inout CPULED0,
+    inout CPULED1,
+
+    inout DIPLED0,
+    inout DIPLED1,
 
 // additional ILI SPI ports
     // output ILICSn,      // TBD remove
@@ -64,13 +67,17 @@ module top (
 // PS2 ports
     inout PS2K_CLK,
     inout PS2K_DATA,
-    output PS2K_CLKDR,      // TBD remove
-    output PS2K_DATADR,     // TBD remove
-    
+`ifdef MOBOV1
+    output PS2K_CLKDR,      // TBD removed in SBC
+    output PS2K_DATADR,     // TBD removed in SBC
+`endif
+
     inout PS2M_CLK,         // via bidi level-shifter
     inout PS2M_DATA,        // via bidi level-shifter
-    output PS2M_CLKDR,      // not used on the 1st PCB; TBD remove
-    output PS2M_DATADR,     // not used on the 1st PCB; TBD remove
+`ifdef MOBOV1
+    output PS2M_CLKDR,      // not used on the MOBOv1 1st PCB; TBD removed in SBC
+    output PS2M_DATADR,     // not used on the MOBOv1 1st PCB; TBD removed in SBC
+`endif
 
 // UART port
     input UART_CTS,
@@ -85,10 +92,12 @@ module top (
     // input ICD2VERAROM,
 
     output VCS0n,               // VERA
-    output ACS1n,               // AURA, rename
-    output ECS2n,               // ENET, rename
-    input VIRQn,            // IRQ from VERA & AURA & ENET, active low.
-        // TBD: this is separated in SBC!!
+    output ACS1n,               // AURA
+    output ECS2n,               // ENET
+
+    input VIRQn,            // IRQ from VERA, active low.
+    input AIRQn,            // IRQ from AURA, active low.
+    input EIRQn,            // IRQ from Ethernet, active low.
 
     // output AUDIO_DATA,          // was: VAUX0
     // output AUDIO_BCK,           // was: VAUX1
@@ -116,7 +125,6 @@ module top (
     // wire PS2K_DATADR;     // TBD remove
     // wire PS2M_CLKDR;      // not used on the 1st PCB; TBD remove
     // wire PS2M_DATADR;     // not used on the 1st PCB; TBD remove
-
 
     wire clk6x;
     wire clk6x_locked;
@@ -202,6 +210,7 @@ module top (
     wire            nora_slv_req_BOOTROM;
     wire            nora_slv_req_SCRB;
     wire            nora_slv_req_VIA1;
+    wire            nora_slv_req_VIA2;
     wire            nora_slv_req_OPM;
     wire            nora_slv_rwn;
     // Bank parameters from SCRB
@@ -279,7 +288,7 @@ module top (
             crwn_r              // CPU R/W signal
         };
 
-
+// HACK START !!!
     reg     internal_cpu_res;                       // indicates that the 65xx CPU is ongoing internal reset, some output signals are invalid!
     wire    is_isync = csync_vpa_r && cvda_r;      // indicates this is an opcode fetch CPU cycle
     reg     isafix816_enabled;
@@ -331,6 +340,7 @@ module top (
             end
         end
     end
+// HACK END !!!
 
 
     /* ICD SPI Slave - MISO driver */
@@ -483,6 +493,7 @@ module top (
         .nora_slv_req_BOOTROM_o (nora_slv_req_BOOTROM),
         .nora_slv_req_SCRB_o (nora_slv_req_SCRB),
         .nora_slv_req_VIA1_o (nora_slv_req_VIA1),
+        .nora_slv_req_VIA2_o (nora_slv_req_VIA2),
         .nora_slv_req_OPM_o (nora_slv_req_OPM),
         .nora_slv_rwn_o (nora_slv_rwn),
         // Bank parameters from SCRB
@@ -502,7 +513,24 @@ module top (
     wire [7:0] via1_gpio_ddrb;
 
     /**
-    * Simplified VIA (65C22) - provides basic GPIO and Timer service.
+    * Simplified VIA #1 (65C22) - provides basic GPIO and Timer service.
+    * (Timer not implemented so far.)
+    *
+    * Port B:  PRB @ 0x9F00, DDRB @ 0x9F02
+    *   PB0 = CPULED0
+    *   PB1 = CPULED1
+    *   PB2 = DIPLED0
+    *   PB3..PB7 = IEEE something, unused, reads 11000.
+    *
+    * Port A: PRA @ 0x9F01, DDRB @ 0x9F03
+    *   PA0 = SDA
+    *   PA1 = SCL
+    *   PA2 = NESLATCH
+    *   PA3 = NESCLOCK
+    *   PA4 = (NESDATA3) = 1
+    *   PA5 = (NESDATA2) = 1
+    *   PA6 = NESDATA1
+    *   PA7 = NESDATA0
     */
     simple_via via1 (
         // Global signals
@@ -529,15 +557,84 @@ module top (
     wire smc_i2csda_dr0;
     wire i2csda_dr0 = ((via1_gpio_ddra[0]) ? ~via1_gpio_ora[0] : 1'b0) | smc_i2csda_dr0;
     assign via1_gpio_ira = { NESDATA0, NESDATA1, 1'b1, 1'b1, ~NESCLOCK, ~NESLATCH, I2C_SCL, I2C_SDA };
-    assign via1_gpio_irb = { 6'b110000, CPULED1, CPULED0 };
+    assign via1_gpio_irb = { 6'b11000, CPULED1, CPULED0 };
     assign NESCLOCK = ((via1_gpio_ddra[3]) ? ~via1_gpio_ora[3] : 1'b1);
     assign NESLATCH = ((via1_gpio_ddra[2]) ? ~via1_gpio_ora[2] : 1'b1);
     assign I2C_SCL = (via1_gpio_ddra[1]) ? via1_gpio_ora[1] : 1'bZ;
     // assign I2C_SDA = (via1_gpio_ddra[0]) ? via1_gpio_ora[0] : 1'bZ;
     assign I2C_SDA = (i2csda_dr0) ? 1'b0 : 1'bZ;
 
-    assign CPULED0 = (via1_gpio_ddrb[0]) ? via1_gpio_orb[0] : blinkerled;
-    assign CPULED1 = (via1_gpio_ddrb[1]) ? via1_gpio_orb[1] : 1'b1;
+    // assign CPULED0 = (via1_gpio_ddrb[0]) ? via1_gpio_orb[0] : blinkerled;
+    // assign CPULED1 = (via1_gpio_ddrb[1]) ? via1_gpio_orb[1] : 1'b1;
+
+    // assign DIPLED0 = (via1_gpio_ddrb[2]) ? via1_gpio_orb[2] : 1'bZ;
+    // // assign DIPLED1 = (via1_gpio_ddrb[3]) ? via1_gpio_orb[3] : 1'bZ;
+    // assign DIPLED1 = blinkerled;
+
+
+
+    // signals for VIA2
+    wire [7:0] via2_slv_datard;
+    wire [7:0] via2_gpio_ora;          // ORA = output reg A
+    wire [7:0] via2_gpio_orb;
+    wire [7:0] via2_gpio_ira;           // IRA = input reg A
+    wire [7:0] via2_gpio_irb;
+    wire [7:0] via2_gpio_ddra;         // DDRA = data direction reg A; 0 = input, 1 = output.
+    wire [7:0] via2_gpio_ddrb;
+
+    /**
+    * Simplified VIA #2 (65C22) - provides basic GPIO and Timer service.
+    * (Timer not implemented so far.)
+    *
+    * Port B: PRB @ 0x9F10, DDRB @ 0x9F12
+    *   PB0 = CPULED0, green, front
+    *   PB1 = CPULED1, orange, front
+    *   PB2 = DIPLED0, yellow, internal
+    *   PB3 = DIPLED1, yellow, internal
+    *   PB4..PB7 = unused
+    *
+    * Port A: PRA @ 0x9F11, DDRB @ 0x9F13
+    *   PA0 = 
+    *   PA1 = 
+    *   PA2 = 
+    *   PA3 = 
+    *   PA4 = 
+    *   PA5 = 
+    *   PA6 = 
+    *   PA7 = 
+    */
+    simple_via via2 (
+        // Global signals
+        .clk6x (clk6x),      // 48MHz
+        .resetn (resetn),     // sync reset
+        // NORA slave interface - internal devices
+        .slv_addr_i (nora_slv_addr[3:0]),
+        .slv_datawr_i (nora_slv_datawr),     // write data = available just at the end of cycle!!
+        .slv_datawr_valid (nora_slv_datawr_valid),      // flags nora_slv_datawr_o to be valid
+        .slv_datard_o (via2_slv_datard),
+        .slv_req_i (nora_slv_req_VIA2),
+        .slv_rwn_i (nora_slv_rwn),
+        // GPIO interface, 2x 8-bit
+        .gpio_ora (via2_gpio_ora),          // ORA = output reg A
+        .gpio_orb (via2_gpio_orb),
+        .gpio_ira (via2_gpio_ira),           // IRA = input reg A
+        .gpio_irb (via2_gpio_irb),
+        .gpio_ddra (via2_gpio_ddra),         // DDRA = data direction reg A; 0 = input, 1 = output.
+        .gpio_ddrb (via2_gpio_ddrb),
+        //
+        .phi2 (CPHI2)
+    );
+
+    assign via2_gpio_ira = 8'hFF;
+    assign via2_gpio_irb = { 4'b0000, DIPLED1, DIPLED0, CPULED1, CPULED0 };
+
+    assign CPULED0 = (via2_gpio_ddrb[0]) ? via2_gpio_orb[0] : blinkerled;
+    assign CPULED1 = (via2_gpio_ddrb[1]) ? via2_gpio_orb[1] : 1'bZ;
+
+    assign DIPLED0 = (via2_gpio_ddrb[2]) ? via2_gpio_orb[2] : 1'bZ;
+    assign DIPLED1 = (via2_gpio_ddrb[3]) ? via2_gpio_orb[3] : blinkerled;
+    // assign DIPLED1 = blinkerled;
+
 
 
 // CPU interface
@@ -583,11 +680,13 @@ module top (
     wire ps2k_clkdr0;
     wire ps2k_datadr0;
 
+`ifdef MOBOV1
     // TBD: these signal shall be removed, but are necessary on the rev01
     assign PS2M_CLKDR = ps2m_clkdr0;            // unused on the 1st board; HACK
     assign PS2M_DATADR = ps2m_datadr0;          // unused on the 1st board; HACK
     assign PS2K_CLKDR = ps2k_clkdr0;            // unused on the 2nd board; HACK
     assign PS2K_DATADR = ps2k_datadr0;          // unused on the 2nd board; HACK
+`endif
 
     // REGISTER INTERFACE FOR PS2
     wire [7:0]      ps2_dr;            // read data output from the core (from the CONTROL or DATA REG)
@@ -818,6 +917,7 @@ module top (
     assign nora_slv_datard = (nora_slv_req_BOOTROM) ? bootrom_slv_datard : 
                             (nora_slv_req_SCRB) ? SCRB_slv_datard :
                             (nora_slv_req_VIA1) ? via1_slv_datard :
+                            (nora_slv_req_VIA2) ? via2_slv_datard :
                             (nora_slv_req_OPM) ? OPM_slv_datard :
                             8'hFF;
 

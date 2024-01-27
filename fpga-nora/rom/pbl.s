@@ -12,9 +12,14 @@
 RAMBANK_REG = $0
 ROMBANK_REG = $1
 
-; VIA1 - for LEDs
-VIA1_ORB_IRB_REG = $9F00
-VIA1_DDRB_REG = $9F02
+; VIA2 - for LEDs
+VIA2_PRB_REG = $9F10
+VIA2_DDRB_REG = $9F12
+
+CPULED0N = $01      ; green
+CPULED1N = $02      ; red
+DIPLED0N = $04
+DIPLED1N = $08
 
 ; NORA registers:
 RAMBANK_MASK_REG = $9F50
@@ -40,13 +45,23 @@ START:
     LDX #$FF
     TXS
 
-    ; setup the RED LED for pin driving
-    LDA #$02        ; CPULED1
-    STA VIA1_DDRB_REG       ; VIA1 DDRB
-    ; store 0 -> RED LED ON
-    LDA VIA1_ORB_IRB_REG
-    AND #!$02
-    STA VIA1_ORB_IRB_REG
+    ; setup the CPU LEDs for pin driving, other bits (DIP LEDs) for input
+    LDA #(CPULED0N | CPULED1N)        ; CPULED
+    STA VIA2_DDRB_REG       ; VIA2 DDRB
+    ; Turn CPULED0 = ON, CPULED1 = ON
+    LDA #$00            ; 1 => make it off
+    ; LDA #CPULED1N            ; 1 => make it off
+    STA VIA2_PRB_REG
+
+    ; read DIPLED0: 0 => DIP ON => stop boot here; 1 => DIP OFF => normal boot (SPI)
+bootwait:
+    LDA VIA2_PRB_REG        ; read DIP
+    AND #DIPLED0N           ; test DIP0
+    BEQ bootwait            ; inf loop here while the bit it zero.
+
+    ; Turn CPULED0 = ON, CPULED1 = off
+    LDA #CPULED1N            ; 1 => make it off
+    STA VIA2_PRB_REG
 
     ; set SPI CONTROL REG: target the slave #1 = flash memory, at the normal speed (8MHz)
     LDA #$19
@@ -103,10 +118,10 @@ L2_wait3us:
 L1:
     ; get the next 8kB from SPI flash
     JSR load_8kB
-    ; invert the RED LED
-    LDA VIA1_ORB_IRB_REG
-    EOR #$02
-    STA VIA1_ORB_IRB_REG
+    ; invert the green LED
+    LDA VIA2_PRB_REG
+    EOR #CPULED0N
+    STA VIA2_PRB_REG
     ; increment the RAMBANK
     INC RAMBANK_REG
     ; check for-loop counter
@@ -114,10 +129,11 @@ L1:
     BNE L1
     ; done
 
-    ; turn OFF the RED LED
-    LDA VIA1_ORB_IRB_REG
-    ORA $02
-    STA VIA1_ORB_IRB_REG
+    ; turn ON the green LED, turn OFF the red LED
+    LDA #CPULED1N           ; off
+    ; ORA $02
+    ; AND #(!CPULED0N)        ; 0 => led on
+    STA VIA2_PRB_REG
 
     ; prepare the trampoline code at 0x80
     LDA #$85            ; STA
