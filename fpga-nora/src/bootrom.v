@@ -45,5 +45,6 @@ module bootrom #(
     begin
         // read file in hex format
         $readmemh("../rom/pbl.mem", rom);
+        // $readmemh("../rom-blinker/pbl.mem", rom);
     end
 endmodule
