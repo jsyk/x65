@@ -1,6 +1,6 @@
 PROJ = aura
-PIN_DEF = aura-vabo-rev01.pcf
-# PIN_DEF = aura-sbc-revA1.pcf
+# PIN_DEF = aura-vabo-rev01.pcf
+PIN_DEF = aura-sbc-revA1.pcf
 DEVICE = up5k
 PACKAGE = sg48
 

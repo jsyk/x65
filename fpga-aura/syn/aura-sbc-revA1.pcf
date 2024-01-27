@@ -16,7 +16,7 @@ set_io      MUTEN       38
 set_io      AURALED     42
 
 # set_io      ARSTN       8     # pin 8 cannot be assigned in UL
-set_io      IOCSN       6       # unused in SBC
+set_io      IOCSN       47       # unused in SBC
 set_io      AUDIO_BCK   9
 set_io      VAUDIO_LRCK 10
 set_io      VAUDIO_DATA 11
