@@ -21,7 +21,18 @@ Two special registers at the beginning of the CPU zero page:
                                                     (65816: from $00_0000 to $00_9EFF => in Bank 0.)
                                                     RAM-Blocks 192 to 255 are also available as ROM-Blocks, see below.
     
-    $0001           ROMBLOCK            [5:0]       This 6-bit register specifies which 16kB-BLOCK from the SRAM's 
+    $0001           ROMBLOCK            
+                                        [7]         When set to 1, NORA's BootRom is displayed in the ROM-Block Frame at $C000, and bits [4:0] are ignored.
+                                                    When cleared to 0, bits [4:0] define the contents of ROM-Block Frame.
+                                                    BootRom is 512B and mirrored over the 16kB frame.
+
+                                        tbd[6]         When set to 1 together with bit [7], then the next instruction RTI (Return From Interrupt)
+                                                    will automatically clear bits [7] and [6], thus switching the ROM-Block Frame according to bits [4:0].
+                                                    NMI is automatically blocked while bit [6] is set, and all other interrupts should be blocked in Sw.
+                                        
+                                        [5]         reserved, read 0
+                                        
+                                        [4:0]       This 5-bit register specifies which 16kB-BLOCK from the SRAM's 
                                                     512kB area 0x08_0000 to 0x0F_FFFF is mapped into the 16kB ROM-BLOCK FRAME
                                                     visible at the CPU address $C000 to $FFFF.
                                                     There are 32 x 16kB ROM-Blocks in SRAM:
@@ -29,10 +40,6 @@ Two special registers at the beginning of the CPU zero page:
                                                         ROM-Block #1  is from SRAM 0x08_4000 to 0x08_7FFF (= also known as the 8kB RAM-Blocks #194 and #195), etc.,
                                                         ROM-Block #31 is from SRAM 0x0F_C000 to 0x0F_FFFF (= also known as the 8kB RAM-Blocks #254 and #255).
                                                     The ROMBLOCK register allows addressing up to 64 ROM-Blocks, but only the first 32 are available in the SRAM.
-                                                    The ROMBLOCK=32 is special: it maps to the 512B boot-rom memory directly implemented in NORA BlockRAMs (type of FPGA resource) and pre-filled with the Primary Bootloader (PBL) program upon system power-up. The 512B is mirrored over the 16kB frame.
-                                                    The ROMBLOCK=33 to 63 are not defined.
-
-                                        [7:6]       The upper two bits of the ROMBLOCK register read 0, and writes are ignored.
 
 
 NORA's main register block starts at $00_9F50 (65816 address), that is $9F50 in 6502.

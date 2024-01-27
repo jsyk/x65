@@ -7,7 +7,7 @@ and serves just to visually divide long hex string into human-readable chunks. F
 
 The CPU address space is either 64kB (16-bit) long in case of 65C02 CPU, or 16MB (24-bit) long in case of 65C816 CPU.
 The 16-bit addresses are specified with four hex-digits, and the 24-bit addresses with 6 hex digits.
-If we specify a 16-bit address, e.g. $1234, in the context of the 65C816 this gets extended on the left by 00, i.e. is identical to $001234 (= $00_1234).
+When we specify a 16-bit address, e.g. $1234, in the context of the 65C816 this gets extended on the left by 00, i.e. is identical to $001234 (= $00_1234).
 
 The official 65C02 and 65C816 documentation defines the following multi-byte quantities:
 
