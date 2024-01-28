@@ -1,11 +1,9 @@
-/* Copyright (c) 2023 Jaroslav Sykora.
+/* Copyright (c) 2023-2024 Jaroslav Sykora.
  * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /* NORA FPGA top */
 module top (
 // 12MHz FPGA clock input
     input FPGACLK,
-// CDONE / LED output
-    // output CDONE,
 
 // CPU interface
     inout [7:0] CD,         // CPU data bus
@@ -37,31 +35,23 @@ module top (
     output MRDn,            // Memory Read
     output MWRn,            // Memory Write
 
-// VIA interface
-    // output VIAPHI2,         // TBD remove
-    // output VIACS,           // TBD remove
-    // input VIAIRQ,           // TBD remove
-    // output PERIRESn,        // TBD maybe remove
-
+// I2C bus
     inout I2C_SCL,
     inout I2C_SDA,
 
+// SNES
     output NESLATCH,
     output NESCLOCK,
     input NESDATA1,
     input NESDATA0,
 
+// LEDs
     inout CPULED0,
     inout CPULED1,
-
     inout DIPLED0,
     inout DIPLED1,
 
-// additional ILI SPI ports
-    // output ILICSn,      // TBD remove
-    // output ILIDC,       // TBD remove
-    // output TCSn,        // TBD remove
-
+// CPUTYPE strap
     input CPUTYPE02,        // board assembly CPU type: 0 => 65C816 (16b), 1 => 65C02 (8b)
 
 // PS2 ports
@@ -91,17 +81,15 @@ module top (
     // input VERAFCSn,
     // input ICD2VERAROM,
 
+// Chip-Selects
     output VCS0n,               // VERA
     output ACS1n,               // AURA
     output ECS2n,               // ENET
 
+// IRQ
     input VIRQn,            // IRQ from VERA, active low.
     input AIRQn,            // IRQ from AURA, active low.
     input EIRQn,            // IRQ from Ethernet, active low.
-
-    // output AUDIO_DATA,          // was: VAUX0
-    // output AUDIO_BCK,           // was: VAUX1
-    // output AUDIO_LRCK,          // was: VAUX2
 
 // ICD SPI-slave interface
     input ICD_CSn,
@@ -517,9 +505,9 @@ module top (
     * (Timer not implemented so far.)
     *
     * Port B:  PRB @ 0x9F00, DDRB @ 0x9F02
-    *   PB0 = CPULED0
-    *   PB1 = CPULED1
-    *   PB2 = DIPLED0
+    *   PB0 = 
+    *   PB1 = 
+    *   PB2 = 
     *   PB3..PB7 = IEEE something, unused, reads 11000.
     *
     * Port A: PRA @ 0x9F01, DDRB @ 0x9F03
@@ -557,21 +545,11 @@ module top (
     wire smc_i2csda_dr0;
     wire i2csda_dr0 = ((via1_gpio_ddra[0]) ? ~via1_gpio_ora[0] : 1'b0) | smc_i2csda_dr0;
     assign via1_gpio_ira = { NESDATA0, NESDATA1, 1'b1, 1'b1, ~NESCLOCK, ~NESLATCH, I2C_SCL, I2C_SDA };
-    assign via1_gpio_irb = { 6'b11000, CPULED1, CPULED0 };
+    assign via1_gpio_irb = { 8'b11000000 };
     assign NESCLOCK = ((via1_gpio_ddra[3]) ? ~via1_gpio_ora[3] : 1'b1);
     assign NESLATCH = ((via1_gpio_ddra[2]) ? ~via1_gpio_ora[2] : 1'b1);
     assign I2C_SCL = (via1_gpio_ddra[1]) ? via1_gpio_ora[1] : 1'bZ;
-    // assign I2C_SDA = (via1_gpio_ddra[0]) ? via1_gpio_ora[0] : 1'bZ;
     assign I2C_SDA = (i2csda_dr0) ? 1'b0 : 1'bZ;
-
-    // assign CPULED0 = (via1_gpio_ddrb[0]) ? via1_gpio_orb[0] : blinkerled;
-    // assign CPULED1 = (via1_gpio_ddrb[1]) ? via1_gpio_orb[1] : 1'b1;
-
-    // assign DIPLED0 = (via1_gpio_ddrb[2]) ? via1_gpio_orb[2] : 1'bZ;
-    // // assign DIPLED1 = (via1_gpio_ddrb[3]) ? via1_gpio_orb[3] : 1'bZ;
-    // assign DIPLED1 = blinkerled;
-
-
 
     // signals for VIA2
     wire [7:0] via2_slv_datard;
@@ -935,15 +913,5 @@ module top (
         .rst_req_o      (rst_req)       // active-high global reset request for the FPGA+CPU
     );
 
-
-
-    // define unused output signals
-    // assign VIACS = 1'b1;
-    // assign UART_TX = UART_RX;
-    // assign UART_CTS = UART_RTS;
-    // assign TCSn = 1'b1;
-    // assign PERIRESn = 1'b1;
-    // assign ILIDC = 1'b0;
-    // assign ILICSn = nora_slv_req_VIA1;          // for debug
 
 endmodule
