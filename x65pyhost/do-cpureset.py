@@ -11,6 +11,8 @@ apa.add_argument(
     "-v", "--version", action="version", version = f"{apa.prog} version 1.0.0")
 apa.add_argument(
     "-r", "--rombank", action="store", type=lambda x: int(x, 0))
+apa.add_argument(
+    "-R", "--run", action="store_true")
 
 args = apa.parse_args()
 
@@ -35,3 +37,8 @@ for i in  range(0, 10):
 
 banks = icd.bankregs_read(0, 2)
 print('Active banks: RAMBANK={:2x}  ROMBANK={:2x}'.format(banks[0], banks[1]))
+
+if args.run:
+    print("CPU Run!\n")
+    # // deactivate the reset, step the cpu
+    icd.cpu_ctrl(True, False, False)

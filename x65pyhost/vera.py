@@ -22,6 +22,7 @@ class VERA:
     DC_HSCALE = 0x2A
     DC_VSCALE = 0x2B
     DC_BORDER = 0x2C
+    OUTPUT_MODE = 0x03
     # DCSEL=1: =>
     DC_HSTART = 0x29
     DC_HSTOP = 0x2A
@@ -84,23 +85,24 @@ class VERA:
         ))
         if (dcsel == 0):
             # DCSEL=0
-            print("  DC_VIDEO=0x{:02X} (CurrentField={}, SpritesEna={}, L1_Ena={}, L0_Ena={}, ChromaDis={})".format(
+            print("  DCSEL=0 => DC_VIDEO=0x{:02X} (CurrentField={}, SpritesEna={}, L1_Ena={}, L0_Ena={}, ChromaDis={}, OutputMode={})".format(
                 regs[VERA.DC_VIDEO], (regs[VERA.DC_VIDEO] & VERA.CURRENT_FIELD) >> 7, 
                 (regs[VERA.DC_VIDEO] & VERA.SPRITES_ENABLE) >> 6,
                 (regs[VERA.DC_VIDEO] & VERA.LAYER1_ENABLE) >> 5,
                 (regs[VERA.DC_VIDEO] & VERA.LAYER0_ENABLE) >> 4,
-                (regs[VERA.DC_VIDEO] & VERA.CHROMA_DISABLE) >> 2
+                (regs[VERA.DC_VIDEO] & VERA.CHROMA_DISABLE) >> 2,
+                (regs[VERA.DC_VIDEO] & VERA.OUTPUT_MODE)
             ))
-            print("  DC_HSCALE=0x{:02X}, DC_VSCALE=0x{:02X}, DC_BORDER=0x{:02X}".format(
+            print("             DC_HSCALE=0x{:02X}, DC_VSCALE=0x{:02X}, DC_BORDER=0x{:02X}".format(
                 regs[VERA.DC_HSCALE], regs[VERA.DC_VSCALE], regs[VERA.DC_BORDER]
             ))
         else:
             # DCSEL=1
-            print("  DC_HSTART=0x{:02X} ({}), DC_HSTOP=0x{:02X} ({})".format(
+            print("  DCSEL=1 => DC_HSTART=0x{:02X} ({}), DC_HSTOP=0x{:02X} ({})".format(
                 regs[VERA.DC_HSTART], regs[VERA.DC_HSTART]*4, 
                 regs[VERA.DC_HSTOP], regs[VERA.DC_HSTOP]*4
             ))
-            print("  DC_VSTART=0x{:02X} ({}), DC_VSTOP=0x{:02X} ({})".format(
+            print("             DC_VSTART=0x{:02X} ({}), DC_VSTOP=0x{:02X} ({})".format(
                 regs[VERA.DC_VSTART], regs[VERA.DC_VSTART]*2, 
                 regs[VERA.DC_VSTOP], regs[VERA.DC_VSTOP]*2
             ))
