@@ -2,7 +2,12 @@
 
 CFLAGS=-Wall -Os
 
+all: hello.rom mtestb.rom
+
 hello.rom: hello.c
+hello.s: hello.c
+mtestb.rom: mtestb.c
+
 
 # generate asm from C, for debug/inspection.
 %.s: %.c
@@ -16,6 +21,8 @@ clean:
 	rm -f *.rom *.elf
 
 # load to ROMBLOCK 0
-load: hello.rom
-	../../x65pyhost/do-loadbin.py hello.rom sram 0x080000
+load_hello: hello.rom
+	../../x65pyhost/do-loadbin.py $< sram 0x080000
 
+load_mtestb: mtestb.rom
+	../../x65pyhost/do-loadbin.py $< sram 0x080000

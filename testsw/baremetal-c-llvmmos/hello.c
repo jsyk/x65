@@ -38,19 +38,19 @@ int main()
 
     // ; setup the RED LED for pin driving
     // reg(VIA1_DDRB_REG) = 0x03;          // ; CPULED0, CPULED1
-    VIA1.ddrb = 0x03;
+    VIA2.ddrb = 0x03;
 
     int iter = 0;
 
     while (1)
     {
         // reg(VIA1_ORB_IRB_REG) &= 0xFC;
-        VIA1.prb &= 0xFC;
+        VIA2.prb &= 0xFC;
 
         // delay(10000);
 
         // reg(VIA1_ORB_IRB_REG) |= 0x03;
-        VIA1.prb |= 0x03;
+        VIA2.prb |= 0x03;
 
         // delay(10000);
 
