@@ -85,6 +85,7 @@ module top (
     output VCS0n,               // VERA
     output ACS1n,               // AURA
     output ECS2n,               // ENET
+    output UE_CS3n,
 
 // IRQ
     input VIRQn,            // IRQ from VERA, active low.
@@ -293,7 +294,7 @@ module top (
             bad_opc6502_abort1n <= 1;           // 1=inactive
             bad_opc6502_abort2n <= 1;           // 1=inactive
             internal_cpu_res <= 0;
-            isafix816_enabled <= 1;             // enable by default
+            isafix816_enabled <= 0;             // dis. XXXXenable by default
         end else begin
             // detect CPU reset (active low)?
             if (!CRESn)
@@ -456,6 +457,7 @@ module top (
         .setup_cs (setup_cs),
         .release_wr (release_wr),
         .release_cs (release_cs),
+        .cphi2_i (CPHI2),
         .run_cpu (busct_run_cpu),
         .stopped_cpu (stopped_cpu),
         .s4_ext_o (s4_ext),
@@ -490,6 +492,8 @@ module top (
         // .cpubus_trace_o (cpubus_trace),
         // .trace_catch_o (trace_catch)
     );
+
+    assign UE_CS3n = VCS0n;
 
     // signals for VIA1
     wire [7:0] via1_slv_datard;

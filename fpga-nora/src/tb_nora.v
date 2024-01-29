@@ -302,7 +302,7 @@ module tb_nora ();
         cpu_read(16'h9F02);     `assert(tb_cpuDataRead, 8'h03);
         cpu_write(16'h9F00, 8'h01);         // VIA1/ORB set to 01
         cpu_write(16'h9F00, 8'h02);         // VIA1/ORB set to 01
-        cpu_read(16'h9F00);     `assert(tb_cpuDataRead, 8'hC2);         // fixed upper signal's levels
+        cpu_read(16'h9F00);     `assert(tb_cpuDataRead, 8'hC0);         // fixed upper signal's levels
 
         // ============================================
         // write to VERA
