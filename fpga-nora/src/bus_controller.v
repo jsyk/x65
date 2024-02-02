@@ -100,8 +100,8 @@ module bus_controller (
 
     reg [7:0]       cba_r;          // CPU Bank Address (65C816)
 
-    reg             mem_wrn_adv1_r;      // 1T-advanced memory write (mem_wrn_o)
-    reg             mem_wrn_adv2_r;      // 2T-advanced memory write (mem_wrn_o)
+    // reg             mem_wrn_adv1_r;      // 1T-advanced memory write (mem_wrn_o)
+    // reg             mem_wrn_adv2_r;      // 2T-advanced memory write (mem_wrn_o)
 
     // aggregated master request
     wire nora_mst_req = nora_mst_req_OTHER_i | nora_mst_req_SRAM_i;
@@ -151,8 +151,8 @@ module bus_controller (
             cpu_be_o <= HIGH_ACTIVE;
             mem_rdn_o <= HIGH_INACTIVE;
             mem_wrn_o <= HIGH_INACTIVE;
-            mem_wrn_adv1_r <= HIGH_INACTIVE;
-            mem_wrn_adv2_r <= HIGH_INACTIVE;
+            // mem_wrn_adv1_r <= HIGH_INACTIVE;
+            // mem_wrn_adv2_r <= HIGH_INACTIVE;
             sram_csn_o <= HIGH_INACTIVE;
             // via_csn_o <= HIGH_INACTIVE;
             vera_csn_o <= HIGH_INACTIVE;
@@ -176,8 +176,8 @@ module bus_controller (
         end else begin
             // By default, mem_wrn_o is 1T delayed version of mem_wrn_adv1_r,
             // unless wrn should be disabled (HIGH_INACTIVE) - then both regs are written immediately.
-            mem_wrn_o <= mem_wrn_adv1_r;
-            mem_wrn_adv1_r <= mem_wrn_adv2_r;
+            // mem_wrn_o <= mem_wrn_adv1_r;
+            // mem_wrn_adv1_r <= mem_wrn_adv2_r;
 
             if (setup_cs)
             begin
@@ -201,8 +201,8 @@ module bus_controller (
                     // ==> No access is generated!
                     mem_rdn_o <= HIGH_INACTIVE;
                     mem_wrn_o <= HIGH_INACTIVE;
-                    mem_wrn_adv1_r <= HIGH_INACTIVE;
-                    mem_wrn_adv2_r <= HIGH_INACTIVE;
+                    // mem_wrn_adv1_r <= HIGH_INACTIVE;
+                    // mem_wrn_adv2_r <= HIGH_INACTIVE;
                     // and skip the rest of decoding.
                 end
                 // Allowed to decode CPU address space regions;
@@ -240,8 +240,8 @@ module bus_controller (
                             sram_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
                             mem_wrn_o <= HIGH_INACTIVE;         // never allow writing to the ROM bank!
-                            mem_wrn_adv1_r <= HIGH_INACTIVE;
-                            mem_wrn_adv2_r <= HIGH_INACTIVE;
+                            // mem_wrn_adv1_r <= HIGH_INACTIVE;
+                            // mem_wrn_adv2_r <= HIGH_INACTIVE;
                         end
                     end 
                     else if (cpu_abh_i[15:13] == 3'b101)
@@ -251,8 +251,8 @@ module bus_controller (
                         // mem_abh_o <= { rambank_nr & rambank_mask_i, cpu_abh_i[12] };
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_adv1_r <= cpu_rw_i;
-                        mem_wrn_adv2_r <= cpu_rw_i;
+                        mem_wrn_o <= cpu_rw_i;
+                        // mem_wrn_adv2_r <= cpu_rw_i;
                     end
                     else if (cpu_ab_i[15:8] == 8'h9F)
                     begin
@@ -274,8 +274,9 @@ module bus_controller (
                             // 0x9F20, 0x9F30 VERA video controller
                             vera_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
-                            mem_wrn_adv2_r <= cpu_rw_i;         // advanced by 2T
-                            s4_ext_o <= 2'b01;              // extend S4H by 1cc (add 20ns of access time)
+                            mem_wrn_o <= cpu_rw_i;
+                            // mem_wrn_adv2_r <= cpu_rw_i;         // advanced by 2T
+                            // s4_ext_o <= 2'b01;              // extend S4H by 1cc (add 20ns of access time)
                         end
                         else if (cpu_ab_i[7:4] == 4'h4)
                         begin
@@ -285,8 +286,9 @@ module bus_controller (
     `else
                             aio_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
-                            mem_wrn_adv1_r <= cpu_rw_i;
-                            mem_wrn_adv2_r <= cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i;
+                            // mem_wrn_adv1_r <= cpu_rw_i;
+                            // mem_wrn_adv2_r <= cpu_rw_i;
     `endif
                         end
                         else if ((cpu_ab_i[7:4] == 4'h5) || (cpu_ab_i[7:4] == 4'h6))
@@ -299,8 +301,9 @@ module bus_controller (
                             // 0x9F80 ENET LAN controller
                             enet_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
-                            mem_wrn_adv1_r <= cpu_rw_i;
-                            mem_wrn_adv2_r <= cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i;
+                            // mem_wrn_adv1_r <= cpu_rw_i;
+                            // mem_wrn_adv2_r <= cpu_rw_i;
                             s4_ext_o <= 2'b10;              // extend S4H by 2cc (add 40ns of access time)
                         end
                     end
@@ -310,8 +313,9 @@ module bus_controller (
                         mem_abh_o <= { 5'h00, cpu_abh_i[15:12] };
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_adv1_r <= cpu_rw_i;
-                        mem_wrn_adv2_r <= cpu_rw_i;
+                        mem_wrn_o <= cpu_rw_i;
+                        // mem_wrn_adv1_r <= cpu_rw_i;
+                        // mem_wrn_adv2_r <= cpu_rw_i;
                     end
                 end
                 else begin
@@ -321,8 +325,9 @@ module bus_controller (
                     mem_abh_o <= { cpu_db_i[4:0], cpu_abh_i[15:12] };
                     sram_csn_o <= LOW_ACTIVE;
                     mem_rdn_o <= ~cpu_rw_i;
-                    mem_wrn_adv1_r <= cpu_rw_i;
-                    mem_wrn_adv2_r <= cpu_rw_i;
+                    mem_wrn_o <= cpu_rw_i;
+                    // mem_wrn_adv1_r <= cpu_rw_i;
+                    // mem_wrn_adv2_r <= cpu_rw_i;
                 end
             end
             
@@ -341,8 +346,8 @@ module bus_controller (
                 // write latch is sensitive: to have some hold time, release it now
                 // before the CS gets released next.
                 mem_wrn_o <= HIGH_INACTIVE;
-                mem_wrn_adv1_r <= HIGH_INACTIVE;
-                mem_wrn_adv2_r <= HIGH_INACTIVE;
+                // mem_wrn_adv1_r <= HIGH_INACTIVE;
+                // mem_wrn_adv2_r <= HIGH_INACTIVE;
 
                 // perform the internal BANKREG slave operation
                 if (nora_slv_req_BANKREG)
@@ -371,8 +376,8 @@ module bus_controller (
                     // disable memorybus rd/wr flags
                 mem_rdn_o <= HIGH_INACTIVE;
                 mem_wrn_o <= HIGH_INACTIVE;
-                mem_wrn_adv1_r <= HIGH_INACTIVE;
-                mem_wrn_adv2_r <= HIGH_INACTIVE;
+                // mem_wrn_adv1_r <= HIGH_INACTIVE;
+                // mem_wrn_adv2_r <= HIGH_INACTIVE;
                     // disable all CS
                 sram_csn_o <= HIGH_INACTIVE;
                 // via_csn_o <= HIGH_INACTIVE;
@@ -437,8 +442,8 @@ module bus_controller (
                     begin
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~nora_mst_rwn_i;
-                        mem_wrn_adv1_r <= nora_mst_rwn_i;
-                        mem_wrn_adv2_r <= nora_mst_rwn_i;
+                        mem_wrn_o <= nora_mst_rwn_i;
+                        // mem_wrn_adv2_r <= nora_mst_rwn_i;
                     end
 
                     // if (nora_mst_req_OTHER_VIA_i)
@@ -486,8 +491,8 @@ module bus_controller (
                             // 0x9F20, 0x9F30 VERA video controller
                             vera_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~nora_mst_rwn_i;
-                            mem_wrn_adv1_r <= nora_mst_rwn_i;
-                            mem_wrn_adv2_r <= nora_mst_rwn_i;
+                            mem_wrn_o <= nora_mst_rwn_i;
+                            // mem_wrn_adv2_r <= nora_mst_rwn_i;
                         end
                         else if (nora_mst_addr_i[7:4] == 4'h4)
                         begin
@@ -497,8 +502,8 @@ module bus_controller (
 `else
                             aio_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~nora_mst_rwn_i;
-                            mem_wrn_adv1_r <= nora_mst_rwn_i;
-                            mem_wrn_adv2_r <= nora_mst_rwn_i;
+                            mem_wrn_o <= nora_mst_rwn_i;
+                            // mem_wrn_adv2_r <= nora_mst_rwn_i;
 `endif
                         end
                         else if (nora_mst_addr_i[7:4] == 4'h5)
@@ -511,8 +516,8 @@ module bus_controller (
                             // 0x9F80 ENET LAN controller
                             enet_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~nora_mst_rwn_i;
-                            mem_wrn_adv1_r <= nora_mst_rwn_i;
-                            mem_wrn_adv2_r <= nora_mst_rwn_i;
+                            mem_wrn_o <= nora_mst_rwn_i;
+                            // mem_wrn_adv2_r <= nora_mst_rwn_i;
                         end
                     end
 
