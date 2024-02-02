@@ -102,23 +102,23 @@ extern "C" {
 // #define CH_F12                  0x17
 
 // /* Color defines */
-// #define COLOR_BLACK             0x00
-// #define COLOR_WHITE             0x01
-// #define COLOR_RED               0x02
-// #define COLOR_CYAN              0x03
-// #define COLOR_PURPLE            0x04
-// #define COLOR_GREEN             0x05
-// #define COLOR_BLUE              0x06
-// #define COLOR_YELLOW            0x07
-// #define COLOR_ORANGE            0x08
-// #define COLOR_BROWN             0x09
-// #define COLOR_PINK              0x0A
-// #define COLOR_LIGHTRED          COLOR_PINK
-// #define COLOR_GRAY1             0x0B
-// #define COLOR_GRAY2             0x0C
-// #define COLOR_LIGHTGREEN        0x0D
-// #define COLOR_LIGHTBLUE         0x0E
-// #define COLOR_GRAY3             0x0F
+#define COLOR_BLACK             0x00
+#define COLOR_WHITE             0x01
+#define COLOR_RED               0x02
+#define COLOR_CYAN              0x03
+#define COLOR_PURPLE            0x04
+#define COLOR_GREEN             0x05
+#define COLOR_BLUE              0x06
+#define COLOR_YELLOW            0x07
+#define COLOR_ORANGE            0x08
+#define COLOR_BROWN             0x09
+#define COLOR_PINK              0x0A
+#define COLOR_LIGHTRED          COLOR_PINK
+#define COLOR_GRAY1             0x0B
+#define COLOR_GRAY2             0x0C
+#define COLOR_LIGHTGREEN        0x0D
+#define COLOR_LIGHTBLUE         0x0E
+#define COLOR_GRAY3             0x0F
 
 // /* NES controller masks for joy_read() */
 
