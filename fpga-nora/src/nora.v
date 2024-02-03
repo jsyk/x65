@@ -715,6 +715,8 @@ module top (
         .irq_o (ps2_irq)               // IRQ output, active high
     );
 
+`ifdef MOBOV1
+    // MOBO-V1 (obsolete):
     // PS2 Mouse port: generate output signal: 0 or HiZ
     // HACK: just on the 1st ('02) board; in the future -> all boards!
     assign PS2M_CLK = (ps2m_clkdr0 && cputype02_r) ? 1'b0 : 1'bZ;
@@ -724,6 +726,18 @@ module top (
     // HACK: just on the 2nd ('816) board; in the future -> all boards!
     assign PS2K_CLK = (ps2k_clkdr0 && !cputype02_r) ? 1'b0 : 1'bZ;
     assign PS2K_DATA = (ps2k_datadr0 && !cputype02_r) ? 1'b0 : 1'bZ;
+`else
+    // SBC:
+    // PS2 Mouse port: generate output signal: 0 or HiZ
+    assign PS2M_CLK = (ps2m_clkdr0) ? 1'b0 : 1'bZ;
+    assign PS2M_DATA = (ps2m_datadr0) ? 1'b0 : 1'bZ;
+
+    // PS2 Keyboard port: generate output signal: 0 or HiZ
+    assign PS2K_CLK = (ps2k_clkdr0) ? 1'b0 : 1'bZ;
+    assign PS2K_DATA = (ps2k_datadr0) ? 1'b0 : 1'bZ;
+
+`endif
+
 
     // read data from BOOTROM
     wire [7:0]  bootrom_slv_datard;
