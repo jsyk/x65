@@ -548,10 +548,10 @@ module top (
 
     wire smc_i2csda_dr0;
     wire i2csda_dr0 = ((via1_gpio_ddra[0]) ? ~via1_gpio_ora[0] : 1'b0) | smc_i2csda_dr0;
-    assign via1_gpio_ira = { NESDATA0, NESDATA1, 1'b1, 1'b1, ~NESCLOCK, ~NESLATCH, I2C_SCL, I2C_SDA };
+    assign via1_gpio_ira = { NESDATA0, NESDATA1, 1'b1, 1'b1, NESCLOCK, NESLATCH, I2C_SCL, I2C_SDA };
     assign via1_gpio_irb = { 8'b11000000 };
-    assign NESCLOCK = ((via1_gpio_ddra[3]) ? ~via1_gpio_ora[3] : 1'b1);
-    assign NESLATCH = ((via1_gpio_ddra[2]) ? ~via1_gpio_ora[2] : 1'b1);
+    assign NESCLOCK = ((via1_gpio_ddra[3]) ? via1_gpio_ora[3] : 1'b1);
+    assign NESLATCH = ((via1_gpio_ddra[2]) ? via1_gpio_ora[2] : 1'b1);
     assign I2C_SCL = (via1_gpio_ddra[1]) ? via1_gpio_ora[1] : 1'bZ;
     assign I2C_SDA = (i2csda_dr0) ? 1'b0 : 1'bZ;
 
