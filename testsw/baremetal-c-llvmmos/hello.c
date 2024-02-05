@@ -74,25 +74,24 @@ int main()
 
         if (NORA.ps2_stat & NORA_PS2_IS_MOUSE_BUF_3FILLED)
         {
-            unsigned char c1 = NORA.ps2m_buf;
-            unsigned char c2 = NORA.ps2m_buf;
-            unsigned char c3 = NORA.ps2m_buf;
-
-            /* clear rest */
-            while (NORA.ps2_stat & NORA_PS2_IS_MOUSE_BUF_NONEMPTY)
-            {
-                NORA.ps2m_buf;
-            }
+            // unsigned char c1 = NORA.ps2m_buf;
+            // unsigned char c2 = NORA.ps2m_buf;
+            // unsigned char c3 = NORA.ps2m_buf;
 
             __putchar('{');
-            __putchar(tohex[c1 >> 4]);
-            __putchar(tohex[c1 & 0x0F]);
-            __putchar(',');
-            __putchar(tohex[c2 >> 4]);
-            __putchar(tohex[c2 & 0x0F]);
-            __putchar(',');
-            __putchar(tohex[c3 >> 4]);
-            __putchar(tohex[c3 & 0x0F]);
+            while (NORA.ps2_stat & NORA_PS2_IS_MOUSE_BUF_NONEMPTY)
+            {
+                unsigned char c1 = NORA.ps2m_buf;
+                __putchar(tohex[c1 >> 4]);
+                __putchar(tohex[c1 & 0x0F]);
+                __putchar(',');
+            }
+
+            // __putchar(tohex[c2 >> 4]);
+            // __putchar(tohex[c2 & 0x0F]);
+            // __putchar(',');
+            // __putchar(tohex[c3 >> 4]);
+            // __putchar(tohex[c3 & 0x0F]);
             __putchar('}');
         }
     }

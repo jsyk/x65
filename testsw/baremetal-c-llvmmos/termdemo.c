@@ -164,6 +164,15 @@ int main()
     vprint(0, 8, "rutrum non, nonummy ac, erat. Mauris dolor felis, sagittis at, luctus sed, aliquam non, tellus. ");
     vprint(0, 9, "Mauris tincidunt sem sed arcu. ");
 
+
+    vprint(10, 20, "X     X     666     5555                      ");
+    vprint(10, 21, " X   X     6       5                          ");
+    vprint(10, 22, "  X X      6       5             EEEE  U   U  ");
+    vprint(10, 23, "   X       6666     5555         E     U   U  ");
+    vprint(10, 24, "  X X      6   6        5        EEEE  U   U  ");
+    vprint(10, 25, " X   X     6   6        5   ..   E     U   U  ");
+    vprint(10, 26, "X     X     666     5555    ..   EEEE   UUU   ");
+
     // print("After Vpoke")
     // v.vdump_regs()
 
