@@ -71,7 +71,8 @@ module bus_controller (
     output reg      nora_slv_rwn_o,             // reading (1) or writing (0) to the slave
     //
     // Bank parameters from SCRB
-    input [7:0]     rambank_mask_i         // CPU accesses using RAMBANK reg are limited to this range
+    input [7:0]     rambank_mask_i,              // CPU accesses using RAMBANK reg are limited to this range
+    input           force_pblrom_i              // force switching to the PBL ROM -> sets bit 7 of romblock_nr register.
 );
 //// IMPLEMENTATION ////
 
@@ -567,6 +568,12 @@ module bus_controller (
 
 
             endcase
+
+            if (force_pblrom_i)
+            begin
+                // set bit 7 to 1 to force the PBL ROM
+                romblock_nr <= romblock_nr | 8'h80;
+            end
 
             // DEBUG
             // enet_csn_o <= nora_slv_req_BANKREG;

@@ -277,6 +277,9 @@ module top (
             crwn_r              // CPU R/W signal
         };
 
+    reg     icd_cpu_stop;
+    reg     force_pblrom;
+
 // HACK START !!!
     reg     internal_cpu_res;                       // indicates that the 65xx CPU is ongoing internal reset, some output signals are invalid!
     wire    is_isync = csync_vpa_r && cvda_r;      // indicates this is an opcode fetch CPU cycle
@@ -295,7 +298,12 @@ module top (
             bad_opc6502_abort2n <= 1;           // 1=inactive
             internal_cpu_res <= 0;
             isafix816_enabled <= 0;             // dis. XXXXenable by default
+            icd_cpu_stop <= 0;
+            force_pblrom <= 0;
         end else begin
+            icd_cpu_stop <= 0;
+            force_pblrom <= 0;
+
             // detect CPU reset (active low)?
             if (!CRESn)
             begin
@@ -318,6 +326,8 @@ module top (
                 begin
                     bad_opc6502_abort1n <= 0;       // 0=activate!
                     isafix816_enabled <= 0;         // 0=deactivate ISAFIX further detection of bad opcodes
+                    icd_cpu_stop <= 1;
+                    force_pblrom <= 1;
                 end
             end
 
@@ -406,6 +416,7 @@ module top (
         // CPU control
         .run_cpu (icd_run_cpu),
         .stopped_cpu (stopped_cpu),
+        .cpu_stop_i (icd_cpu_stop),
         //
         .cpu_force_resn_o (icd_cpu_force_resn),
         .cpu_force_irqn_o (cpu_force_irqn),       // 0 will force CPU IRQ
@@ -418,6 +429,7 @@ module top (
         .cpubus_trace_i (cpubus_trace),
         .trace_catch_i (release_wr)
     );
+
 
 
     /**
@@ -487,7 +499,8 @@ module top (
         .nora_slv_req_OPM_o (nora_slv_req_OPM),
         .nora_slv_rwn_o (nora_slv_rwn),
         // Bank parameters from SCRB
-        .rambank_mask_i (rambank_mask)
+        .rambank_mask_i     (rambank_mask),
+        .force_pblrom_i     (force_pblrom)
         // // Trace output
         // .cpubus_trace_o (cpubus_trace),
         // .trace_catch_o (trace_catch)

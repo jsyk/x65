@@ -15,7 +15,7 @@ SEGMENTS
 {
     CODE:       load = BOOTROM, type = ro;
     RODATA:     load = BOOTROM, type = ro;
-    VECTORS:    load = BOOTROM, type = ro, offset = $1FA;
+    VECTORS:    load = BOOTROM, type = ro, offset = $1F0;
     DATA:       load = LOWRAM, type = rw;
     BSS:        load = LOWRAM, type = bss, define = yes;
 }

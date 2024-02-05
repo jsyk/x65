@@ -222,7 +222,23 @@ SPI_waitNonBusy:
     RTS
 
 
+; ABORT in EMULATION MODE (ISAFIX) --------------------------------
+EMUABORT:
+    BRA EMUABORT
+    RTI
+
+
 .SEGMENT "VECTORS"
+    ; FFF0,1 = reserved
+    .WORD START
+    ; FFF2,3 = reserved
+    .WORD START
+    ; FFF4,5 = COP (816 in Emu mode only)
+    .WORD START
+    ; FFF6,7 = reserved
+    .WORD START
+    ; FFF8,9 = ABORTB (816 in Emu mode only)
+    .WORD EMUABORT
     ; # // FFFA,B = NMI
     .WORD START
     ; # // FFFC,D = RES

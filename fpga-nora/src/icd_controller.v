@@ -79,6 +79,7 @@ module icd_controller #(
     // CPU control/status
     output reg      run_cpu,                // allow the CPU to run
     input           stopped_cpu,            // indicates if the CPU is stopped
+    input           cpu_stop_i,
 
     output reg      cpu_force_resn_o,       // 0 will force CPU reset
     output reg      cpu_force_irqn_o,       // 0 will force CPU IRQ
@@ -305,6 +306,12 @@ module icd_controller #(
                 begin
                     nora_mst_addr_o <= nora_mst_addr_o + 24'd1;
                 end
+            end
+
+            // request to stop the CPU
+            if (cpu_stop_i)
+            begin
+                run_cpu <= 0;
             end
 
             // catch the trace into a register?
