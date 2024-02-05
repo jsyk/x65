@@ -7,4 +7,5 @@ X65 Single-Board Computer, schematic & PCB revision A1.
 
 ![Schematic (PDF)](x65-sbc-revA1.pdf)
 
+![Interactive BOM](bom/ibom.html)
 
