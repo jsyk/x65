@@ -34,7 +34,7 @@ tilebase_va = 0x8000           # v-addr 32768
 icd.iopoke(v.L0_TILEBASE, ((tilebase_va >> 11) << 2))
 
 # open 8x8 font
-fontfile = open("testroms/font8x8.bin", mode="rb")
+fontfile = open("../testsw/testroms/font8x8.bin", mode="rb")
 fontdata = fontfile.read(2048)
 # write font data to the tile memory
 v.vpoke0_setup(tilebase_va, 1)
