@@ -92,6 +92,9 @@ module top (
     input AIRQn,            // IRQ from AURA, active low.
     input EIRQn,            // IRQ from Ethernet, active low.
 
+// Resets
+    inout ERSTn,
+
 // ICD SPI-slave interface
     input ICD_CSn,
     input ICD_MOSI,
@@ -522,10 +525,10 @@ module top (
     * (Timer not implemented so far.)
     *
     * Port B:  PRB @ 0x9F00, DDRB @ 0x9F02
-    *   PB0 = 
+    *   PB0 = CPUTYPE02 (0 => 65816, 1 => 6502)
     *   PB1 = 
     *   PB2 = 
-    *   PB3..PB7 = IEEE something, unused, reads 11000.
+    *   PB3..PB7 = IEEE488, unused, reads 11000.
     *
     * Port A: PRA @ 0x9F01, DDRB @ 0x9F03
     *   PA0 = SDA
@@ -562,7 +565,7 @@ module top (
     wire smc_i2csda_dr0;
     wire i2csda_dr0 = ((via1_gpio_ddra[0]) ? ~via1_gpio_ora[0] : 1'b0) | smc_i2csda_dr0;
     assign via1_gpio_ira = { NESDATA0, NESDATA1, 1'b1, 1'b1, NESCLOCK, NESLATCH, I2C_SCL, I2C_SDA };
-    assign via1_gpio_irb = { 8'b11000000 };
+    assign via1_gpio_irb = { 7'b1100000, cputype02_r };
     assign NESCLOCK = ((via1_gpio_ddra[3]) ? via1_gpio_ora[3] : 1'b1);
     assign NESLATCH = ((via1_gpio_ddra[2]) ? via1_gpio_ora[2] : 1'b1);
     assign I2C_SCL = (via1_gpio_ddra[1]) ? via1_gpio_ora[1] : 1'bZ;
@@ -586,7 +589,10 @@ module top (
     *   PB1 = CPULED1, orange, front
     *   PB2 = DIPLED0, yellow, internal
     *   PB3 = DIPLED1, yellow, internal
-    *   PB4..PB7 = unused
+    *   PB4 = unused
+    *   PB5 = unused
+    *   PB6 = unused
+    *   PB7 = ERST, Wiznet ethernet reset, active low
     *
     * Port A: PRA @ 0x9F11, DDRB @ 0x9F13
     *   PA0 = 
@@ -621,13 +627,15 @@ module top (
     );
 
     assign via2_gpio_ira = 8'hFF;
-    assign via2_gpio_irb = { 4'b0000, DIPLED1, DIPLED0, CPULED1, CPULED0 };
+    assign via2_gpio_irb = { ERSTn, 3'b000, DIPLED1, DIPLED0, CPULED1, CPULED0 };
 
     assign CPULED0 = (via2_gpio_ddrb[0]) ? via2_gpio_orb[0] : blinkerled;
     assign CPULED1 = (via2_gpio_ddrb[1]) ? via2_gpio_orb[1] : 1'bZ;
 
     assign DIPLED0 = (via2_gpio_ddrb[2]) ? via2_gpio_orb[2] : 1'bZ;
     assign DIPLED1 = (via2_gpio_ddrb[3]) ? via2_gpio_orb[3] : blinkerled;
+
+    assign ERSTn = (via2_gpio_ddrb[7]) ? via2_gpio_orb[7] : 1'bZ;
     // assign DIPLED1 = blinkerled;
 
 
