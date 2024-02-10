@@ -21,33 +21,23 @@ PC host software in Python and supporting JTAG-like functions for the 65xx platf
 
 Project web pages: http://www.x65.eu  -> currently links to http://www.jsykora.info
 
-----------------------------------------------------------------------------
-*Warning* 
+3D-render of the *Single-Board Computer* version:
 
-This hardware project is a work-in-progress.
-Some parts of the design are untested yet, and other parts may even contain known bugs to be fixed in the next revision.
-See the section `Status of hardware testing' below.
-
-----------------------------------------------------------------------------
-
-3D-render of the SBC version - a work in progress:
-
-![Version SBC - in progress](pcb/x65-sbc-revA1/pictures/sbc-render-1.png)
+![Version SBC](pcb/x65-sbc-revA1/pictures/sbc-render-1.png)
 
 
 General Project Features:
 -------------------------
 
-* The CPU is W65C02 (8-bit) or the W65C816 (16-bit). The motherboard PCB supports both assembly options.
+* The CPU is W65C02 (8-bit) or the W65C816 (16-bit; default). The motherboard PCB supports both assembly options.
 * Backward software compatibility with the [Commander X16](https://www.commanderx16.com/) computer.
   Can run unmodified CX16 ROM for testing purposes.
-* Designed with components (chips) that are in production and available from normal electronics parts distributors 
+* Designed with components (chips) that are in production and available from normal electronics parts distributors in 2024,
   such as Mouser, Farnell, Digikey etc. We avoid obsolete parts.
 * Balanced modern/retro design built around the central 65xx CPU supported by semi-ASICs (FPGAs) for system control (NORA),
-  video (VERA) and audio (AURA) generation. The FPGAs are the little ones from the iCE40 series, coded in verilog.
-  This approach is in line with "old masters" who designed Commodore or ZX Spectrum systems, 
-  not possible without custom ASICs either (see ULA, VIC, SID, etc.).
-  For sure, there is no hidden ARM or RISC-V doing heavy lifting in the background.
+  video (VERA) and audio (AURA) generation. The FPGAs are the little ones from the iCE40 series, and coded in verilog.
+  These are modern takes on the "old masters'" designs with ULA, VIA, SID etc.
+  There is no hidden ARM or RISC-V doing heavy lifting in the background.
 * Free and open-source design. DIY and hobby-builders friendly. 
   Low-cost to build even in small quantities by individual hackers.
 
@@ -64,6 +54,7 @@ Hardware Specification:
 * **System controller** semi-ASIC, aka north-bridge, aka NORA: Lattice FPGA iCE40HX4K (TQFP-144) handles address decoding, 
   glue logic, PS/2 interfaces, in-circuit debugger and more. 
   "NORA" stands for NORth Adapter, has a similar function like the north bridge in a PC/X86 architecture.
+  NORA takes care of the [memory address map](doc/mem-map.md) and hosts most of the [IO registers](doc/ioregs.md).
 * Two ports for **SNES-style controllers**, handled by NORA.
 * Two **PS/2 ports** for keyboard and mouse, handled by NORA. (note: we reimplement CX16 arduino code in pure hardware logic in verilog.)
 * **Colour video** output through VGA connector, up to 640x480 pixels. 
@@ -78,44 +69,75 @@ Hardware Specification:
 * **LAN 10/100Mbps** Ethernet port (RJ45) implemented by [Wiznet W6100](https://www.wiznet.io/product-item/w6100/) chip, 
   with hardware-integrated TCP/IP v4/v6 stack.
 * **Real-time clock** (RTC) chip with battery backup.
-* **In-circuit debugger** (ICD) integrated with NORA and accessible over the device USB-C port from a host PC
+* [**In-circuit debugger**](doc/icd.md) (ICD) integrated with NORA and accessible over the device USB-C port from a host PC
   running Linux or Windows. The ICD can write all permanent (SPI-Flash) memories in the system, 
   even in a totally empty / bricked state. PC host software is written in Python and should be portable to other 
   fruitful systems besides Linux and Windows.
-  Together with NORA the ICD supports JTAG-like functions like memory poke/dump, CPU stop/stepping, instruction
-  trace buffer for the last 512 CPU cycles, interrupt forcing/blocking etc.
+  Together with NORA the ICD supports JTAG-like functions like memory poke/dump, CPU stop/step, instruction
+  trace buffer, interrupt forcing/blocking etc.
 * **Power input** 5V from a standard USB Type-C device port.
   The X65 computer can be powered from a normal host-PC USB port (for development with ICD), 
   or runs standalone from a common Mains/USB phone charger with just 5V output.
-* A two-PCB stacked construction: Motherboard (mo-bo) at the bottom and Video-Audio board (va-bo) at the top,
-  connected by two 20-pin headers. Each board is exactly 100x100mm and conductive 2-layers. 
+* Single-board PCB 180x100mm, 4-layers.
 
 
 
-Photos:
---------
+Hardware Photos:
+----------------
 
-Overview photos (2023-05-08) - first working sample:
+Overview photos (2024/02) - Single-Board version:
 
-![Front view photo](Photos/frontview.jpg)
+**SBC Front view photo**:
 
-![Rear view photo](Photos/rearview.jpg)
+![Front view photo](Photos/sbc-frontview.jpg)
+
+**SBC Rear view photo**:
+
+![Rear view photo](Photos/sbc-rearview.jpg)
+
+
+**SBC Top view with labels**:
 
 Engineering testing samples, hand-assembled:
 
-![Motherboard photo](Photos/20231208_170908-mobo-top.jpg)
+![SBC topview with labels](doc/pic/sbc-topview-labels.drawio.png)
 
-![Video/Audio Board photo](Photos/20231208_170810-vabo-top.jpg)
+
+Demo Software Screen Photos
+----------------------------
 
 Running Commander X16 ROM and BASIC program (compatibility testing only, not allowed in production use due to a proprietary license):
 
 ![X16 Booted](Photos/20230514_200930_ready_print.jpg)
 
-![MAZE BASIC Program typed in](Photos/20230514_201322-mazeprog.jpg)
 
-![MAZE BASIC Program run](Photos/20230514_201336-mazerun.jpg)
+**BAD METAL** demo from CX16:
+
+![BadMetal](Photos/badmetal-cx16.jpg)
 
 
+**CALLIOPE** music player from CX16:
+
+![Calliope](Photos/calliope.jpg)
+
+**Crazy Boulders**, a CX16 game by Dušan Štrakl:
+
+![Crazy Boulders](Photos/crazyboulders-strakl.jpg)
+
+**Crazy Lander**, a CX16 game by Dušan Štrakl:
+
+![Crazy Lander](Photos/crazylander-strakl.jpg)
+
+**Crazy Pong**, a CX16 game by Dušan Štrakl:
+
+![Crazy Pong](Photos/crazypong-strakl.jpg)
+
+
+**Planet X16**, a CX16 game by David Murray:
+
+![Planet X16](Photos/planetx16-murray.jpg)
+
+![Planet X16](Photos/planetx16-2-murray.jpg)
 
 
 Structure of the GIT repository:
@@ -135,17 +157,10 @@ Structure of the GIT repository:
 Schematics in PDF:
 ------------------
 
-**Revision 1:**
+**SBC Revision A1:**
 
-* [Motherboard, rev01 - PDF scm](pcb/mobo-rev01/scm-print/openX65-mobo-rev01-schematic.pdf)
+* [X65-SBC, revA1 - PDF scm](pcb/x65-sbc-revA1/x65-sbc-revA1.pdf)
 
-* [Video/Audio board, rev01 - PDF scm](pcb/vabo-rev01/scm-prints/openX65-vabo-rev01-schematic.pdf)
-
-* Note: Revision 1 contains many bugs that will be fixed in Revision 2!
-
-**Revision 2:**
-
-* To be done...
 
 
 Software:
@@ -153,25 +168,22 @@ Software:
 
 The X65 is software-backwards-compatible with the Commander X16. 
 It means the X65 could run unmodified CX16 ROM and programs, excluding programs depending on some of the hardware features 
-in CX16 that are not supported here: cartridges, Commodore IEC port, etc.
-However, the CX16 ROM is a proprietary, non-open-source and non-free, piece of software created by Commodore
-and licensed to the CX16 creators. The licensees do not wish that the ROM runs on other HW than their own.
-Therefore, I could not recommend running that ROM in X65 environment.
+in CX16 that are not supported here: cartridges, Commodore IEC port.
+However, the CX16 ROM is a **proprietary**, non-open-source and non-free, piece of software created by Commodore
+and licensed to the CX16 creators. *The licensees do not wish that the ROM runs on other HW than their own.*
+Therefore, I could not recommend running that ROM on the X65 computer.
 
-Presently it is not decided which "operating system" or "runtime shell" would be the best / easiest to port to X65.
-There some existing systems, for example:
+Presently I am decided which operating system or runtime shell would be the best / easiest to port to X65.
+There some existing systems that could be ported here, for example:
 
 * [MEGA65 OPEN-ROMs](https://github.com/MEGA65/open-roms) (true free open-source sw),
 * [FastBasic](https://github.com/dmsc/fastbasic)
 * [GeckOS](http://www.6502.org/users/andre/osa/index.html)
 
-The hardware could be assembled with either the 8-bit 65C02 CPU or the 16-bit 65C816 CPU.
-The advantage of the 16-bit 65C816 CPU is a linear 24-bit address space.
-On the other hand, compiler tools support is much weaker in case of 65C816 than for the widely known 65C02.
 
 
-Timeline
----------
+Motivation
+------------
 
 This project started in March 2023 when I saw a prototype of Commander X16 in one of the youtube videos
 of the 8-bit guy. I immediately wanted to play with it but at the time his project was not released,
@@ -180,53 +192,13 @@ about the CX16. At the same time I was not too pleased with the architecture and
 of the CX16, not satisfied with many design choices they did. 
 Consequently, my X65 tries to improve in many areas while being software-compatible.
 
-*Thus, Project X65 was born.*
-I had the first working boards in May 2023. The project inevitably stalled during the summer due to the
-necessity to attend other developments in the garden of my house. But as the garden falls for winter sleep,
-I restarted the X65 project in the Autumn. The pace of development everyone could judge by GIT logs.
-I have a daytime job with Siemens, developing PCIe PROFINET cards, and a family.
-Therefore, future timeline is impossible to guarantee.
-What can be seen now (December 2023) is a Revision 1 design - an engineering prototype.
-Soon I want to create a Revision 2 design which would fix many errors and add few improvements.
-Notably I want to add micro-SDHC slot to the bottom motherboard to function as a "hard-disk".
-The existing SDHC slot on the top board would continue to work as a removable disk.
-The other new feature would be a support for some kind of enclosure - maybe a stacked PCBs, 
-maybe an Eurocard housing.
-
-
-Status of hardware testing
-----------------------------
-
-(last update 09.12.2023):
-
-* Motherboard ('mobo') rev01:
-  * CPU W65C02, SRAM 2MB, FPGA NORA -- works OK!
-  * CPU W65C816 -- works OK.
-  * original VIA -- will be removed from the design!
-  * SNES controller ports -- works OK (slight change in scm).
-  * RTC -- works OK!
-  * USB, FTDI debugger -- works OK!
-  * PS2 Keyboard -- works OK! (but the circuit will be changed to simplify)
-  * PS2 Mouse -- works OK!
-  * TFT LCD -- not tested, feature will be removed.
-  * UART via FTDI -- not tested.
-  * Power supply -- works OK, PCB layout needs improvements.
-
-* Video/Audio board ('vabo') rev01:
-  * VERA FPGA, with VGA out -- works OK!
-  * S-Video/Composite out -- NTSC output is low quality, maybe VERA design problem.
-  * SDC interface -- works OK! (An "SDHC" card required by X16 ROM)
-  * I/O LEDS and DIP -- not tested yet.
-  * AURA FPGA -- works OK! (YM2151 FM-synth replica)
-  * Audio DAC -- works OK!
-  * Built-in speaker -- tested, the volume control switch needs improvements.
-  * 10/100 LAN -- tested partly, so far looks ok.
 
 
 Contact
 --------
 
-Jaroslav Sykora,
+Jaroslav Sýkora
+
     Personal: http://www.jsykora.info,
     GIT: https://github.com/jsyk,
     Mastodon: https://oldbytes.space/@jarda,

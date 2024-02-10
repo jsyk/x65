@@ -54,15 +54,18 @@ The first two registers support *RAM-Block mapping* (at $A000) and *system reset
                                                     from 8-bit (6502) code.
                                                     (For 16-bit code (65816) using 24-bit native linear addressing the RAMBMASK is irrelevant.)
         
-    $9F51           SYSRESET                        System reset trigger.
-                                        [7] bit UNLOCK: to prevent unintended system resets, the SYSRESET must be first unlocked by writing 0x80 into the register.
+    $9F51           SYSCTRL                         System control / reset trigger.
+                                        [7] bit UNLOCK: to prevent unintended system resets, the SYSCTRL must be first unlocked by writing 0x80 into the register.
                                         [6] unused
                                         [5] unused
-                                        [4] bit NORARESET: writing 1 (after UNLOCKing) will trigger NORA reset - bitstream reloading.
-                                        [3] bit AURARESET: writing 1 (after UNLOCKing) will trigger reset of AURA with bitstream reload. 
-                                        [2] bit VERARESET: writing 1 (after UNLOCKing) will trigger reset of VERA with bitstream reload. 
-                                        [1] bit ETHRESET: writing 1 (after UNLOCKing) will trigger reset of the Ethernet controller (Wiznet).
-                                        [0] bit CPURESET: writing 1 (after UNLOCKing) will trigger CPU reset sequence. Note: ROMBANK or any other registers are not affected!
+                                        [4] unused
+                                        [3] bit ABRT02: writing 1 (after UNLOCKing) will enable ABORTing of 65C02-only opcodes
+                                            encountered during the Emulation mode of the 65816 processor. 
+                                            Software can emulate the behaviour of the 65C02 instructions in the ABORT handler.
+                                        [2] bit NORARESET: writing 1 (after UNLOCKing) will trigger NORA reset - bitstream reloading.
+                                        [1] bit CPUSTOP: writing 1 (after UNLOCKing) will stop the CPU.
+                                        [0] bit CPURESET: writing 1 (after UNLOCKing) will trigger CPU reset sequence. 
+                                            Note: ROMBANK or any other registers are not affected!
 
 The next three registers control the *SPI-Master* periphery in NORA.
 The SPI-Master can access NORA's UNIFIED ROM (really the SPI-Flash primarilly for NORA bitstream), and the SPI bus on UEXT port:
@@ -107,15 +110,16 @@ The next three registers control the *USB_UART* periphery:
                                                 001 = reserved
                                                 010 = 9600 Bd
                                                 011 = 57600 Bd
-                                                100 = 115200 Bd
+                                                100 = 115200 Bd = DEFAULT
                                                 101 = 230400 Bd
                                                 110 = 1000000 Bd (non-standard freq)
                                                 111 = 3000000 Bd (non-standard freq)
-                                        [3] = Enable Parity generation/checking
-                                        [4] = Parity Configuration: 0=even, 1=odd.
+                                        [3] = Enable Parity generation/checking, DEFAULT=0
+                                        [4] = Parity Configuration: 0=even (DEFAULT), 1=odd.
                                         [5] = Enable HW-FlowCtrl (RTS/CTS) - honoring the CTS signal.
                                                 When the CTS input is active (low), transmission from FIFO is allowed.
                                                 When the CTS input is inactive (high), transmissions are blocked.
+                                                DEFAULT = OFF.
                                         [6] = Enable IRQ activation on not(RX-FIFO-empty)
                                         [7] = Enable IRQ activation on not(TX-FIFO-full)
 
@@ -132,7 +136,7 @@ The next three registers control the *USB_UART* periphery:
     $9F57           USB_UART_DATA       [7:0]       Reading dequeues data from the RX FIFO.
                                                     Writing enqueues to the TX FIFO.
 
-The next three registers control the *UEXT_UART* periphery:
+The next three registers control the *UEXT_UART* periphery, currently NOT IMPLEMENTED:
 
     Address         Reg.name            Bits        Description
     $9F58           UEXT_UART_CTRL                  Same as USB_UART_CTRL but for UEXT UART. 
@@ -191,20 +195,24 @@ The next five registers control the dual-PS/2 periphery through the SMC:
                                                     (both bytes must be written in PS2K_RSTAT consequtevely.)
 
     $9F62           PS2M_BUF            [7:0]       Mouse buffer (FIFO output).
-
-
- * [SMC] provides these registers over I2C:
- *      0x07		Read from keyboard buffer
- *      0x18		Read ps2 (keyboard) status
- *      0x19	    00..FF	Send ps2 command
- *      0x1A        00..FF  Send 2-byte ps2 command
- *      0x21		Read from mouse buffer
-
    
 
 
 The next register controls global IRQ/NMI masking:
 
-The next registers control UEXT GPIO:
+    $9F63           IRQCTRL         
+                                        [7] = VERAIRQ_EN
+                                        [6] = AURAIRQ_EN
+                                        [5] = ETHIRQ_EN
+                                        [4] = UEXTIRQ_EN
+                                        [3] = NORAIRQ_EN (PS2, UART, IRQ, SPI)
+                                        [2] = unused
+                                        [1] = unused
+                                        [0] = unused
+    
+    $9F64           IRQSTAT
+
+
+
 
 
