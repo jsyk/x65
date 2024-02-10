@@ -197,7 +197,7 @@ Consequently, my X65 tries to improve in many areas while being software-compati
 Contact
 --------
 
-Jaroslav Sýkora
+**Jaroslav Sýkora**
 
     Personal: http://www.jsykora.info,
     GIT: https://github.com/jsyk,
