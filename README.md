@@ -25,6 +25,8 @@ Project web pages: http://www.x65.eu  -> currently links to http://www.jsykora.i
 
 ![Version SBC](pcb/x65-sbc-revA1/pictures/sbc-render-1.png)
 
+Desktop setup with X65-SBC, PS/2 mouse and keyboard and a VGA monitor. Running `Planet X16' by David Murray with CX16 ROMs:
+
 ![Desktop with SBC](Photos/sbc-desktop.jpg)
 
 
@@ -140,6 +142,11 @@ Running Commander X16 ROM and BASIC program (compatibility testing only, not all
 ![Planet X16](Photos/planetx16-murray.jpg)
 
 ![Planet X16](Photos/planetx16-2-murray.jpg)
+
+
+[**Integrated In-Circuit Debugger**](doc/icd.md) can live-trace the CPU from a Linux PC over the USB:
+
+![ICD CpuStep](doc/pic/icd-cpustep.png)
 
 
 Structure of the GIT repository:
