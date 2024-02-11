@@ -11,8 +11,6 @@ ROMBLOCK_REG = $1
 ; These are in fact in the IO Scratchpad range 0x9FF0 to 0x9FFF by virtue
 ; of moving the Direct Page register to 0x9F00.
 
-;TMP_R2 = $F2
-;TMP_R3 = $F3
 TMP_IBYTE = $F4
 TMP_ZPBYTE = $F5
 TMP_ZPBYTEHI = $F6
@@ -46,55 +44,28 @@ ISAFIX_ENTRY:           ; entry point for ISAFIX handler at address $07e000,
     LDA  #$9F00
     TCD         ; AB -> Direct Page reg.
     
-
     ; Read the faulting instruction by inspecting the stack.
     ;   Get the ptr from stack - this was the original return address
     LDA 8, S                ; 16-bit load of the faulting address from the stack
     TAX                     ; and put it to 16-bit X
-
-    ;LDA 8,S                 ; faulting address, lo byte
-    ;STA TMP_R2
-    ;LDA 9,S                ; faulting address, hi byte
-    ;STA TMP_R3
 
     ; A to 8-bit; XY remains in 16-bits
     SEP     #$20
 .A8
 
     ;   Read the instruction byte
-    ; LDA (TMP_R2)
     LDA a:0, X            ; 8-bit load
-
     ; and store it to our scratchpad.
     STA TMP_IBYTE
-    ; Increment ptr to get to the zp byte
-    ;CLC
-    ;LDA TMP_R2
-    ;ADC #1
-    ;STA TMP_R2
-    ;LDA TMP_R3
-    ;ADC #0
-    ;STA TMP_R3
-    ; INX
 
     ; Load the ZP byte, which is in fact an address into zero page, and store to scratchpad
-    ; LDA (TMP_R2)
     LDA a:1, X            ; 8-bit load
-    STA TMP_ZPBYTE
-    STZ TMP_ZPBYTEHI
-    ; Increment ptr to get to the rr byte
-    ;CLC
-    ;LDA TMP_R2
-    ;ADC #1
-    ;STA TMP_R2
-    ;LDA TMP_R3
-    ;ADC #0
-    ;STA TMP_R3
+    STA TMP_ZPBYTE          ; zp byte from the code
+    STZ TMP_ZPBYTEHI        ; zero
     ; Load the RR byte, which is the displacement for BBR/BBS branches, and sign-extend it to 16-bits
-    ;LDA (TMP_R2)
     LDA a:2, X
     STA TMP_RRBYTE
-    STZ TMP_RRBYTEHI
+    STZ TMP_RRBYTEHI            ; zero-extend by default.
     BPL rrbytehi_is_zero        ; skip over if TMP_RRBYTEHI should stay 0
     LDA #$FF                    ; sign-extend
     STA TMP_RRBYTEHI
@@ -111,33 +82,34 @@ rrbytehi_is_zero:
     ROR
     ROR
     AND #$07                ; 0 to 7
-    STA TMP_BITNR           
+    STA TMP_BITNR           ; store for debug only, not necessary.
     ; convert to mask
     ; LDX TMP_BITNR
     TAX
-    LDA f:maskbits, X
+    LDA f:maskbits, X       ; -> mask lookup
     STA TMP_BITNR
 
     ; Is this BBR/BBS or RMB/SMB ?
     LDA TMP_IBYTE
-    ;   clear out unimportant bits, we want just bit 3
+    ;   check bit 3
     BIT #$08
-    BEQ handle_rmb_smb      ; bit 3 is zero -> RMB/SMB
-    ; else bit 3 is one -> BBR/BBS
+    BEQ handle_rmb_smb      ; bit 3 is zero (opcodes LSD=7) -> RMB/SMB
+    ; else bit 3 is one (opcodes LSD=F) -> BBR/BBS
 handle_bbr_bbs:
     ; The faulting instruction was:
     ;   BBR0..BBR7 zp, rr
     ;   BBS0..BBS7 zp, rr
     BIT #$80                ; check bit 7 of IBYTE
-    BEQ handle_bbr
+    BEQ handle_bbr      ; ... is 0 (opcodes MSD=0 to 7) => BBR
+    ; else is 1 (opcodes MSD=8 to F) => BBS
 handle_bbs:
     ; The faulting instruction was:
     ;   BBS0..BBS7 zp, rr
     ; Test the bit# of the zp argument
-    LDA (TMP_ZPBYTE)        ; 16-bit address, indirect
+    LDA (TMP_ZPBYTE)        ; 16-bit address, indirect - get the data byte
     BIT TMP_BITNR
-    BNE bb_taken      ; BBS: if the result 1, then the branch is taken.
-    BRA bb_not_taken
+    BNE bb_taken      ; BBS Branch on bit Set: if the result 1, then the branch is taken.
+    BRA bb_not_taken        ; else not taken.
 
 handle_bbr:
     ; The faulting instruction was:
@@ -145,11 +117,11 @@ handle_bbr:
     ; Test the bit# of the zp argument
     LDA (TMP_ZPBYTE)
     BIT TMP_BITNR
-    BEQ bb_taken        ; BBR: if result is 0, then the branch is taken.
+    BEQ bb_taken        ; BBR Branch on bit Reset: if result is 0, then the branch is taken.
     ; else fall to bb_not_taken
 
 bb_not_taken:
-    ; BBR should NOT be taken -> we must increment the return address on the stack to skip over the 3-byte instruction
+    ; BBR/BBS should NOT be taken -> we must increment the return address on the stack to skip over the 3-byte instruction
     ;   Switch A to 16-bits
     REP     #$20        ; 
 .A16
@@ -167,8 +139,8 @@ bb_not_taken:
     BRA handler_cleanup
 
 bb_taken:
-    ; BBR should BE taken -> we must increment the return address on the stack by 3
-    ; and by the rr byte (which must be sign-extended)
+    ; BBR/BBS should BE taken -> we must increment the return address on the stack by 3
+    ; and then by the rr byte (which was sign-extended to 16-bit)
     ;   Switch A to 16-bits
     REP     #$20        ; 
 .A16
@@ -234,7 +206,7 @@ done_rmb_smb:
 
 
 handler_cleanup:
-    ; Switch the Direct Page register to 0x0000
+    ; Switch the Direct Page register back to 0x0000 as necessary in 65C02
     ;   Switch A to 16-bits
     REP     #$20        ; 
 .A16
@@ -245,13 +217,13 @@ handler_cleanup:
     SEP     #$20
 .A8
 
-    ; Restore the ROMBLOCK to the state after the Abort handler
+    ; Restore the ROMBLOCK to the state after the Abort handler with PBL ROM mapped in,
     LDA ROMBLOCK_REG
     ;    by setting the bit 7, and bit 6,
     ORA #$C0
     ;    this maps NORA PBL to the memory space, and instructs NORA to clear it on RTI.
     STA ROMBLOCK_REG
-    ; now we can go back to the abort handler in PBL
+    ; now we can go back to the abort handler in PBL to finish off.
     RTL
 
 
