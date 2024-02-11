@@ -7,14 +7,17 @@
 RAMBLOCK_REG = $0
 ROMBLOCK_REG = $1
 
-TMP_R2 = $E2
-TMP_R3 = $E3
-TMP_IBYTE = $E4
-TMP_ZPBYTE = $E5
-TMP_ZPBYTEHI = $E6
-TMP_RRBYTE = $E7
-TMP_RRBYTEHI = $E8
-TMP_BITNR = $E9
+; Direct-Page scratchpad registers.
+; These are in fact in the IO Scratchpad range 0x9FF0 to 0x9FFF by virtue
+; of moving the Direct Page register to 0x9F00.
+TMP_R2 = $F2
+TMP_R3 = $F3
+TMP_IBYTE = $F4
+TMP_ZPBYTE = $F5
+TMP_ZPBYTEHI = $F6
+TMP_RRBYTE = $F7
+TMP_RRBYTEHI = $F8
+TMP_BITNR = $F9
 
 ; CPU=65C816
 .P816
@@ -31,6 +34,18 @@ ISAFIX_ENTRY:           ; entry point for ISAFIX handler at address $07e000,
     ;    this unmaps NORA PBL from the memory space (we will have to bring it back before returning!)
     STA ROMBLOCK_REG
     ;
+    ; Switch the Direct Page register to 0x9F00 -> this moves "zero page" (direct page) addressing to the Scratchpad 
+    ;   in the io space at 0x9FF0 to 0x9FFF.
+    ;   Switch A to 16-bits
+    REP     #$20        ; 
+.A16
+    ;   AB = 0x9F00
+    LDA  #$9F00
+    TCD         ; AB -> Direct Page reg.
+    ; A to 8-bit
+    SEP     #$20
+.A8
+
     ; Read the faulting instruction by inspecting the stack.
     ;   Get the ptr from stack - this was the original return address
     LDA 8,S                 ; faulting address, lo byte
@@ -153,18 +168,29 @@ bb_taken:
     BRA handler_cleanup
 
 
-
-
 handle_rmb_smb:
     ; The faulting instruction was:
     ;   RMB0..RMB7 zp
     ;   SMB0..SMB7 zp
+
+
 
 L1:
     BRA L1
 
 
 handler_cleanup:
+    ; Switch the Direct Page register to 0x0000
+    ;   Switch A to 16-bits
+    REP     #$20        ; 
+.A16
+    ;   AB = 0x0000
+    LDA  #$0000
+    TCD         ; AB -> Direct Page reg.
+    ; A to 8-bit
+    SEP     #$20
+.A8
+
     ; Restore the ROMBLOCK to the state after the Abort handler
     LDA ROMBLOCK_REG
     ;    by setting the bit 7, and bit 6,

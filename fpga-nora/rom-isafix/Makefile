@@ -19,3 +19,5 @@ clean:
 
 load: isafix.bin
 	../../x65pyhost/do-loadbin.py isafix.bin sram 0x07e000
+	../../x65pyhost/do-poke.py io 0x51 0x80
+	../../x65pyhost/do-poke.py io 0x51 0x40
