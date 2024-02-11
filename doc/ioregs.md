@@ -28,5 +28,5 @@ Note: In case of 65816 CPU, all I/O registers are visible just in the first 64k-
 | $9F50 ... $9F6F | [NORA](ioregs-nora.md)                                |
 | $9F70 ... $9F7F | unused, reserved for NORA                             |
 | $9F80 ... $9F8F | [W6100L](ioregs-wiznet.md) ethernet controller        |
-| $9F90 ... $9FFF | unused                                                |
-
+| $9F90 ... $9FEF | unused                                                |
+| $9FF0 ... $9FFF | SRAM scratchpad, used by ISAFIX handler under ABORT   |

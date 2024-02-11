@@ -72,7 +72,9 @@ module bus_controller (
     //
     // Bank parameters from SCRB
     input [7:0]     rambank_mask_i,              // CPU accesses using RAMBANK reg are limited to this range
-    input           force_pblrom_i              // force switching to the PBL ROM -> sets bit 7 of romblock_nr register.
+    output [7:0]    romblock_o,
+    input           force_pblrom_i,              // force switching to the PBL ROM -> sets bit 7 of romblock_nr register.
+    input           clear_pblrom_i              // clear us out of the PBL ROM -> clears bit 7 of romblock_nr register.
 );
 //// IMPLEMENTATION ////
 
@@ -307,6 +309,14 @@ module bus_controller (
                             // mem_wrn_adv2_r <= cpu_rw_i;
                             s4_ext_o <= 2'b10;              // extend S4H by 2cc (add 40ns of access time)
                         end
+                        else if (cpu_ab_i[7:4] == 4'hF)
+                        begin
+                            // 0x9FF0 Scratchpad memory - display the underlaying low SRAM
+                            mem_abh_o <= { 5'h00, cpu_abh_i[15:12] };
+                            sram_csn_o <= LOW_ACTIVE;
+                            mem_rdn_o <= ~cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i;
+                        end
                     end
                     else 
                     begin
@@ -520,6 +530,14 @@ module bus_controller (
                             mem_wrn_o <= nora_mst_rwn_i;
                             // mem_wrn_adv2_r <= nora_mst_rwn_i;
                         end
+                        else if (cpu_ab_i[7:4] == 4'hF)
+                        begin
+                            // 0x9FF0 Scratchpad memory - display the underlaying low SRAM
+                            sram_csn_o <= LOW_ACTIVE;
+                            mem_abh_o <= 9'b0_0000_1001;  //  nora_mst_addr_i[20:12];
+                            mem_rdn_o <= ~nora_mst_rwn_i;
+                            mem_wrn_o <= nora_mst_rwn_i;
+                        end
                     end
 
                     mst_state <= MST_EXT_ACC;
@@ -572,7 +590,13 @@ module bus_controller (
             if (force_pblrom_i)
             begin
                 // set bit 7 to 1 to force the PBL ROM
-                romblock_nr <= romblock_nr | 8'h80;
+                romblock_nr <= { 1'b1, romblock_nr[6:0] };
+            end
+
+            if (clear_pblrom_i)
+            begin
+                // clear bit 7 & 6 to 0 to clear us out of the PBL ROM
+                romblock_nr <= { 2'b00, romblock_nr[5:0] };
             end
 
             // DEBUG
@@ -604,6 +628,10 @@ module bus_controller (
         begin
             // internal slave reading
             cpu_db_o <= nora_slv_data_i;
+        end else
+        begin
+            // no slave selected -> read 0xFF
+            cpu_db_o <= 8'hFF;
         end
 
         // pre-compute the masked rambank
@@ -617,6 +645,8 @@ module bus_controller (
             cpu_db_hold_r <= cpu_db_i;
         end
     end
+
+    assign romblock_o = romblock_nr;
    
 
 endmodule
