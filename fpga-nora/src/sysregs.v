@@ -17,6 +17,10 @@ module sysregs (
     //
     // RAMBANK_MASK
     output reg [7:0]   rambank_mask_o,
+    // SYSCTRL
+    output reg      cpu_stop_req_o,
+    output reg      cpu_reset_req_o,
+    output reg      abrt02_en_o,
     // SPI Master interface for accessing the flash memory
     output [7:0]    spireg_d_o,            // read data output from the core (from the CONTROL or DATA REG)
     input  [7:0]    spireg_d_i,            // write data input to the core (to the CONTROL or DATA REG)
@@ -47,8 +51,10 @@ module sysregs (
 );
     // IMPLEMENTATION
 
-    // reg spireg_cs;
-    reg rambank_mask_cs;
+    reg     rambank_mask_cs;
+    reg     sysctrl_cs;
+
+    reg     sysctrl_unlocked_r;
 
 
     // calculate the slave data read output
@@ -69,11 +75,16 @@ module sysregs (
         ps2_cs_kbuf_o = 0;            // target register select: KBD BUF DATA (FIFO)
         ps2_cs_krstat_o = 0;            // target register select: KBD RSTAT REG
         ps2_cs_mbuf_o = 0;            // target register select: MOUSE BUF DATA REG (FIFO)
+        sysctrl_cs = 0;
 
         case (slv_addr_i ^ 5'b10000)
             5'h00: begin            // 0x9F50
                 slv_datard_o = rambank_mask_o;       // RAMBANK_MASK
                 rambank_mask_cs = slv_req_i;
+            end
+            5'h01: begin            // 0x9F51   SYSCTRL
+                slv_datard_o = { 1'b0, abrt02_en_o, 6'b00_0000 };
+                sysctrl_cs = slv_req_i;
             end
             5'h02: begin        // $9F52        N_SPI_CTRL
                 slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
@@ -142,6 +153,18 @@ module sysregs (
     assign ps2_wr_o = ps2_cs && !slv_rwn_i && slv_datawr_valid;
     assign ps2_rd_o = ps2_cs && slv_rwn_i && slv_datawr_valid;
 
+
+    reg   fpga_boot;
+
+`ifndef SIMULATION
+    // fpga warm boot trigger
+    SB_WARMBOOT fpgares (
+        .BOOT (fpga_boot),
+	    .S1 (1'b0),
+	    .S0 (1'b0)
+    );
+`endif
+
     // registers
     always @(posedge clk)
     begin
@@ -149,11 +172,57 @@ module sysregs (
         begin
             // in reset
             rambank_mask_o <= 8'h7F;       // X16 compatibility: allow only 128 RAM banks after reset
+            cpu_stop_req_o <= 0;
+            cpu_reset_req_o <= 0;
+            abrt02_en_o <= 0;
+            sysctrl_unlocked_r <= 0;
+            fpga_boot <= 0;
         end else begin
+            cpu_stop_req_o <= 0;
+            cpu_reset_req_o <= 0;
+            // fpga_boot <= 0;
+
             // handle write to the RAMBANK_MASK register
             if (rambank_mask_cs && !slv_rwn_i && slv_datawr_valid)
             begin
                 rambank_mask_o <= slv_datawr_i;
+            end
+
+            // handle write to the SYSCTRL register
+            if (sysctrl_cs && !slv_rwn_i && slv_datawr_valid)
+            begin
+                // writing 0x80 will unlock the register
+                if (slv_datawr_i == 8'h80)
+                begin
+                    sysctrl_unlocked_r <= 1;
+                end
+                // if the register is unlocked...
+                if (sysctrl_unlocked_r && !slv_datawr_i[7])
+                begin
+                    // write ABRT02
+                    abrt02_en_o <= slv_datawr_i[6];
+
+                    // [2] NORARESET ?
+                    if (slv_datawr_i[2])
+                    begin
+                        fpga_boot <= 1;
+                    end
+
+                    // [1] bit CPUSTOP
+                    if (slv_datawr_i[1])
+                    begin
+                        cpu_stop_req_o <= 1;
+                    end
+
+                    // [0] bit CPURESET
+                    if (slv_datawr_i[0])
+                    begin
+                        cpu_reset_req_o <= 1;
+                    end
+                    
+                    // lock the register again
+                    sysctrl_unlocked_r <= 0;
+                end
             end
         end
     end

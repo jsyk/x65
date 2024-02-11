@@ -68,12 +68,14 @@ class ICD:
 
     def ioregs_read(self, maddr, n):
         maddr &= 0xFF
-        maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT)
+        # The 0x9F helps NORA to position Scratchpad area in SRAM for the ICD access
+        maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT) | 0x9F00
         return self.busread(ICD.ICD_OTHER_READ, maddr, n)
 
     def ioregs_write(self, maddr, data):
         maddr &= 0xFF
-        maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT)
+        # The 0x9F helps NORA to position Scratchpad area in SRAM for the ICD access
+        maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT) | 0x9F00
         return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
 
 

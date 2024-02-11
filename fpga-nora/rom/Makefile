@@ -16,3 +16,6 @@ pbl.o: pbl.s
 
 clean:
 	rm -f pbl.bin pbl.mem pbl.o
+
+load: pbl.bin
+	../../x65pyhost/do-loadbin.py pbl.bin bootrom 0

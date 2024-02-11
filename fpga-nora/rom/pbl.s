@@ -9,8 +9,8 @@
 
 ; Register locations:
 ; RAM/ROM bank mapper:
-RAMBANK_REG = $0
-ROMBANK_REG = $1
+RAMBLOCK_REG = $0
+ROMBLOCK_REG = $1
 
 ; VIA2 - for LEDs
 VIA2_PRB_REG = $9F10
@@ -23,6 +23,7 @@ DIPLED1N = $08
 
 ; NORA registers:
 RAMBANK_MASK_REG = $9F50
+SYSCTRL_REG = $9F51
 ; NORA SPI to access the SPI-Flash memory of NORA
 SPI_CTRL_REG = $9F52
 SPI_STAT_REG = $9F53
@@ -39,6 +40,9 @@ LDPAGE_COUNTER = $12        ; 1B
 RAMBANK_WIN = $A000
 
 .SEGMENT "CODE"
+
+; CPU=65C02
+.Pc02
 
 START:
     ; stack reset
@@ -108,7 +112,7 @@ L2_wait3us:
     ; swith RAMBANK to the first 8k of ROMBANK #0 - this is RAMBANK #192
     LDA #192
     ; LDA #1
-    STA RAMBANK_REG     ; now $A000 points to SRAM 0x180000, which is also ROMBANK #0
+    STA RAMBLOCK_REG     ; now $A000 points to SRAM 0x180000, which is also ROMBANK #0
 
 
     ; how many 8kB pages shall we load from the SPI flash?
@@ -123,7 +127,7 @@ L1:
     EOR #CPULED0N
     STA VIA2_PRB_REG
     ; increment the RAMBANK
-    INC RAMBANK_REG
+    INC RAMBLOCK_REG
     ; check for-loop counter
     DEC LDPAGE_COUNTER
     BNE L1
@@ -138,7 +142,7 @@ L1:
     ; prepare the trampoline code at 0x80
     LDA #$85            ; STA
     STA $80
-    LDA #$01            ;       $01    ; (ROMBANK_REG)
+    LDA #$01            ;       $01    ; (ROMBLOCK_REG)
     STA $81
     LDA #$6C            ; JMP ()
     STA $82
@@ -222,9 +226,36 @@ SPI_waitNonBusy:
     RTS
 
 
+
 ; ABORT in EMULATION MODE (ISAFIX) --------------------------------
+; CPU=65C816
+.P816
 EMUABORT:
-    BRA EMUABORT
+    ; save regs
+    PHX
+    PHA
+    PHY
+    ; DEBUG: stop the CPU
+    LDA  #$80
+    STA  SYSCTRL_REG            ; unlock
+    LDA  SYSCTRL_REG
+    ORA  #$02
+    STA  SYSCTRL_REG
+
+    ; switch to Native mode
+    CLC
+    XCE
+    ; jump to handler in CBA=07, last 8kB in the bank = this is just below ROM-Block 0
+    JSL $07E000
+    ; switch back to Emu mode
+    SEC
+    XCE
+    ; restore regs
+    PLY
+    PLA
+    PLX
+    ; ROMBLOCK[6] must be 1 by now => after the RTI the PBL ROM is cleared from the the map
+    ; and CPU returns to the original code.
     RTI
 
 
@@ -239,7 +270,7 @@ EMUABORT:
     .WORD START
     ; FFF8,9 = ABORTB (816 in Emu mode only)
     .WORD EMUABORT
-    ; # // FFFA,B = NMI
+    ; # // FFFA,B = NMI (8-bit mode)
     .WORD START
     ; # // FFFC,D = RES
     .WORD START

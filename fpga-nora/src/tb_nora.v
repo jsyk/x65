@@ -80,6 +80,8 @@ module tb_nora ();
     wire USBUART_TX;
     wire USBUART_RX = USBUART_TX;
 
+    wire CPUTYPE02 = 1'b1;
+
 
 
     top dut0 (
@@ -138,7 +140,7 @@ module tb_nora ();
         // output ILIDC,
         // output TCSn,
         
-        .CPUTYPE02 (1'b1),
+        .CPUTYPE02 (CPUTYPE02),
 
     // PS2 ports
         .PS2K_CLK (PS2K_CLK),
@@ -302,7 +304,7 @@ module tb_nora ();
         cpu_read(16'h9F02);     `assert(tb_cpuDataRead, 8'h03);
         cpu_write(16'h9F00, 8'h01);         // VIA1/ORB set to 01
         cpu_write(16'h9F00, 8'h02);         // VIA1/ORB set to 01
-        cpu_read(16'h9F00);     `assert(tb_cpuDataRead, 8'hC0);         // fixed upper signal's levels
+        cpu_read(16'h9F00);     `assert(tb_cpuDataRead, (8'hC0 | CPUTYPE02));         // fixed upper signal's levels
 
         // ============================================
         // write to VERA

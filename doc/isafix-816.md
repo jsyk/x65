@@ -32,6 +32,8 @@ With:
 and make changes to "(zp)" in NORA behind the scene.
 
 
+
+
 Replace:
 
     BBRn/BBSn   zp, rr               ; ?F zp rr
@@ -39,17 +41,17 @@ Replace:
 With:
 
     NOP                         ; EA; skip over bad instruction
-    NOP                         ; EA; skip over its operand; catch zp from memory
+    BRA                         ; 80; catch zp from memory
                                 ; NORA checks if interested bit is 0/1 in the zp, if the branch would be taken/not-taken.
 
 If 6502 would not-take the branch, then we just need to skip the rr byte and we will be on correct path.
 Therefore, force:
 
-    NOP                         ; EA; skip over the rr operand.
+    00                         ; BRA continues to next instruction
 
 On the other hand, if 6502 *would* take the branch, then force instruction
 
-    BRA     .                   ; 80; tell him to branch, let him pick up the correct rr from next byte and continue.
+    .                           ; let BRA pick up the correct rr from next byte and continue.
 
 
 

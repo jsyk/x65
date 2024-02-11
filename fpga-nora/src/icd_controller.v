@@ -80,6 +80,7 @@ module icd_controller #(
     output reg      run_cpu,                // allow the CPU to run
     input           stopped_cpu,            // indicates if the CPU is stopped
     input           cpu_stop_i,
+    input           cpu_reset_i,            // request reset sequence
 
     output reg      cpu_force_resn_o,       // 0 will force CPU reset
     output reg      cpu_force_irqn_o,       // 0 will force CPU IRQ
@@ -366,6 +367,11 @@ module icd_controller #(
                 begin
                     // no action here!
                     startup_fsm_r <= STARTUP_DONE;
+                    // 
+                    if (cpu_reset_i)
+                    begin
+                        startup_fsm_r <= STARTUP_INIT;
+                    end
                 end
             endcase
         end

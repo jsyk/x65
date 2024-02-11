@@ -26,11 +26,11 @@ Two special registers at the beginning of the CPU zero page:
                                                     When cleared to 0, bits [4:0] define the contents of ROM-Block Frame.
                                                     BootRom is 512B and mirrored over the 16kB frame.
 
-                                        tbd[6]         When set to 1 together with bit [7], then the next instruction RTI (Return From Interrupt)
+                                        [6]         When set to 1 together with bit [7], then the next RTI instruction (Return From Interrupt)
                                                     will automatically clear bits [7] and [6], thus switching the ROM-Block Frame according to bits [4:0].
                                                     NMI is automatically blocked while bit [6] is set, and all other interrupts should be blocked in Sw.
                                         
-                                        [5]         reserved, read 0
+                                        [5]         reserved, write 0
                                         
                                         [4:0]       This 5-bit register specifies which 16kB-BLOCK from the SRAM's 
                                                     512kB area 0x08_0000 to 0x0F_FFFF is mapped into the 16kB ROM-BLOCK FRAME
@@ -56,16 +56,20 @@ The first two registers support *RAM-Block mapping* (at $A000) and *system reset
         
     $9F51           SYSCTRL                         System control / reset trigger.
                                         [7] bit UNLOCK: to prevent unintended system resets, the SYSCTRL must be first unlocked by writing 0x80 into the register.
-                                        [6] unused
-                                        [5] unused
-                                        [4] unused
-                                        [3] bit ABRT02: writing 1 (after UNLOCKing) will enable ABORTing of 65C02-only opcodes
-                                            encountered during the Emulation mode of the 65816 processor. 
-                                            Software can emulate the behaviour of the 65C02 instructions in the ABORT handler.
-                                        [2] bit NORARESET: writing 1 (after UNLOCKing) will trigger NORA reset - bitstream reloading.
-                                        [1] bit CPUSTOP: writing 1 (after UNLOCKing) will stop the CPU.
+                                            This bit always reads 0.
+                                        [6] bit ABRT02: writing 1 (after UNLOCKing) will enable ABORTing of 65C02-only opcodes
+                                            encountered during the Emulation mode of the 65816 processor: BBR, BBS, RMB, SMB.
+                                            Software should then emulate the behaviour of the 65C02 instructions in the ABORT handler.
+                                        [5] unused, write 0
+                                        [4] unused, write 0
+                                        [3] unused, write 0
+                                        [2] bit NORARESET: writing 1 (after UNLOCKing) will trigger a hard NORA reset - bitstream reloading.
+                                            This bit always reads 0.
+                                        [1] bit CPUSTOP: writing 1 (after UNLOCKing) will stop the CPU forever.
+                                            This bit always reads 0.
                                         [0] bit CPURESET: writing 1 (after UNLOCKing) will trigger CPU reset sequence. 
                                             Note: ROMBANK or any other registers are not affected!
+                                            This bit always reads 0.
 
 The next three registers control the *SPI-Master* periphery in NORA.
 The SPI-Master can access NORA's UNIFIED ROM (really the SPI-Flash primarilly for NORA bitstream), and the SPI bus on UEXT port:

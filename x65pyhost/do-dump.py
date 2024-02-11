@@ -77,6 +77,9 @@ elif args.area == 'cpu':
     elif start < 0x9F00:
         # CPU low memory starts at sram fix 0x00000
         rdata = icd.sram_blockread(start + 0x000000, length)
+    elif start < 0xA000:
+        # IO regs
+        rdata = icd.ioregs_read(start - 0x9F00, length)
     elif 0xA000 <= start < 0xC000:
         # CPU RAM Bank starts at sram fix 0x000
         offs = (start - 0xA000)
