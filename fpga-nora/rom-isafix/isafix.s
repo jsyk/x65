@@ -113,7 +113,8 @@ rrbytehi_is_zero:
     AND #$07                ; 0 to 7
     STA TMP_BITNR           
     ; convert to mask
-    LDX TMP_BITNR
+    ; LDX TMP_BITNR
+    TAX
     LDA f:maskbits, X
     STA TMP_BITNR
 
@@ -127,8 +128,7 @@ handle_bbr_bbs:
     ; The faulting instruction was:
     ;   BBR0..BBR7 zp, rr
     ;   BBS0..BBS7 zp, rr
-    LDA TMP_IBYTE
-    BIT #$80
+    BIT #$80                ; check bit 7 of IBYTE
     BEQ handle_bbr
 handle_bbs:
     ; The faulting instruction was:
@@ -191,11 +191,46 @@ handle_rmb_smb:
     ; The faulting instruction was:
     ;   RMB0..RMB7 zp
     ;   SMB0..SMB7 zp
+    ; A has the IBYTE.
+    ; Check IBYTE = RMB or SMB ?
+    BIT #$80                ; check bit 7 of IBYTE
+    BEQ handle_rmb          ; if IBYTE[7]=0, then it is RMB
+    ; else it is SMB (Set memory bit), fall through
+handle_smb:
+    LDA (TMP_ZPBYTE)        ; 8-bit load from 16-bit address indirect: get the data byte at (zp)
+    ORA TMP_BITNR           ; set the bit to 1
+    STA (TMP_ZPBYTE)        ; write back
+    BRA done_rmb_smb
 
+handle_rmb:         ; Reset memory bit
+    ; invert the bitmask
+    LDA TMP_BITNR
+    EOR #$FF
+    STA TMP_BITNR
+    ; get the data byte at (zp)
+    LDA (TMP_ZPBYTE)        ; 8-bit load from 16-bit address indirect: get the data byte at (zp)
+    AND TMP_BITNR           ; clear the bit to 0
+    STA (TMP_ZPBYTE)        ; write back
+    ; BRA done_rmb_smb      fall through
 
-
-L1:
-    BRA L1
+done_rmb_smb:
+    ; SMB/RMB is done.
+    ; Fix the return address on the stack - increment by two.
+    ;   Switch A to 16-bits
+    REP     #$20        ; 
+.A16
+    ;   load the return address, 16-bits
+    LDA 8, S
+    ;   increment by 2, because the RMB/SMB is 2-bytes long
+    CLC
+    ADC #2
+    ;   store back
+    STA 8, S
+    ; A to 8-bit
+    ;SEP     #$20
+    ;.A8
+    ; done, fall thrugh
+    ; BRA handler_cleanup
 
 
 handler_cleanup:
