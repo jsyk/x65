@@ -25,6 +25,8 @@ Project web pages: http://www.x65.eu  -> currently links to http://www.jsykora.i
 
 ![Version SBC](pcb/x65-sbc-revA1/pictures/sbc-render-1.png)
 
+![Desktop with SBC](Photos/sbc-desktop.jpg)
+
 
 General Project Features:
 -------------------------
@@ -148,8 +150,9 @@ Structure of the GIT repository:
 * `fpga-nora' --> verilog code for the NORA FPGA on the motherboard.
 * `fpga-vera' --> VERA FPGA bitstream (100% derived from https://github.com/fvdhoef/vera-module)
 * `pcb' --> hardware projects in Kicad:
-  - `mobo-rev01' --> Motherboard rev01
-  - `vabo-rev01' --> Video/Audio board rev01
+  - `mobo-rev01' --> Motherboard rev01 - OBSOLETE
+  - `vabo-rev01' --> Video/Audio board rev01 - OBSOLETE
+  - `x65-sbc-revA1' --> *Single-Board computer*
 * `x65prog' --> linux software to program the on-board SPI flash memories from a host Linux PC via the USB link.
 * `x65pyhost' --> python scripts for accessing/debugging the X65 from a host PC via the USB link.
 
