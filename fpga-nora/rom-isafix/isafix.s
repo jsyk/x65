@@ -10,14 +10,16 @@ ROMBLOCK_REG = $1
 ; Direct-Page scratchpad registers.
 ; These are in fact in the IO Scratchpad range 0x9FF0 to 0x9FFF by virtue
 ; of moving the Direct Page register to 0x9F00.
-TMP_R2 = $F2
-TMP_R3 = $F3
+
+;TMP_R2 = $F2
+;TMP_R3 = $F3
 TMP_IBYTE = $F4
 TMP_ZPBYTE = $F5
 TMP_ZPBYTEHI = $F6
 TMP_RRBYTE = $F7
 TMP_RRBYTEHI = $F8
 TMP_BITNR = $F9
+
 
 ; CPU=65C816
 .P816
@@ -36,54 +38,71 @@ ISAFIX_ENTRY:           ; entry point for ISAFIX handler at address $07e000,
     ;
     ; Switch the Direct Page register to 0x9F00 -> this moves "zero page" (direct page) addressing to the Scratchpad 
     ;   in the io space at 0x9FF0 to 0x9FFF.
-    ;   Switch A to 16-bits
-    REP     #$20        ; 
+    ;   Switch A to 16-bits, XY to 16-bits
+    REP     #$30        ; 
 .A16
+.I16
     ;   AB = 0x9F00
     LDA  #$9F00
     TCD         ; AB -> Direct Page reg.
-    ; A to 8-bit
-    SEP     #$20
-.A8
+    
 
     ; Read the faulting instruction by inspecting the stack.
     ;   Get the ptr from stack - this was the original return address
-    LDA 8,S                 ; faulting address, lo byte
-    STA TMP_R2
-    LDA 9,S                ; faulting address, hi byte
-    STA TMP_R3
+    LDA 8, S                ; 16-bit load of the faulting address from the stack
+    TAX                     ; and put it to 16-bit X
+
+    ;LDA 8,S                 ; faulting address, lo byte
+    ;STA TMP_R2
+    ;LDA 9,S                ; faulting address, hi byte
+    ;STA TMP_R3
+
+    ; A to 8-bit; XY remains in 16-bits
+    SEP     #$20
+.A8
+
     ;   Read the instruction byte
-    LDA (TMP_R2)
+    ; LDA (TMP_R2)
+    LDA a:0, X            ; 8-bit load
+
     ; and store it to our scratchpad.
     STA TMP_IBYTE
     ; Increment ptr to get to the zp byte
-    CLC
-    LDA TMP_R2
-    ADC #1
-    STA TMP_R2
-    LDA TMP_R3
-    ADC #0
-    STA TMP_R3
-    ; Load the ZP byte
-    LDA (TMP_R2)
+    ;CLC
+    ;LDA TMP_R2
+    ;ADC #1
+    ;STA TMP_R2
+    ;LDA TMP_R3
+    ;ADC #0
+    ;STA TMP_R3
+    ; INX
+
+    ; Load the ZP byte, which is in fact an address into zero page, and store to scratchpad
+    ; LDA (TMP_R2)
+    LDA a:1, X            ; 8-bit load
     STA TMP_ZPBYTE
     STZ TMP_ZPBYTEHI
     ; Increment ptr to get to the rr byte
-    CLC
-    LDA TMP_R2
-    ADC #1
-    STA TMP_R2
-    LDA TMP_R3
-    ADC #0
-    STA TMP_R3
-    ; Load the RR byte
-    LDA (TMP_R2)
+    ;CLC
+    ;LDA TMP_R2
+    ;ADC #1
+    ;STA TMP_R2
+    ;LDA TMP_R3
+    ;ADC #0
+    ;STA TMP_R3
+    ; Load the RR byte, which is the displacement for BBR/BBS branches, and sign-extend it to 16-bits
+    ;LDA (TMP_R2)
+    LDA a:2, X
     STA TMP_RRBYTE
     STZ TMP_RRBYTEHI
     BPL rrbytehi_is_zero        ; skip over if TMP_RRBYTEHI should stay 0
-    LDA #$FF
+    LDA #$FF                    ; sign-extend
     STA TMP_RRBYTEHI
 rrbytehi_is_zero:
+
+    ; switch X,Y to 8-bit
+    SEP     #$10
+.I8
 
     ; Which bit is this testing/affecting?
     LDA TMP_IBYTE
@@ -115,7 +134,7 @@ handle_bbs:
     ; The faulting instruction was:
     ;   BBS0..BBS7 zp, rr
     ; Test the bit# of the zp argument
-    LDA (TMP_ZPBYTE)
+    LDA (TMP_ZPBYTE)        ; 16-bit address, indirect
     BIT TMP_BITNR
     BNE bb_taken      ; BBS: if the result 1, then the branch is taken.
     BRA bb_not_taken
@@ -158,7 +177,7 @@ bb_taken:
     ;   increment by 3, because the BBR/BBS is 3-bytes long
     CLC
     ADC #3
-    ADC TMP_RRBYTE      ; and add the RR byte from the original instruction
+    ADC TMP_RRBYTE      ; and add the RR byte from the original instruction, 16-bit access
     ;   store back
     STA 8, S
     ; A to 8-bit
