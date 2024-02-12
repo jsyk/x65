@@ -171,6 +171,9 @@ Schematics in PDF:
 
 * [X65-SBC, revA1 - PDF scm](pcb/x65-sbc-revA1/x65-sbc-revA1.pdf)
 
+**SBC Revision B1:**
+
+* [X65-SBC, revB1 - PDF scm](pcb/x65-sbc-revB1/x65-sbc-revB1.pdf)
 
 
 Software:
@@ -183,7 +186,7 @@ However, the CX16 ROM is a **proprietary**, non-open-source and non-free, piece 
 and licensed to the CX16 creators. *The licensees do not wish that the ROM runs on other HW than their own.*
 Therefore, I could not recommend running that ROM on the X65 computer.
 
-Presently I am decided which operating system or runtime shell would be the best / easiest to port to X65.
+Presently I am not decided which operating system or runtime shell would be the best / easiest to port to X65.
 There some existing systems that could be ported here, for example:
 
 * [MEGA65 OPEN-ROMs](https://github.com/MEGA65/open-roms) (true free open-source sw),

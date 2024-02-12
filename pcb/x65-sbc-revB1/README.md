@@ -1,4 +1,4 @@
-X65-SBC-rev.A1
+X65-SBC-rev.B1
 ================
 
 X65 Single-Board Computer, schematic & PCB revision B1.
