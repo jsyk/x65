@@ -74,7 +74,7 @@ w65c02_dismap = [
 
 w65c816_dismap = [
     # 0         1               2       3           4           5       6                       7
-    "BRK #.1", "ORA (.1,X)", "COP #.1", "ORA .1,S", "TSB .1", "ORA .1", "ASL .1",               "ORA [.1]", "PHP", "ORA #.M12", "ASL A", "PHD", "TSB A", "ORA .2", "ASL .2", "ORA .3",
+    "BRK #.1", "ORA (.1,X)", "COP #.1", "ORA .1,S", "TSB .1", "ORA .1", "ASL .1",               "ORA [.1]", "PHP", "ORA #.M12", "ASL A", "PHD", "TSB .2", "ORA .2", "ASL .2", "ORA .3",
     "BPL :1", "ORA (.1),Y", "ORA (.1)", "ORA (.1,S),Y", "TRB .1", "ORA .1,X", "ASL .1,X",       "ORA [.1],Y", "CLC", "ORA .2,Y", "INC A", "TCS", "TRB .2", "ORA .2,x", "ASL .2,x", "ORA .3,X",
     "JSR .2", "AND (.1,X)", "JSL .3", "AND .1,S", "BIT .1", "AND .1", "ROL .1",                 "AND [.1]", "PLP", "AND #.M12", "ROL A", "PLD", "BIT .2", "AND .2", "ROL .2", "AND .3",
     "BMI :1", "AND (.1),Y", "AND (.1)", "AND (.1,S),Y", "BIT .1,X", "AND .1,X", "ROL .1,X",     "AND [.1],Y", "SEC", "AND .2,Y", "DEC A", "TSC", "BIT .2,X", "AND .2,X", "ROL .2,X", "AND .3,X",
@@ -136,15 +136,8 @@ def read_byte_as_cpu(CBA, MAH, CA):
     return rdata[0]
 
 
-# def read_print_trace(banks):
-#     is_valid, is_ovf, is_tbr_valid, is_tbr_full, tbuf = icd.cpu_read_trace()
-#     if is_valid:
-#         print_traceline(tbuf)
-#     else:
-#         print("N/A")
 
-
-def print_traceline(tbuf):
+def print_traceline(tbuf, is_upcoming=False):
     # extract signal values from trace buffer array
     CBA = tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
     MAH = tbuf[5]           # Memory Address High = SRAM Page
@@ -153,15 +146,22 @@ def print_traceline(tbuf):
     is_sync = (tbuf[0] & ISYNC) == ISYNC
     is_emu = tbuf[0] & TRACE_FLAG_EF
 
+    if is_upcoming:
+        # the upcoming instruction is not yet executed/committed -> CD is invalid.
+        # Get CD from memory directly:
+        # TBD: this is partly WRONG because MAH is update AFTER the instruction goes through execution!
+        # So the current MAH is just stale from the previous cycle, which could be a data cycle.
+        CD = read_byte_as_cpu(CBA, MAH, CA)
+
     if is_cputype02:
         # decode 6502 instruction
-        disinst = w65c02_dismap[tbuf[2]] if is_sync else ""
+        disinst = w65c02_dismap[CD] if is_sync else ""
     else:
         # decode 65816 instruction
         if is_sync:
-            disinst = w65c816_dismap[tbuf[2]]
+            disinst = w65c816_dismap[CD]
             # check for opcode collisions between 6502 and 65816
-            if is_emu and ((tbuf[2] & 0x07) == 7):
+            if is_emu and ((CD & 0x07) == 7):
                 # yes -> warning!
                 disinst += "    ; WARNING: 6502-only opcode while in the EMU mode!"
         else:
@@ -234,6 +234,9 @@ def print_traceline(tbuf):
     elif (MAH >= 64) and (MAH <= 127):
         # ROM banks: 32 a 16kB, mapped to CPU pages 6-7 according to REG01
         mah_area = "ROMB:{:3}".format((MAH - 64)//2)
+    elif (MAH == 255) and (CBA == 0) and (CA >= 0xC000):
+        # special case (flag): this combination indicates an access to the PBL ROM
+        mah_area = "PBL     "
     else:
         # some RAMB
         mah_area = "RAMB:{:3}".format(MAH ^ 0x80)
@@ -278,22 +281,22 @@ def print_traceline(tbuf):
             ('P' if tbuf[0] & TRACE_FLAG_SYNC_VPA else '-'),        # '02: SYNC, '816: VPA (valid program address)
             ('D' if tbuf[0] & TRACE_FLAG_VDA else '-'),             # '02: always 1, '816: VDA (valid data address)
             ('S' if is_sync else '-'),
-            Fore.GREEN, disinst, Style.RESET_ALL
+            Fore.GREEN if not is_upcoming else Fore.LIGHTBLACK_EX, disinst, Style.RESET_ALL
         ))
 
 
 def print_tracebuffer():
     # retrieve line from trace buffer
-    is_valid, is_ovf, is_tbr_valid, is_tbr_full, tbuf = icd.cpu_read_trace(tbr_deq=True)
+    is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace(tbr_deq=True)
     tbuf_list = []
     while is_tbr_valid:
         # note down
         tbuf_list.append(tbuf)
         # fetch next trace item into reg
-        is_valid, is_ovf, is_tbr_valid, is_tbr_full, tbuf = icd.cpu_read_trace(tbr_deq=True)
+        is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace(tbr_deq=True)
     # print out
     for i in range(0, len(tbuf_list)):
-        print("Step #{:5}:  ".format(i - len(tbuf_list)), end='')
+        print("Cyc #{:5}:  ".format(i - len(tbuf_list)), end='')
         print_traceline(tbuf_list[i])
 
 
@@ -308,8 +311,37 @@ icd.cpu_ctrl(False, False, False,
                 force_irq=args.force_irq, force_nmi=args.force_nmi, force_abort=args.force_abort,
                 block_irq=args.block_irq, block_nmi=args.block_nmi, block_abort=args.block_abort)
 
-for i in range(0, step_count+1):
-    if i > 0:
+cycle_i = 0
+step_i = 0
+
+# for i in range(0, step_count+1):
+while step_i <= step_count:
+    # on the very first iteratio we don't step so that we could lift out the trace buffer first.
+    if cycle_i > 0:
+        # Not the first cycle.
+        # Was the instruction step count reached?
+        if step_i == step_count:
+            # Yes => we should check the CPU state first and continue just if there is NOT a new instruction
+            # upcoming.
+            # read the current trace register
+            is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace(sample_cpu=True)
+            # sanity check /assert:
+            if is_valid or is_cpuruns:
+                print("ERROR: Unexpected IS_VALID=TRUE or IS_CPURUNS=True: COMMUNICATION ERROR!!")
+                exit(1)
+            # We expect is_valid=False because this is not a trace reg from a finished CPU cycle.
+            # Instead, the command sample_cpu=True just samples the stopped CPU state before it is commited.
+            # Let's inspect it to see if this is already a new upcoming instruction, or contination of the old (last) one.
+            is_sync = (tbuf[0] & ISYNC) == ISYNC
+            if is_sync:
+                # new upcoming instruction & we have already reached the desired number of instruction steps => exit the loop here
+                print()
+                print("Upcoming:    ", end='')
+                # decode and print cycle line
+                print_traceline(tbuf, is_upcoming=True)
+                break
+        
+        # Now we should normally step the CPU by one cycle.
         # // deactivate the reset, STEP the cpu by 1 cycle
         icd.cpu_ctrl(False, True, False, 
                     force_irq=args.force_irq, force_nmi=args.force_nmi, force_abort=args.force_abort,
@@ -317,25 +349,33 @@ for i in range(0, step_count+1):
     # determine the current bank; TBD remove
     # banks = icd.bankregs_read(0, 2)
     # read the current trace register
-    is_valid, is_ovf, is_tbr_valid, is_tbr_full, tbuf = icd.cpu_read_trace()
+    is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace()
     # check if trace buffer memory is non-empty
     if is_tbr_valid:
         # yes, we should first print the trace buffer contents!
         # sanity check: this could happen just on the first for-iteration!!
-        if i > 0:
+        if cycle_i > 0:
             print("IS_TBR_VALID=TRUE: COMMUNICATION ERROR!!")
             exit(1)
         print_tracebuffer()
 
     # finally, check if the original trace register was valid
-    print("Step #{:5}:  ".format(i), end='')
+    print("Cyc #{:5}:  ".format(cycle_i), end='')
+    
     if is_valid:
+        # is this a beginning of next instruction?
+        is_sync = (tbuf[0] & ISYNC) == ISYNC
+        if is_sync:
+            step_i += 1
+        # decode and print cycle line
         print_traceline(tbuf)
     else:
         print("N/A")
         # sanity: this could happen just on the first for-iter!
-        if i > 0:
+        if cycle_i > 0:
             print("IS_VALID=FALSE: COMMUNICATION ERROR!!")
             exit(1)
+
+    cycle_i += 1
 
     # read_print_trace(banks)

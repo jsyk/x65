@@ -8,6 +8,17 @@
  *   [ 7:4  ,   3:0 ]
  *    opts  , command
  *              0x0         GETSTATUS
+ *                          TX:2nd byte = dummy
+ *                          TX:3rd byte = status of CPU / ICD
+ *                                  [0]     CPU Running?  0 => stopped (in S2L), 1 => running (all other bits meaningless).
+ *                                  [1]     0
+ *                                  [2]     0
+ *                                  [3]     0
+ *                                  [4]     0
+ *                                  [5]     1
+ *                                  [6]     0
+ *                                  [7]     1
+ *                          TX:4th, 5th... byte = trace REGISTER contents, starting from LSB byte.
  *
  *      |       0x1         BUS/MEM ACCESS
  *      `----------------------->   [4]     0 => SRAM, 1 => OTHER
@@ -39,16 +50,19 @@
  *      |       0x3         READ CPU TRACE REG
  *      `----------------------->   [4]     1 => Dequeue next trace-word from trace-buffer memory into the trace-reg
  *                                  [5]     1 => Clear the trace buffer memory.
+ *                                  [6]     1 => Sample the trace reg from actual CPU state; only allowed if the CPU is stopped,
+                                                 and the trace reg should be empty to avoid loosing any previous data.
  *                          TX:2nd byte = dummy
  *                          TX:3rd byte = status of trace buffer:
  *                                  [0]    TRACE-REG VALID
  *                                  [1]    TRACE-REG OVERFLOWED
  *                                  [2]    TRACE-BUF NON-EMPTY (note: status before a dequeue or clear!)
  *                                  [3]    TRACE-BUF FULL (note: status before a dequeue or clear!)
- *                                          reserved = [7:4]
+ *                                  [4]    CPU-RUNNING? If yes (1), then trace register reading is not allowed (returns dummy)!!
+ *                                          reserved = [7:5]
  *                          TX:4th, 5th... byte = trace REGISTER contents, starting from LSB byte.
  *
- *              0x4         XXX
+ *              0x4         SET BREAKPOINT : TBD!!
  *
  *
  */
@@ -212,18 +226,47 @@ module icd_controller #(
                     // check options:
                     trb_clear <= rx_byte_i[5];          // Clear trace buffer.
                     // first data byte -> return trace reg and buffer status: valid, ovf
-                    tx_byte_o <= { 4'b0000, trb_full, ~trb_empty, tracereg_ovf, 
+                    tx_byte_o <= { 3'b000, ~stopped_cpu, trb_full, ~trb_empty, tracereg_ovf, 
                                    tracereg_valid | (rx_byte_i[4] && !trb_empty) };
                     tx_en_o <= 1;
-                    // reset the status bits
-                    tracereg_ovf <= 0;
-                    tracereg_valid <= 0;
-                    // load trace reg from buffer?
-                    if (rx_byte_i[4] && !trb_empty)
+                    // Only when the CPU is fully stopped, allow changing of the trace register
+                    // by the host. Otherwise we might get race conditions between host reading out
+                    // the trace register (it is a shift reg.) and ICD writing new trace data 
+                    // during the release_wr state.
+                    if (stopped_cpu)
                     begin
-                        cpubus_trace_reg <= trb_rport;
-                        trb_rdeq <= 1;              // Dequeue a word from the trace buffer into shift register.
+                        // reset the status bits
+                        tracereg_ovf <= 0;
+                        tracereg_valid <= 0;
+                        // load trace reg from buffer?
+                        if (rx_byte_i[4] && !trb_empty)
+                        begin
+                            cpubus_trace_reg <= trb_rport;
+                            trb_rdeq <= 1;              // Dequeue a word from the trace buffer into shift register.
+                        end
+                        // sample trace reg from the current CPU state?
+                        if (rx_byte_i[6])
+                        begin
+                            cpubus_trace_reg <= cpubus_trace_i;
+                        end
                     end
+                end
+
+                if (rx_byte_i[3:0] == CMD_GETSTATUS)
+                begin
+                    // Handle CMD_GETSTATUS command.
+                    // Setup TX:3rd byte
+//  *                          TX:3rd byte = status of CPU / ICD
+//  *                                  [0]     CPU Running?  0 => stopped (in S2L), 1 => running (all other bits meaningless).
+//  *                                  [1]      0
+//  *                                  [2]      0
+//  *                                  [3]      0
+//  *                                  [4]      0
+//  *                                  [5]      1
+//  *                                  [6]      0
+//  *                                  [7]      1
+                    tx_byte_o <= { 7'b1010_000, ~stopped_cpu };
+                    tx_en_o <= 1;
                 end
             end
 
@@ -284,13 +327,17 @@ module icd_controller #(
                 end
             end
 
-            if ((icd_cmd[3:0] == CMD_READTRACEREG) && rx_db_en_i)
+            if (((icd_cmd[3:0] == CMD_READTRACEREG) /*|| (icd_cmd[3:0] == CMD_GETSTATUS)*/)  && rx_db_en_i)
             begin
                 // 2nd and further data bytes -> provide trace buffer (LSB 8 bits)
                 tx_byte_o <= cpubus_trace_reg[7:0];
                 tx_en_o <= 1;
-                // shift the trace buffer right by 8 bits - prepare for next access
-                cpubus_trace_reg <= { 8'h00, cpubus_trace_reg[CPUTRACE_WIDTH-1:8] };
+                // avoid any race conditions by shifting out the trace reg only while the CPU is stopped!
+                if (stopped_cpu)
+                begin
+                    // shift the trace buffer right by 8 bits - prepare for next access
+                    cpubus_trace_reg <= { 8'h00, cpubus_trace_reg[CPUTRACE_WIDTH-1:8] };
+                end
             end
 
             // finishing a bus/mem access?

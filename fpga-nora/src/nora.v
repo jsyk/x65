@@ -272,12 +272,12 @@ module top (
         // trace byte [0]:
             CRDY,             // CPU ready signal
             csob_m_r,           // 6502: CPU SOB (set overflow - 8b); 65816: M-flag (16b)
-            csync_vpa_r,        // CPU SYNC (8b) / VPA (16b) signal
-            cmln_r,             // CPU memory lock
-            cvpn_r,             // CPU vector pull signal
-            cvda_r,             // CPU VDA (16b only)
-            cef_r,              // CPU EF (16b only)
-            crwn_r              // CPU R/W signal
+            csync_vpa_r,        // bit[5]: CPU SYNC (8b) / VPA (16b) signal
+            cmln_r,             // bit[4]: CPU memory lock
+            cvpn_r,             // bit[3]: CPU vector pull signal
+            cvda_r,             // bit[2]: CPU VDA (16b only)
+            cef_r,              // bit[1]: CPU EF (16b only)
+            crwn_r              // bit[0]: CPU R/W signal
         };
 
     wire     icd_cpu_stop;
