@@ -248,9 +248,11 @@ the resulting devices could only be used in a lab for development purposes by kn
 I am open to the possibility that some company decides to commercionalize X65-SBC as a sellable product and puts it on the market :-)
 
 
-**Is there a simulator for PC?**
+**Is there an emulator for PC?**
 
-
+No, an emulator is not developed yet.
+It could be done perhaps based on the CX16 emulator; the CPU emulation has to be extended to 65C816 and new features (registers)
+available in NORA and in W6100 (ethernet interface) need be implemented.
 
 
 Contact
