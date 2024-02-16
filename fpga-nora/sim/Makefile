@@ -7,7 +7,7 @@ IKAOPMSRC = ../../IKAOPM/HDL/IKAOPM.v ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_acc
 SYNSRC = ../src/phaser.v ../src/blinker.v ../src/resetgen.v ../src/fifo.v \
 	../src/pulser.v ../src/simple_via.v ../src/spi_slave.v ../src/i2c_slave.v \
 	../src/ps2_port.v ../src/ps2_kbd_host.v \
-	../src/icd_controller.v ../src/tracebuf.v ../src/bus_controller.v \
+	../src/icd_controller.v ../src/tracebuf.v ../src/bus_controller.v ../src/cpu_observer.v \
 	../src/smc.v ../src/ps2_scancode_to_keycode.v ../src/spi_master.v ../src/spi_host.v ../src/spi_master_hostctrl.v \
 	../src/bootrom.v ../src/sysregs.v ../src/filter.v ../src/attenbtn.v \
 	../src/uart_tx.v ../src/uart_rx.v ../src/uart_host.v \

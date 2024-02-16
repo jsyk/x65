@@ -236,11 +236,11 @@ EMUABORT:
     PHA
     PHY
     ; DEBUG: stop the CPU
-    LDA  #$80
-    STA  SYSCTRL_REG            ; unlock
-    LDA  SYSCTRL_REG
-    ORA  #$02
-    STA  SYSCTRL_REG
+    ;LDA  #$80
+    ;STA  SYSCTRL_REG            ; unlock
+    ;LDA  SYSCTRL_REG
+    ;ORA  #$02
+    ;STA  SYSCTRL_REG
 
     ; switch to Native mode
     CLC
