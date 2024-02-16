@@ -2,18 +2,18 @@ X65
 ====
 
 The X65 is an ultimate computer for everyone interested in the venerable 65-series of 8-bit and 16-bit CPUs,
-i.e. the 6502 and 65816. Specifically, we support the W65C02S and W65C816S CPU chips from Western Design Centre.
-The design is fully open-source and open-hardware, and we also prefer to use just the open-source development tools
-whenever possible. The X65 computer hardware is designed with modern electronics parts, but with a distinct retro feel.
-The computer is backward compatible with Commander X16 (i.e. can run their ROM), but the goal is to improve
-both the architecture, performance and elegance of the system.
+i.e. the 6502 and 65816. Specifically, it is built with the W65C02S or W65C816S CPU chips from Western Design Centre.
+The 16-bit 65816 (W65C816S) variant is the default and preferred CPU; all screen-shots and demos shown below were done on the 16-bit system.
 
-Compared with modern powerful platforms like x86, ARM or RISC-V, the small 65-series 8-bit system has the advantage
-that a person, a software programmer or electronics designer, can fully comprehend the whole system top-down
-and bottom-up with all details. There are not many abstraction layers or silos hidden in supporting libraries
-or big frameworks. (In fact, there are none. It is just bare metal.) 
-The X65 is built for developers who may wish an escape from modern ivory computing towers and who long
-for simpler times, maybe faintly remembered from their childhood, playing with commodores, amigas and spectrums.
+The design is fully open-source and open-hardware, and we also prefer to use just the open-source development tools
+whenever possible. The X65 computer hardware is designed with modern electronics parts, but with a little bit of retro feel.
+The computer is backward compatible with the 8-bit Commander X16 -- i.e. it can run their ROM, but since that ROM is copyrighted
+and non-free, this is a no-go in the long run.
+The goal is to build a fully *open* 8/16-bit system with good architecture and retro-gaming performance.
+
+Compared with modern powerful platforms like x86, ARM or RISC-V, the small 65-series 8-bit or 16-bit system has the advantage
+that one person, a software programmer or electronics designer, can fully comprehend the whole system with all details. 
+There are not many abstraction layers hidden in supporting libraries or big frameworks. (In fact, there are none. It is just bare metal.) 
 
 _Interfaces_: VGA 640x480 out, Stereo sound out (FM and PSG), PS/2 keyboard and mouse, SNES controller 2x ports,
 Ethernet LAN 10/100Mpbs with RJ45, SDHC card slot, power-in 5V USB-C port, In-Circuit Debugger (ICD) over the USB-C with 
@@ -33,15 +33,15 @@ Desktop setup with X65-SBC, PS/2 mouse and keyboard and a VGA monitor. Running `
 General Project Features:
 -------------------------
 
-* The CPU is W65C02 (8-bit) or the W65C816 (16-bit; default). The motherboard PCB supports both assembly options.
+* The CPU is W65C02 (8-bit) or the W65C816 (16-bit; default-preferred). The motherboard PCB supports both assembly options.
 * Backward software compatibility with the [Commander X16](https://www.commanderx16.com/) computer.
-  Can run unmodified CX16 ROM for testing purposes.
+  Can run unmodified CX16 ROM for testing purposes, since that is a copyrighted non-free code.
 * Designed with components (chips) that are in production and available from normal electronics parts distributors in 2024,
   such as Mouser, Farnell, Digikey etc. We avoid obsolete parts.
 * Balanced modern/retro design built around the central 65xx CPU supported by semi-ASICs (FPGAs) for system control (NORA),
   video (VERA) and audio (AURA) generation. The FPGAs are the little ones from the iCE40 series, and coded in verilog.
   These are modern takes on the "old masters'" designs with ULA, VIA, SID etc.
-  There is no hidden ARM or RISC-V doing heavy lifting in the background.
+  *There is no hidden ARM or RISC-V doing heavy lifting in the background.*
 * Free and open-source design. DIY and hobby-builders friendly. 
   Low-cost to build even in small quantities by individual hackers.
 
@@ -179,11 +179,11 @@ Schematics in PDF:
 Software:
 -----------
 
-The X65 is software-backwards-compatible with the Commander X16. 
+The X65 is software-backwards-compatible with the *Commander X16*. 
 It means the X65 could run unmodified CX16 ROM and programs, excluding programs depending on some of the hardware features 
 in CX16 that are not supported here: cartridges, Commodore IEC port.
 However, the CX16 ROM is a **proprietary**, non-open-source and non-free, piece of software created by Commodore
-and licensed to the CX16 creators. *The licensees do not wish that the ROM runs on other HW than their own.*
+and (somehow) licensed to the CX16 creators. *The licensees do not wish that the ROM runs on any other HW than their own.*
 Therefore, I could not recommend running that ROM on the X65 computer.
 
 Presently I am not decided which operating system or runtime shell would be the best / easiest to port to X65.
@@ -192,18 +192,64 @@ There some existing systems that could be ported here, for example:
 * [MEGA65 OPEN-ROMs](https://github.com/MEGA65/open-roms) (true free open-source sw),
 * [FastBasic](https://github.com/dmsc/fastbasic)
 * [GeckOS](http://www.6502.org/users/andre/osa/index.html)
+* ...
 
 
 
-Motivation
-------------
+Random Questions & Answers
+---------------------------
+
+**Why was this project started?**
 
 This project started in March 2023 when I saw a prototype of Commander X16 in one of the youtube videos
-of the 8-bit guy. I immediately wanted to play with it but at the time his project was not released,
+of the 8-bit guy, David Murray. I immediately wanted to play with it but at the time his project was not released to the public,
 the hardware could not be bought. So I decided to build one myself, based on public information available
-about the CX16. At the same time I was not too pleased with the architecture and implementation
+about the CX16. And at the same time I was not too pleased with the architecture and implementation
 of the CX16, not satisfied with many design choices they did. 
 Consequently, my X65 tries to improve in many areas while being software-compatible.
+
+
+**What is the relation to *Commander X16* and its authors?**
+
+I have no relation or contact to the authors of Commander X16.
+The public discussion forums for CX16 on discord and reddit have the policy that any discussion or mention of any
+*clones* of CX16 is forbidden. 
+While I find this policy strange for a community project, I respect it.
+Therefore I do not tell the guys about the X65 project.
+
+
+**What is the license of X65 project? Which copyrighted material was used?**
+
+I used publicly available information on wikipedia and in the X16Community's public forums and repositories to reconstruct the CX16 architecture.
+I don't have access to the schematics of X16, and I don't own that computer and never seen it in person.
+My analysis of the CX16 architecture is available in the file [cx16.md](doc/cx16.md).
+The [VERA](https://github.com/fvdhoef/vera-module) FPGA by Frank van den Hoef, also [here](https://github.com/X16Community/vera-module),
+ was reused as-is and it is covered by the open-source MIT license.
+The AURA FPGA is based on [IKAOPM](https://github.com/ika-musume/IKAOPM), a YM2151 reconstruction in verilog, and it is covered by the BSD 2-Clause License.
+All my documents and designs in this repository are covered by the [MIT license](LICENSE).
+The restricted CX16 ROMs are not part of this repository.
+
+
+**What are the advantages of X65-SBC over other retro-modern-computers?**
+
+The X65-SBC is a complete computer system which includes ports for a keyboard and a mouse, a high-resolution VGA output (128kB Video-RAM), 
+and high-quality stereo audio capable of PCM, PSG (Programmable Sound Generator) and FM-synthesis sound generation.
+The 16-bit processor 65C816 is capable of direct addressing up to 16MB of RAM; the X65-SBC includes 2MB of fast SRAM by default.
+The design is fully open-source.
+
+**Where can I get the hardware?**
+
+As all relevant HW design data is available in this repository, anybody with appropriate electronics knowledge 
+and a lab can build own copy of the X65-SBC hardware.
+The cost of electronics components is around 130 EUR, plus the cost of board assembly (which can be done DIY if necessary).
+Maybe in the future I can run a very small series build for interested programmers and "hackers". 
+However, as these builds surely will not have the requisite FCC / UL / CE approvals (that costs addional money), 
+the resulting devices could only be used in a lab for development purposes by knowledgable users.
+I am open to the possibility that some company decides to commercionalize X65-SBC as a sellable product and puts it on the market :-)
+
+
+**Is there a simulator for PC?**
+
 
 
 
@@ -211,8 +257,7 @@ Contact
 --------
 
 **Jaroslav Sýkora**
-
-    Personal: http://www.jsykora.info,
-    GIT: https://github.com/jsyk,
-    Mastodon: https://oldbytes.space/@jarda,
-    Physically in the Czech Republic.
+- Personal: http://www.jsykora.info,
+- GIT account: https://github.com/jsyk,
+- Mastodon: https://oldbytes.space/@jarda,
+- (Physically in the Czech Republic.)
