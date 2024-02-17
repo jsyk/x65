@@ -33,9 +33,9 @@ Desktop setup with X65-SBC, PS/2 mouse and keyboard and a VGA monitor. Running `
 General Project Features:
 -------------------------
 
-* The CPU is W65C02 (8-bit) or the W65C816 (16-bit; default-preferred). The motherboard PCB supports both assembly options.
+* The CPU is W65C02 (8-bit) or the W65C816 (16-bit; default-preferred). The PCB supports both assembly options.
 * Backward software compatibility with the [Commander X16](https://www.commanderx16.com/) computer.
-  Can run unmodified CX16 ROM for testing purposes, since that is a copyrighted non-free code.
+  Can run unmodified CX16 ROM for testing purposes (beware: the ROMs are copyrighted non-free code!).
 * Designed with components (chips) that are in production and available from normal electronics parts distributors in 2024,
   such as Mouser, Farnell, Digikey etc. We avoid obsolete parts.
 * Balanced modern/retro design built around the central 65xx CPU supported by semi-ASICs (FPGAs) for system control (NORA),
