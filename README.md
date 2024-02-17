@@ -232,9 +232,14 @@ The restricted CX16 ROMs are not part of this repository.
 
 **What are the advantages of X65-SBC over other retro-modern-computers?**
 
-The X65-SBC is a complete computer system which includes ports for a keyboard and a mouse, a high-resolution VGA output (128kB Video-RAM), 
+The X65-SBC is a complete computer system with ports for a keyboard and a mouse, a high-resolution VGA output (128kB Video-RAM), 
 and high-quality stereo audio capable of PCM, PSG (Programmable Sound Generator) and FM-synthesis sound generation.
-The 16-bit processor 65C816 is capable of direct addressing up to 16MB of RAM; the X65-SBC includes 2MB of fast SRAM by default.
+Compared with other 65xx-based computers, we support the 16-bit processor 65C816 which is capable of direct addressing of 
+up to 16MB of RAM; the X65-SBC includes 2MB of fast SRAM by default.
+System controller is realized by NORA FPGA (lattice ice40hx4k) and potentially allows experimenting with additional
+features like virtual memory or mathematical coprocessors.
+The hardware supports direct programming of FPGA bitstreams via the USB-C port from a Linux PC; in a way the X65-SBC
+is a self-contained FPGA development platform.
 The design is fully open-source.
 
 **Where can I get the hardware?**
@@ -250,8 +255,9 @@ I am open to the possibility that some company decides to commercionalize X65-SB
 
 **Is there an emulator for PC?**
 
-No, an emulator is not developed yet.
-It could be done perhaps based on the CX16 emulator; the CPU emulation has to be extended to 65C816 and new features (registers)
+Presently an emulator is not developed yet.
+It could be done perhaps based on the [CX16 emulator](https://github.com/commanderx16/x16-emulator); 
+the CPU emulation has to be extended to 65C816 and new features (registers)
 available in NORA and in W6100 (ethernet interface) need be implemented.
 
 
