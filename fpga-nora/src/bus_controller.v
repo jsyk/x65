@@ -74,7 +74,11 @@ module bus_controller (
     input [7:0]     rambank_mask_i,              // CPU accesses using RAMBANK reg are limited to this range
     output [7:0]    romblock_o,
     input           force_pblrom_i,              // force switching to the PBL ROM -> sets bit 7 of romblock_nr register.
-    input           clear_pblrom_i              // clear us out of the PBL ROM -> clears bit 7 of romblock_nr register.
+    input           clear_pblrom_i,              // clear us out of the PBL ROM -> clears bit 7 of romblock_nr register.
+    // ICD->CPU forcing of opcode
+    input           force_cpu_db_i,
+    input           ignore_cpu_writes_i,
+    input [7:0]     cpu_db_forced_i
 );
 //// IMPLEMENTATION ////
 
@@ -188,7 +192,7 @@ module bus_controller (
                 // Load address from the CPU address bus and decode it
                 memcpu_abl_o <= memcpu_abl_i;       // lower 12 bits are pass-through
                 nora_slv_addr_o <= cpu_ab_i;
-                nora_slv_rwn_o <= cpu_rw_i;
+                nora_slv_rwn_o <= cpu_rw_i | ignore_cpu_writes_i;
                 s4_ext_o <= 2'b00;              // no cycle extension by default necessary
 
                 if (cputype02_i)
@@ -254,7 +258,7 @@ module bus_controller (
                         // mem_abh_o <= { rambank_nr & rambank_mask_i, cpu_abh_i[12] };
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_o <= cpu_rw_i;
+                        mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i;
                         // mem_wrn_adv2_r <= cpu_rw_i;
                     end
                     else if (cpu_ab_i[15:8] == 8'h9F)
@@ -277,7 +281,7 @@ module bus_controller (
                             // 0x9F20, 0x9F30 VERA video controller
                             vera_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
-                            mem_wrn_o <= cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i;
                             // mem_wrn_adv2_r <= cpu_rw_i;         // advanced by 2T
                             // s4_ext_o <= 2'b01;              // extend S4H by 1cc (add 20ns of access time)
                         end
@@ -289,7 +293,7 @@ module bus_controller (
     `else
                             aio_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
-                            mem_wrn_o <= cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i;
                             // mem_wrn_adv1_r <= cpu_rw_i;
                             // mem_wrn_adv2_r <= cpu_rw_i;
     `endif
@@ -304,7 +308,7 @@ module bus_controller (
                             // 0x9F80 ENET LAN controller
                             enet_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
-                            mem_wrn_o <= cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i;
                             // mem_wrn_adv1_r <= cpu_rw_i;
                             // mem_wrn_adv2_r <= cpu_rw_i;
                             s4_ext_o <= 2'b10;              // extend S4H by 2cc (add 40ns of access time)
@@ -315,7 +319,7 @@ module bus_controller (
                             mem_abh_o <= { 5'h00, cpu_abh_i[15:12] };
                             sram_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
-                            mem_wrn_o <= cpu_rw_i;
+                            mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i;
                         end
                     end
                     else 
@@ -324,7 +328,7 @@ module bus_controller (
                         mem_abh_o <= { 5'h00, cpu_abh_i[15:12] };
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
-                        mem_wrn_o <= cpu_rw_i;
+                        mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i;
                         // mem_wrn_adv1_r <= cpu_rw_i;
                         // mem_wrn_adv2_r <= cpu_rw_i;
                     end
@@ -336,7 +340,7 @@ module bus_controller (
                     mem_abh_o <= { cpu_db_i[4:0], cpu_abh_i[15:12] };
                     sram_csn_o <= LOW_ACTIVE;
                     mem_rdn_o <= ~cpu_rw_i;
-                    mem_wrn_o <= cpu_rw_i;
+                    mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i;
                     // mem_wrn_adv1_r <= cpu_rw_i;
                     // mem_wrn_adv2_r <= cpu_rw_i;
                 end
@@ -607,7 +611,12 @@ module bus_controller (
     // generate data bus output to CPU
     always @( posedge clk6x )
     begin
-        if (mem_rdn_o == LOW_ACTIVE)
+        if (force_cpu_db_i)
+        begin
+            // ICD is forcing an opcode to the CPU
+            cpu_db_o <= cpu_db_forced_i;
+        end
+        else if (mem_rdn_o == LOW_ACTIVE)
         begin
             // ext Memory/Device reading
             cpu_db_o <= mem_db_i;

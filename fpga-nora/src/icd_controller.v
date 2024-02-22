@@ -62,8 +62,40 @@
  *                                          reserved = [7:5]
  *                          TX:4th, 5th... byte = trace REGISTER contents, starting from LSB byte.
  *
- *              0x4         SET BREAKPOINT : TBD!!
+ *      |       0x4         GET/SET BREAK CONDITIONS MASK
+ *      `----------------------->   [4]     1 => Set bitmask below, 0 => Don't set/just read (RX 2nd/3rd byte is ignored).
+ *                          RX 2nd byte = mask of enabled BREAK conditions - 1st byte, TO BE SET:
+ *                                  [0]     CPU EF low = Native mode, output active?
+ *                                  [1]     CPU EF high = emulation mode, output active?
+ *                                  [2]     CPU Vector Pull output active?
+ *                                  [3]     CPU ABORT input active?
+ *                                  [4]     CPU NMI input active?
+ *                                  [5]     CPI IRQ input active?
+ *                                  [6]     CPU Reset input active?
+ *                                  [7]     reserved, 0
+ *                          RX 3rd byte, mask 2nd byte, TO BE SET:
+ *                                  [0]     Breakpoint address #1 active?
+ *                                  [1]     Breakpoint address #2 active?
+ *                                  [2-7]   reserved, 0
  *
+ *                          TX:2nd byte = dummy
+ *                          TX:3rd byte = mask of enabled BREAK conditions, TO BE READ.
+ *                          TX:4th byte = mask 2nd byte, TO BE READ.
+ *
+ *      |       0x5         GET/SET BREAKPOINT ADDRESS
+ *      `----------------------->   [4]     1 => Set bitmask below, 0 => Don't set/just read (RX 2nd/3rd byte is ignored).
+ *                                  [5]     0 => HW-Breakpoint #1, 1 => HW-Breakpoint #2
+ *                          RX 2nd byte = matching cpu_ab lsd
+ *                          RX 3rd byte = matching cpu_ab msd
+ *                          RX 4th byte = matching cpu_ab
+ *                          RX 5nd byte = mask cpu_ab lsd
+ *                          RX 6rd byte = mask cpu_ab msd
+ *                          RX 7th byte = mask cpu_ab
+ *                          
+ *      |       0x6         FORCE CPU DATA BUS
+ *      `----------------------->   [4]     1 => force opcode as the 2nd byte, 0 => ignore the second byte / no opcode force.
+ *                                  [5]     1 => ignore Writes, 0 => normal writes.
+ *                          RX 2nd byte = byte for the CPU DB (opcode or opcode arg)
  *
  */
 module icd_controller #(
@@ -104,9 +136,15 @@ module icd_controller #(
     output reg      cpu_block_nmi_o,       // 1 will block CPU NMI
     output reg      cpu_block_abort_o,       // 1 will block CPU ABORT
 
+    // ICD->CPU forcing of opcode
+    output reg      force_cpu_db_o,
+    output reg      ignore_cpu_writes_o,
+    output reg [7:0] cpu_db_forced_o,
+    
     // Trace input
     input [CPUTRACE_WIDTH-1:0]    cpubus_trace_i,
-    input           trace_catch_i
+    input           trace_catch_i,
+    input           release_cs_i
 );
 // IMPLEMENTATION
 
@@ -115,6 +153,7 @@ module icd_controller #(
     localparam CMD_BUSMEM_ACC = 4'h1;
     localparam CMD_CPUCTRL = 4'h2;
     localparam CMD_READTRACEREG = 4'h3;
+    localparam CMD_FORCECDB = 4'h6;
     // arguments
     localparam nSRAM_OTHER_BIT = 4;
     localparam nWRITE_READ_BIT = 5;
@@ -202,6 +241,9 @@ module icd_controller #(
             startup_cnt_r <= 15;
             trb_rdeq <= 0;
             trb_clear <= 0;
+            force_cpu_db_o <= 0;
+            ignore_cpu_writes_o <= 0;
+            cpu_db_forced_o <= 8'h00;
         end else begin
             // always reset signals
             trb_rdeq <= 0;
@@ -340,6 +382,21 @@ module icd_controller #(
                 end
             end
 
+            if ((icd_cmd[3:0] == CMD_FORCECDB) && rx_db_en_i)
+            begin
+                // Handle FORCE CPU DB command
+                //
+                if (counter == 0)
+                begin
+                    // decode command bits
+                    force_cpu_db_o <= icd_cmd[4];
+                    ignore_cpu_writes_o <= icd_cmd[5];
+                    // first data byte -> set cpu db output
+                    cpu_db_forced_o <= rx_byte_i;
+                    counter <= counter + 1;
+                end
+            end
+
             // finishing a bus/mem access?
             if (nora_mst_ack_i)
             begin
@@ -375,6 +432,14 @@ module icd_controller #(
             begin
                 run_cpu <= 0;
                 single_step_cpu <= 0;
+            end
+
+            // finishing a cpu cycle?
+            if (release_cs_i)
+            begin
+                // disable of forcing CPU opcode
+                force_cpu_db_o <= 0;
+                ignore_cpu_writes_o <= 0;
             end
 
             // handle startup sequence

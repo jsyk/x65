@@ -330,6 +330,11 @@ module top (
     wire      cpu_block_nmi;       // 1 will block CPU NMI
     wire      cpu_block_abort;       // 1 will block CPU ABORT
 
+    // ICD->CPU forcing of an opcode
+    wire        force_cpu_db_cmd;
+    wire        ignore_cpu_writes;
+    wire [7:0]  cpu_db_forced_data;         // data to be forced in CPU CDB[7:0]
+
     /**
     * SPI Slave (Target) - for ICD function.
     */
@@ -392,9 +397,14 @@ module top (
         .cpu_block_irq_o (cpu_block_irq),       // 1 will block CPU IRQ
         .cpu_block_nmi_o (cpu_block_nmi),       // 1 will block CPU NMI
         .cpu_block_abort_o (cpu_block_abort),       // 1 will block CPU ABORT
+        //
+        .force_cpu_db_o     (force_cpu_db_cmd),
+        .ignore_cpu_writes_o (ignore_cpu_writes),
+        .cpu_db_forced_o    (cpu_db_forced_data),
         // Trace input
         .cpubus_trace_i (cpubus_trace),
-        .trace_catch_i (release_wr)
+        .trace_catch_i  (release_wr),
+        .release_cs_i   (release_cs)
     );
 
 
@@ -469,13 +479,14 @@ module top (
         .rambank_mask_i     (rambank_mask),
         .romblock_o         (romblock_nr),
         .force_pblrom_i     (map_pblrom),
-        .clear_pblrom_i     (unmap_pblrom)
-        // // Trace output
-        // .cpubus_trace_o (cpubus_trace),
-        // .trace_catch_o (trace_catch)
+        .clear_pblrom_i     (unmap_pblrom),
+        // ICD->CPU forcing of opcodes
+        .force_cpu_db_i     (force_cpu_db_cmd),
+        .ignore_cpu_writes_i (ignore_cpu_writes),
+        .cpu_db_forced_i    (cpu_db_forced_data)
     );
 
-    assign UE_CS3n = VCS0n;
+    assign UE_CS3n = VCS0n;         // TBD
 
     // signals for VIA1
     wire [7:0] via1_slv_datard;
