@@ -16,3 +16,6 @@ Example: Live trace/step of the CPU:
 Example: Dump of the IO area ($9F00 to $9FFF):
 
 ![ICD Dump of IO area](pic/icd-dump-io.png)
+
+
+![ICD Block Diagram](pic/icd-blockdiagram.drawio.png)
