@@ -25,6 +25,8 @@ apa.add_argument("-a", "--block_abort", action="store_true", help="Block CPU ABO
 
 apa.add_argument('count', default=32, help="Number of CPU steps to perform.")
 
+apa.add_argument('-o', "--force_opcode", action="store", help="Force an opcode")
+
 args = apa.parse_args()
 
 step_count = int(args.count, 0)
@@ -340,6 +342,10 @@ while step_i <= step_count:
                 # decode and print cycle line
                 print_traceline(tbuf, is_upcoming=True)
                 break
+        
+        if args.force_opcode is not None:
+            print("should force opcode {}".format(args.force_opcode))
+            icd.cpu_force_opcode(int(args.force_opcode), False)
         
         # Now we should normally step the CPU by one cycle.
         # // deactivate the reset, STEP the cpu by 1 cycle

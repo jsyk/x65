@@ -8,6 +8,7 @@ class ICD:
     CMD_BUSMEM_ACC = 0x1
     CMD_CPUCTRL = 0x2
     CMD_READTRACE =	0x3
+    CMD_FORCECDB = 0x6
 
     # First byte high nible = options:
     # ... in case of CMD_BUSMEM_ACC:
@@ -180,6 +181,22 @@ class ICD:
         self.com.spiwriteonly(hdr)
         self.com.icd_chip_deselect()
 
+
+    # send the
+    # *      |       0x6         FORCE CPU DATA BUS
+    # *      `----------------------->   [4]     1 => force opcode as the 2nd byte, 0 => ignore the second byte / no opcode force.
+    # *                                  [5]     1 => ignore Writes, 0 => normal writes.
+    # *                          RX 2nd byte = byte for the CPU DB (opcode or opcode arg)
+    def cpu_force_opcode(self, forced_db, ignore_cpu_writes):
+        is_forced_db = 1 if forced_db is not None else 0
+        forced_db = 0 if forced_db is None else forced_db
+        ignore_cpu_writes = 1 if ignore_cpu_writes else 0
+        
+        hdr = bytes([ ICD.CMD_FORCECDB | (is_forced_db << 4) | (ignore_cpu_writes << 5), forced_db ])
+
+        self.com.icd_chip_select()
+        self.com.spiwriteonly(hdr)
+        self.com.icd_chip_deselect()
 
     # Read CPU Trace Register.
     def cpu_read_trace(self, tbr_deq=False, tbr_clear=False, treglen=7, sample_cpu=False):
