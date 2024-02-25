@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import x65ftdi
 from icd import *
+from cpustate import *
 import argparse
 from colorama import init as colorama_init
 from colorama import Fore
@@ -352,10 +353,10 @@ while step_i <= step_count:
         icd.cpu_ctrl(False, True, False, 
                     force_irq=args.force_irq, force_nmi=args.force_nmi, force_abort=args.force_abort,
                     block_irq=args.block_irq, block_nmi=args.block_nmi, block_abort=args.block_abort)
-    # determine the current bank; TBD remove
-    # banks = icd.bankregs_read(0, 2)
+    
     # read the current trace register
     is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace()
+    
     # check if trace buffer memory is non-empty
     if is_tbr_valid:
         # yes, we should first print the trace buffer contents!
@@ -385,3 +386,8 @@ while step_i <= step_count:
     cycle_i += 1
 
     # read_print_trace(banks)
+
+# Show the final CPU State (regs)
+cpust = CpuState()
+cpust.cpu_read_regs(icd)
+print(cpust)

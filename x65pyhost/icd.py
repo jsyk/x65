@@ -28,10 +28,28 @@ class ICD:
     ICD_OTHER_READ = (CMD_BUSMEM_ACC | (1 << nSRAM_OTHER_BIT) | (1 << nWRITE_READ_BIT) | (1 << ADR_INC_BIT))
 
     # Aux definitions
-    BLOCKSIZE = 256
-    PAGESIZE = 8192
+    BLOCKSIZE = 256             # misnomer => PAGE
+    PAGESIZE = 8192             # misnomer => BLOCK
     MAXREQSIZE = 16384
     SIZE_2MB =	(2048 * 1024)
+
+    # CPU Status flags
+    TRACE_FLAG_RWN =		1
+    TRACE_FLAG_EF =         2
+    TRACE_FLAG_VDA =        4
+    TRACE_FLAG_VECTPULL =	8
+    TRACE_FLAG_MLOCK =		16
+    TRACE_FLAG_SYNC_VPA =   32
+    TRACE_FLAG_CSOB_M =     64
+    TRACE_FLAG_RDY =        128
+    # CPU Control flags
+    TRACE_FLAG_CSOB_X =     16      # status
+    TRACE_FLAG_RESETN =     8
+    TRACE_FLAG_IRQN =       4
+    TRACE_FLAG_NMIN =       2
+    TRACE_FLAG_ABORTN =     1
+
+    ISYNC = TRACE_FLAG_VDA | TRACE_FLAG_SYNC_VPA            # both must be set to indicate first byte of an instruction
 
 
     def __init__(self, com):
