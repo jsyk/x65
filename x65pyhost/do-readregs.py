@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import x65ftdi
 from icd import *
-from cpustate import *
+from cpuregs import *
 import argparse
 from colorama import init as colorama_init
 from colorama import Fore
@@ -16,7 +16,7 @@ icd = ICD(x65ftdi.X65Ftdi())
 is_cputype02 = icd.com.is_cputype02()
 
 
-cpust = CpuState()
+cpust = CpuRegs()
 cpust.cpu_read_regs(icd)
 
 banks = icd.bankregs_read(0, 2)

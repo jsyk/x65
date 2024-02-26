@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import x65ftdi
 from icd import *
-from cpustate import *
+from cpuregs import *
 import argparse
 from colorama import init as colorama_init
 from colorama import Fore
@@ -388,6 +388,6 @@ while step_i <= step_count:
     # read_print_trace(banks)
 
 # Show the final CPU State (regs)
-cpust = CpuState()
+cpust = CpuRegs()
 cpust.cpu_read_regs(icd)
 print(cpust)
