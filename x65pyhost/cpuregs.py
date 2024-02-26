@@ -26,34 +26,34 @@ class CpuRegs:
 
     # table defines the opcode steps to readout all the CPU regs
     steps_readregs = [
-        { 'CD': 0x08, 'sta': STA_ISYNC, 'cmd': CMD_GET_PC  },           # PHP
-        { 'sta': 0, 'cmd': 0 },                # internal op (stack dec)
-        { 'sta': 0, 'cmd': CMD_GET_SP | CMD_GET_FLAGS },              # writing Flags to the Stack
+        { 'CD': 0x08,   'sta': STA_ISYNC,   'cmd': CMD_GET_PC  },           # PHP
+        {               'sta': 0,           'cmd': 0 },                # internal op (stack dec)
+        {               'sta': 0,           'cmd': CMD_GET_SP | CMD_GET_FLAGS },              # writing Flags to the Stack
 
-        { 'CD': 0x28, 'sta': STA_ISYNC, 'cmd': 0 },           # PLP
-        { 'sta': 0, 'cmd': 0 },                # internal op (stack inc)
-        { 'sta': 0, 'cmd': 0 },                # internal op (?)
-        { 'sta': 0, 'cmd': 0 },              # reading Flags from the Stack
+        { 'CD': 0x28,   'sta': STA_ISYNC,   'cmd': 0 },           # PLP
+        {               'sta': 0,           'cmd': 0 },                # internal op (stack inc)
+        {               'sta': 0,           'cmd': 0 },                # internal op (?)
+        {               'sta': 0,           'cmd': 0 },              # reading Flags from the Stack
 
-        { 'CD': 0x85, 'sta': STA_ISYNC, 'cmd': 0 },           # STA
-        { 'CD': 0x02, 'sta': 0, 'cmd': 0 },   # arg: 0x02
-        { 'sta': 0, 'cmd': CMD_BLOCK_WRITE | CMD_GET_A | CMD_GET_DPR },              # writing A to the (0x02)
-        { 'sta': STA_AM16, 'cmd': CMD_BLOCK_WRITE | CMD_GET_AH },              # writing AH to the (0x03)
+        { 'CD': 0x85,   'sta': STA_ISYNC,   'cmd': 0 },           # STA
+        { 'CD': 0x02,   'sta': 0,           'cmd': 0 },   # arg: 0x02
+        {               'sta': 0,           'cmd': CMD_BLOCK_WRITE | CMD_GET_A | CMD_GET_DPR },              # writing A to the (0x02)
+        {               'sta': STA_AM16,    'cmd': CMD_BLOCK_WRITE | CMD_GET_AH },              # writing AH to the (0x03)
 
-        { 'CD': 0x8E, 'sta': STA_ISYNC, 'cmd': 0 },           # STX
-        { 'CD': 0x40, 'sta': 0, 'cmd': 0 },   # arg: 0x40
-        { 'CD': 0x44, 'sta': 0, 'cmd': 0 },   # arg: 0x44
-        { 'sta': 0, 'cmd': CMD_BLOCK_WRITE | CMD_GET_X | CMD_GET_DBR },              # writing X to the (0x4440)
-        { 'sta': STA_XY16, 'cmd': CMD_BLOCK_WRITE | CMD_GET_XH  },              # writing XH to the (0x4441)
+        { 'CD': 0x8E,   'sta': STA_ISYNC,   'cmd': 0 },           # STX
+        { 'CD': 0x40,   'sta': 0,           'cmd': 0 },   # arg: 0x40
+        { 'CD': 0x44,   'sta': 0,           'cmd': 0 },   # arg: 0x44
+        {               'sta': 0,           'cmd': CMD_BLOCK_WRITE | CMD_GET_X | CMD_GET_DBR },              # writing X to the (0x4440)
+        {               'sta': STA_XY16,    'cmd': CMD_BLOCK_WRITE | CMD_GET_XH  },              # writing XH to the (0x4441)
 
-        { 'CD': 0x84, 'sta': STA_ISYNC, 'cmd': 0 },           # STY
-        { 'CD': 0x06, 'sta': 0, 'cmd': 0 },   # arg: 0x06
-        { 'sta': 0, 'cmd': CMD_BLOCK_WRITE | CMD_GET_Y },              # writing X to the (0x02)
-        { 'sta': STA_XY16, 'cmd': CMD_BLOCK_WRITE | CMD_GET_YH  },              # writing YH to the (0x4441)
+        { 'CD': 0x84,   'sta': STA_ISYNC,   'cmd': 0 },           # STY
+        { 'CD': 0x06,   'sta': 0,           'cmd': 0 },   # arg: 0x06
+        {               'sta': 0,           'cmd': CMD_BLOCK_WRITE | CMD_GET_Y },              # writing X to the (0x02)
+        {               'sta': STA_XY16,    'cmd': CMD_BLOCK_WRITE | CMD_GET_YH  },              # writing YH to the (0x4441)
 
-        { 'CD': 0x80, 'sta': STA_ISYNC, 'cmd': 0 },           # BRA
-        { 'CD': 0xF5, 'sta': 0, 'cmd': 0 },   # arg: 0xF5
-        { 'sta': 0, 'cmd': 0 },                # jump, internal op.
+        { 'CD': 0x80,   'sta': STA_ISYNC,   'cmd': 0 },           # BRA
+        { 'CD': 0xF5,   'sta': 0,           'cmd': 0 },   # arg: 0xF5
+        {               'sta': 0,           'cmd': 0 },                # jump, internal op.
     ]
 
     def __init__(self) -> None:
@@ -63,12 +63,12 @@ class CpuRegs:
         self.XL = None
         self.YH = None
         self.YL = None
-        self.SP = None
+        self.SP = None              # Stack pointer, 16b (native), 8b in Emu mode
         self.FL = None              # Flags, 8b
         self.EMU = None             # Emulation mode flag, 0/1
         self.DBR = None             # Data Bank Register, 8b
         self.DPR = None             # Data Page Register, 16b
-        self.PC = None
+        self.PC = None              # Program counter incl. PBR, 24-bit
     
     def cpu_read_regs(self, icd):
         # We should check the CPU state first and continue just if there is NOT a new instruction
@@ -190,7 +190,7 @@ class CpuRegs:
             return "{:02x}".format(h)
     
     def __str__(self):
-        return "A=${}{:02x}, X=${}{:02x}, YL=${}{:02x}, SP=${:04x}, DPR=${:04x}, DBR=${:02x}, PC=${:06x}, FL=${:02x}={}{}{}{}{}{}{}{}/{}".format(
+        return "A=${}{:02x}, X=${}{:02x}, Y=${}{:02x}, SP=${:04x}, DPR=${:04x}, DBR=${:02x}, PC=${:06x}, FL=${:02x}={}{}{}{}{}{}{}{}/{}".format(
             self.hex2(self.AH), self.AL, 
             self.hex2(self.XH), self.XL, 
             self.hex2(self.YH), self.YL, 
