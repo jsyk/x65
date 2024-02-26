@@ -3,9 +3,12 @@ X65
 
 The X65 is an ultimate computer for everyone interested in the venerable 65-series of 8-bit and 16-bit CPUs,
 i.e. the 6502 and 65816. Specifically, it is built with the W65C02S or W65C816S CPU chips from Western Design Centre.
-The 16-bit 65816 (W65C816S) variant is the default and preferred CPU; all screen-shots and demos shown below were done on the 16-bit system.
+The 16-bit 65816 (W65C816S) CPU variant is the default and preferred CPU, as all screen-shots shown below were done on the 16-bit system.
+The 65816 CPU powered the [Super Nintendo Entertainment System (SNES)](https://en.wikipedia.org/wiki/Super_Nintendo_Entertainment_System) 
+and the [Apple IIGS](https://en.wikipedia.org/wiki/Apple_IIGS).
+The older 8-bit 6502 CPU was the heart of NES, Apple I and II, many Ataris, Commodore 64, and many many more.
 
-The design is fully open-source and open-hardware, and we also prefer to use just the open-source development tools
+The design of X65 is fully open-source and open-hardware, and we also prefer to use just the open-source development tools
 whenever possible. The X65 computer hardware is designed with modern electronics parts, but with a little bit of retro feel.
 The computer is backward compatible with the 8-bit Commander X16 -- i.e. it can run their ROM, but since that ROM is copyrighted
 and non-free, this is a no-go in the long run.
