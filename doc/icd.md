@@ -1,5 +1,5 @@
-In-Circuit Debugger (ICD)
-===========================
+In-Circuit Debugger (ICD) for 6502/65816 CPUs
+================================================
 
 **In-circuit debugger** (ICD) integrated with NORA and accessible over the device USB-C port from a host PC
 running Linux or Windows. 
