@@ -305,8 +305,8 @@ def print_tracebuffer():
 
 banks = icd.bankregs_read(0, 2)
 print('Options: block-irq={}, force-irq={}'.format(args.block_irq, args.force_irq))
-print('Active banks: RAMBANK={:2x}  ROMBANK={:2x}'.format(banks[0], banks[1]))
-print('CPU Type (FTDI strap): {}'.format("65C02" if is_cputype02 else "65C816"))
+print('Active memory blocks: RAMBLOCK={:2x}  ROMBLOCK={:2x}'.format(banks[0], banks[1]))
+print('CPU Type (from strap): {}'.format("65C02" if is_cputype02 else "65C816"))
 print("CPU Step:\n")
 
 # // deactivate the reset, STOP the cpu
@@ -316,6 +316,7 @@ icd.cpu_ctrl(False, False, False,
 
 cycle_i = 0
 step_i = 0
+cpust_ini = CpuRegs()
 
 # for i in range(0, step_count+1):
 while step_i <= step_count:
@@ -354,17 +355,22 @@ while step_i <= step_count:
                     force_irq=args.force_irq, force_nmi=args.force_nmi, force_abort=args.force_abort,
                     block_irq=args.block_irq, block_nmi=args.block_nmi, block_abort=args.block_abort)
     
-    # read the current trace register
+    # ELSE: cycle==0 => on the very first iteration, the trace register read below is the last cycle
+    # in the history. Cycles before that were recorded in the trace buffer, which is read right after that.
+    
+    # read the current (last) trace cycle register
     is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace()
     
     # check if trace buffer memory is non-empty
     if is_tbr_valid:
-        # yes, we should first print the trace buffer contents!
+        # yes, we should *first* print the trace buffer contents!
         # sanity check: this could happen just on the first for-iteration!!
         if cycle_i > 0:
             print("IS_TBR_VALID=TRUE: COMMUNICATION ERROR!!")
             exit(1)
+        # print the buffer out
         print_tracebuffer()
+    
 
     # finally, check if the original trace register was valid
     print("Cyc #{:5}:  ".format(cycle_i), end='')
@@ -383,11 +389,17 @@ while step_i <= step_count:
             print("IS_VALID=FALSE: COMMUNICATION ERROR!!")
             exit(1)
 
+    # if cycle_i == 0:
+    #     # first iteration; all history up to here was printed.
+    #     # Now we can get the current CPU registers
+    #     cpust_ini.cpu_read_regs(icd)
+    #     print(cpust_ini)
+
     cycle_i += 1
 
     # read_print_trace(banks)
 
 # Show the final CPU State (regs)
-cpust = CpuRegs()
-cpust.cpu_read_regs(icd)
-print(cpust)
+cpust_fin = CpuRegs()
+cpust_fin.cpu_read_regs(icd)
+print(cpust_fin)
