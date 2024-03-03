@@ -106,7 +106,8 @@ written to the memory at that cycle.
 The instruction PLP is necessary to restore the contents of SP inside the CPU to the original value.
 
 The next screenshot shows the trace of the remaining instructions in the sequence: STA-STX-STY-BRA.
-The contents of registers A, X and Y is obtained from the data bus write cycles during the execution of the STA, STX and STY instructions.
+The contents of registers A, X and Y is obtained from the data bus write cycles during the execution 
+of the STA (Store Accumulator), STX (Store X-reg) and STY (Store Y-reg) instructions.
 To not disturb the original memory contents by these writes, the memory write signal is silently blocked by NORA, 
 although this is not reflected in the trace buffer.
 
@@ -114,6 +115,9 @@ although this is not reflected in the trace buffer.
 
 The final instruction BRA (Branch Always) is necessary to restore the original contents of the PC register; 
 it instructs the CPU to jump five instruction back.
+
+The 65816 CPU
+---------------
 
 So far we discussed how to obtain registers from the 8-bit 6502 processor.
 The 16-bit 65816 processor has the common registers extended to 16-bits, plus it has some additional registers.
@@ -159,3 +163,11 @@ and the contents of the SP register ($1e9) corresponds to the push-address in th
 
 ![Register readout integrated in trace](pic/icd-random-trace-with-regread.drawio.png)
 
+
+Conclusion
+------------
+
+In embedded systems reading of processor registers via a JTAG connection from a host PC is the basic functionality
+that we take for granted.
+Using the "NORA" FPGA as the system controller in the X65 computer brings this functionality also to the world
+of 6502/65816 processors.
