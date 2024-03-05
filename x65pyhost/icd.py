@@ -56,7 +56,7 @@ class ICD:
         # communication link - x65ftdi
         self.com = com
 
-
+    # Read bytes from X65 bus
     def busread(self, cmd, maddr, n):
         hdr = bytes( [cmd, maddr & 0xFF, (maddr >> 8) & 0xFF, (maddr >> 16) & 0xFF, 0x00 ] )
         self.com.icd_chip_select()
@@ -66,6 +66,7 @@ class ICD:
         self.com.icd_chip_deselect()
         return rxdata[5:]
 
+    # Write data bytes to X65 bus
     def buswrite(self, cmd, maddr, data):
         hdr = bytes([cmd, maddr & 0xFF, (maddr >> 8) & 0xFF, (maddr >> 16) & 0xFF ])
         self.com.icd_chip_select()
@@ -74,33 +75,37 @@ class ICD:
         self.com.icd_chip_deselect()
 
 
+    # read from BLOCKREGs
     def bankregs_read(self, maddr, n):
         maddr &= 1
         maddr |= (1 << ICD.ICD_OTHER_BANKREG_BIT)
         return self.busread(ICD.ICD_OTHER_READ, maddr, n)
 
+    # write to BLOCKREGs
     def bankregs_write(self, maddr, data):
         maddr &= 1
         maddr |= (1 << ICD.ICD_OTHER_BANKREG_BIT)
         return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
 
-
+    # read bytes from IO registers
     def ioregs_read(self, maddr, n):
         maddr &= 0xFF
         # The 0x9F helps NORA to position Scratchpad area in SRAM for the ICD access
         maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT) | 0x9F00
         return self.busread(ICD.ICD_OTHER_READ, maddr, n)
 
+    # write bytes to IO registers
     def ioregs_write(self, maddr, data):
         maddr &= 0xFF
         # The 0x9F helps NORA to position Scratchpad area in SRAM for the ICD access
         maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT) | 0x9F00
         return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
 
-
+    # write 1byte to IO register
     def iopoke(self, addr, data):
         return self.ioregs_write(addr, [data])
 
+    # read 1byte from IO register
     def iopeek(self, addr):
         data = self.ioregs_read(addr, 1)
         return data[0]
@@ -168,6 +173,12 @@ class ICD:
         return errors
 
 
+    # 
+    # Execute the CPU CTRL command in the ICD.
+    # This allows to start/stop the CPU, and single-step (1 cpu cycle) the CPU.
+    # Additionally various events (IRQ, NMI, ...) could be forced to the CPU
+    # or blocked from the CPU.
+    # 
     def cpu_ctrl(self, run_cpu, cstep_cpu, reset_cpu, 
                     force_irq=False, force_nmi=False, force_abort=False, 
                     block_irq=False, block_nmi=False, block_abort=False):
@@ -215,6 +226,36 @@ class ICD:
         self.com.icd_chip_select()
         self.com.spiwriteonly(hdr)
         self.com.icd_chip_deselect()
+
+
+    # Read CPU Status, and LSB of Trace Register.
+    def cpu_read_status(self):
+        #  *              0x0         GETSTATUS
+        #  *                          TX:2nd byte = dummy
+        #  *                          TX:3rd byte = status of CPU / ICD
+        #  *                                  [0]    TRACE-REG VALID
+        #  *                                  [1]    TRACE-REG OVERFLOWED
+        #  *                                  [2]    TRACE-BUF NON-EMPTY (note: status before a dequeue or clear!)
+        #  *                                  [3]    TRACE-BUF FULL (note: status before a dequeue or clear!)
+        #  *                                  [4]    CPU-RUNNING? If yes (1), then trace register reading is not allowed (returns dummy)!!
+        #  *                                          reserved = [7:5]
+        #  *                          TX:4th byte = trace REGISTER contents: LSB byte (just read, not shifting!!)
+        #                               /*dummy*/
+        hdr = bytes([ ICD.CMD_READTRACE, 0  ])
+
+        self.com.icd_chip_select();
+        treglen = 1
+        rxdata = self.com.spiexchange(hdr, treglen+1+len(hdr))
+        self.com.icd_chip_deselect()
+
+        is_valid = rxdata[2] & 1            # TRACE-REG VALID?  
+        is_ovf = rxdata[2] & 2              # TRACE-REG OVERFLOWED?
+        is_tbr_valid = rxdata[2] & 4        # TRACE-BUFFER NON-EMPTY?
+        is_tbr_full = rxdata[2] & 8         # TRACE-BUFFER FULL?
+        is_cpuruns = rxdata[2] & 16         # CPU-RUNNING?
+        # print('icd_cpu_read_trace got {}'.format(rxdata.hex()))
+        return (is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rxdata[3:])
+
 
     # Read CPU Trace Register.
     def cpu_read_trace(self, tbr_deq=False, tbr_clear=False, treglen=7, sample_cpu=False):

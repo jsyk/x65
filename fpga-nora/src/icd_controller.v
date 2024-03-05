@@ -10,15 +10,13 @@
  *              0x0         GETSTATUS
  *                          TX:2nd byte = dummy
  *                          TX:3rd byte = status of CPU / ICD
- *                                  [0]     CPU Running?  0 => stopped (in S2L), 1 => running (all other bits meaningless).
- *                                  [1]     0
- *                                  [2]     0
- *                                  [3]     0
- *                                  [4]     0
- *                                  [5]     1
- *                                  [6]     0
- *                                  [7]     1
- *                          TX:4th, 5th... byte = trace REGISTER contents, starting from LSB byte.
+ *                                  [0]    TRACE-REG VALID
+ *                                  [1]    TRACE-REG OVERFLOWED
+ *                                  [2]    TRACE-BUF NON-EMPTY (note: status before a dequeue or clear!)
+ *                                  [3]    TRACE-BUF FULL (note: status before a dequeue or clear!)
+ *                                  [4]    CPU-RUNNING? If yes (1), then trace register reading is not allowed (inconsistent)!!
+ *                                          reserved = [7:5]
+ *                          TX:4th byte = trace REGISTER contents: LSB byte (just read, not shifting!!)
  *
  *      |       0x1         BUS/MEM ACCESS
  *      `----------------------->   [4]     0 => SRAM, 1 => OTHER
@@ -294,21 +292,31 @@ module icd_controller #(
                     end
                 end
 
+                //  *              0x0         GETSTATUS
+                //  *                          TX:2nd byte = dummy
+                //  *                          TX:3rd byte = status of CPU / ICD
+                //  *                                  [0]    TRACE-REG VALID
+                //  *                                  [1]    TRACE-REG OVERFLOWED
+                //  *                                  [2]    TRACE-BUF NON-EMPTY
+                //  *                                  [3]    TRACE-BUF FULL
+                //  *                                  [4]    CPU-RUNNING? If yes (1), then trace register reading is not allowed (returns dummy)!!
+                //  *                                          reserved = [7:5]
+                //  *                          TX:4th byte = trace REGISTER contents: LSB byte (just read, not shifting!!)
                 if (rx_byte_i[3:0] == CMD_GETSTATUS)
                 begin
                     // Handle CMD_GETSTATUS command.
-                    // Setup TX:3rd byte
-//  *                          TX:3rd byte = status of CPU / ICD
-//  *                                  [0]     CPU Running?  0 => stopped (in S2L), 1 => running (all other bits meaningless).
-//  *                                  [1]      0
-//  *                                  [2]      0
-//  *                                  [3]      0
-//  *                                  [4]      0
-//  *                                  [5]      1
-//  *                                  [6]      0
-//  *                                  [7]      1
-                    tx_byte_o <= { 7'b1010_000, ~stopped_cpu };
+                    // Setup TX:3rd byte (1st data byte out)
+                    tx_byte_o <= { 3'b000, ~stopped_cpu, trb_full, ~trb_empty, tracereg_ovf, 
+                                   tracereg_valid };
                     tx_en_o <= 1;
+
+                    // if the trace reg is NOT VALID (i.e. EMPTY)
+                    //      AND the cpu is STOPPED => then we SAMPLE the cpu state into the trace reg
+                    //                              and make it available in the next spi read byte.
+                    if (!tracereg_valid && stopped_cpu)
+                    begin
+                        cpubus_trace_reg <= cpubus_trace_i;
+                    end
                 end
             end
 
@@ -369,7 +377,15 @@ module icd_controller #(
                 end
             end
 
-            if (((icd_cmd[3:0] == CMD_READTRACEREG) /*|| (icd_cmd[3:0] == CMD_GETSTATUS)*/)  && rx_db_en_i)
+            if ((icd_cmd[3:0] == CMD_GETSTATUS)  && rx_db_en_i)
+            begin
+                // 2nd and further data bytes -> provide trace buffer (LSB 8 bits)
+                tx_byte_o <= cpubus_trace_reg[7:0];
+                tx_en_o <= 1;
+                // do not shift;
+            end
+
+            if ((icd_cmd[3:0] == CMD_READTRACEREG)  && rx_db_en_i)
             begin
                 // 2nd and further data bytes -> provide trace buffer (LSB 8 bits)
                 tx_byte_o <= cpubus_trace_reg[7:0];
