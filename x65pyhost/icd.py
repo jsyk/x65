@@ -49,7 +49,7 @@ class ICD:
     TRACE_FLAG_NMIN =       2
     TRACE_FLAG_ABORTN =     1
 
-    ISYNC = TRACE_FLAG_VDA | TRACE_FLAG_SYNC_VPA            # both must be set to indicate first byte of an instruction
+    TRACE_FLAG_ISYNC = TRACE_FLAG_VDA | TRACE_FLAG_SYNC_VPA            # both must be set to indicate first byte of an instruction
 
 
     def __init__(self, com):
@@ -229,7 +229,7 @@ class ICD:
 
 
     # Read CPU Status, and LSB of Trace Register.
-    def cpu_read_status(self):
+    def cpu_get_status(self):
         #  *              0x0         GETSTATUS
         #  *                          TX:2nd byte = dummy
         #  *                          TX:3rd byte = status of CPU / ICD
@@ -241,7 +241,7 @@ class ICD:
         #  *                                          reserved = [7:5]
         #  *                          TX:4th byte = trace REGISTER contents: LSB byte (just read, not shifting!!)
         #                               /*dummy*/
-        hdr = bytes([ ICD.CMD_READTRACE, 0  ])
+        hdr = bytes([ ICD.CMD_GETSTATUS, 0  ])
 
         self.com.icd_chip_select();
         treglen = 1
@@ -291,3 +291,19 @@ class ICD:
         # print('icd_cpu_read_trace got {}'.format(rxdata.hex()))
 
         return (is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rxdata[3:])
+
+    # 
+    # Unpack trace-reg/buffer received by cpu_read_trace()
+    # and return a tuple of (tr_flag:u16, CD:u8, CA:u16, MAH:u8, CBA:u8)
+    # 
+    def unpack_tracereg(self, tbuf):
+        # tbuf must be (at least) 7 elements
+        while len(tbuf) < 7:
+            tbuf.append(0)
+        
+        tr_flag = tbuf[0] + (tbuf[1] << 8)
+        CBA = tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
+        MAH = tbuf[5]           # Memory Address High = SRAM Page
+        CA = tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
+        CD = tbuf[2]                # CPU Data
+        return (tr_flag, CD, CA, MAH, CBA)

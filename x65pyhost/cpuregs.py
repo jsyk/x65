@@ -75,6 +75,7 @@ class CpuRegs:
         # upcoming.
         # read the current trace register
         is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace(sample_cpu=True)
+        # is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_get_status()
         # sanity check /assert:
         if is_valid or is_cpuruns:
             print("ERROR: Unexpected IS_VALID=TRUE or IS_CPURUNS=True: Invalid CPU state / communication error!!")
@@ -82,7 +83,7 @@ class CpuRegs:
         # We expect is_valid=False because this is not a trace reg from a finished CPU cycle.
         # Instead, the command sample_cpu=True just samples the stopped CPU state before it is commited.
         # Let's inspect it to see if this is already a new upcoming instruction, or contination of the old (last) one.
-        is_sync = (tbuf[0] & ICD.ISYNC) == ICD.ISYNC
+        is_sync = (tbuf[0] & ICD.TRACE_FLAG_ISYNC) == ICD.TRACE_FLAG_ISYNC
         if not is_sync:
             # no upcoming instruction -> we could not do the reg read sequence!
             print("ERROR: not is_sync: invalid CPU state for reading the regs!!")
@@ -147,13 +148,14 @@ class CpuRegs:
             CA = tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
             CD = tbuf[2]                # CPU Data
             self.EMU = 1 if (tbuf[0] & ICD.TRACE_FLAG_EF) else 0
-            is_sync = (tbuf[0] & ICD.ISYNC) == ICD.ISYNC
+            is_sync = (tbuf[0] & ICD.TRACE_FLAG_ISYNC) == ICD.TRACE_FLAG_ISYNC
             is_am16 = not ((tbuf[0] & ICD.TRACE_FLAG_CSOB_M) == ICD.TRACE_FLAG_CSOB_M)
             is_xy16 = not ((tbuf[1] & ICD.TRACE_FLAG_CSOB_X)  == ICD.TRACE_FLAG_CSOB_X)
 
             # check if SYNC/notSYNC is as it should be
             if exp_sync != is_sync:
                 print("ERROR: sync expectation vs reality differs!!")
+                print("    step={}, sta={:2x}, ctr={:2x}, CD={:2x}".format(step, tbuf[0], tbuf[1], CD))
                 return False
 
             cmd = st['cmd'] 
