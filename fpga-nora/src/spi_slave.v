@@ -21,7 +21,8 @@ module spi_slave (
 );
 // IMPLEMENTATION
     // synced input values
-    reg     prev_sck_r;     // registered spi_clk_i
+    reg     prev_sck_r;     // 2x registered spi_clk_i
+    reg     sck_r;          // registered spi_clk_i
     reg     scsn_r;         // registered spi_csn_i
     reg     smosi_r;        // registered spi_mosi_i
 
@@ -44,12 +45,14 @@ module spi_slave (
     always @(posedge clk6x)
     begin
         // store input signals
-        prev_sck_r <= spi_clk_i;
+        sck_r <= spi_clk_i;
+        prev_sck_r <= sck_r;
         scsn_r <= spi_csn_i;
         smosi_r <= spi_mosi_i;
 
         // detect SCK rising edge?
-        rising_sck <= !prev_sck_r && spi_clk_i;
+        // rising_sck <= !prev_sck_r && spi_clk_i;
+        rising_sck <= !prev_sck_r && sck_r;
     end
 
     always @(posedge clk6x)
