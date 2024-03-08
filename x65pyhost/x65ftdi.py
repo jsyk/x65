@@ -24,9 +24,15 @@ class X65Ftdi:
 
     PINS_ALL = PIN_NORAFCSN | PIN_NORADONE | PIN_NORARSTN | PIN_ICD2NORAROM | PIN_ICDCSN | PIN_AURARSTN | PIN_AURAFCSN | PIN_VERAFCSN | PIN_VAFCDONE | PIN_VERARSTN | PIN_CPUTYPE02
 
-    def __init__(self, url = 'ftdi://ftdi:2232/1'):
+    def __init__(self, url = 'ftdi://ftdi:2232/1', log_file_name=None):
         if url is not None:
             self.openFtdi(url)
+        # open log file?
+        if log_file_name is not None:
+            self.logf = open(log_file_name, 'a')
+            self.logf.write('\n\nStart of log\n')
+        else:
+            self.logf = None
 
     def openFtdi(self, url = 'ftdi://ftdi:2232/1'):
         # Instantiate a SPI controller
@@ -61,6 +67,8 @@ class X65Ftdi:
         # // drive low ICD2NORAROM (this unroutes SPI to flash),
         # // drive low ICDCSN to activate the ICD
         self.gpio.write(0)
+        if self.logf is not None:
+            self.logf.write('SELECT\n')
         # mpsse_set_gpio_high(VERA2FCSN | VERAFCSN | VERADONE | VERARSTN, 
         # 			ICD2NORAROM | ICDCSN);
 
@@ -69,13 +77,22 @@ class X65Ftdi:
         # // drive low ICD2NORAROM (this unroutes SPI to flash),
         # // drive high ICDCSN to de-activate the ICD
         self.gpio.write(X65Ftdi.PIN_ICDCSN)
+        if self.logf is not None:
+            self.logf.write('DESEL\n')
         # mpsse_set_gpio_high(ICDCSN | VERA2FCSN | VERAFCSN | VERADONE | VERARSTN, 
         # 			ICD2NORAROM | ICDCSN);
 
     def spiexchange(self, out, readlen):
-        return self.slave.exchange(out, readlen, start=False, stop=False, duplex=True)
+        if self.logf is not None:
+            self.logf.write('  EX.out {}\n'.format( ''.join('{:02x} '.format(x) for x in out) ))
+        read = self.slave.exchange(out, readlen, start=False, stop=False, duplex=True)
+        if self.logf is not None:
+            self.logf.write('  EX.inp {}\n'.format( ''.join('{:02x} '.format(x) for x in read) ))
+        return read
 
     def spiwriteonly(self, out):
+        if self.logf is not None:
+            self.logf.write('  WO.out {}\n'.format( ''.join('{:02x} '.format(x) for x in out) ))
         self.slave.write(out,  start=False, stop=False)
 
     # Read the CPUTYPE02 signal available on FTDI pin ACBUS5.
