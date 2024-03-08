@@ -25,6 +25,7 @@ module spi_slave (
     reg     sck_r;          // registered spi_clk_i
     reg     scsn_r;         // registered spi_csn_i
     reg     smosi_r;        // registered spi_mosi_i
+    reg     prev1_smosi_r, prev2_smosi_r;
 
     // flag indicates rising edge on SCK input
     reg     rising_sck;
@@ -49,6 +50,8 @@ module spi_slave (
         prev_sck_r <= sck_r;
         scsn_r <= spi_csn_i;
         smosi_r <= spi_mosi_i;
+        prev1_smosi_r <= smosi_r;
+        prev2_smosi_r <= prev1_smosi_r;
 
         // detect SCK rising edge?
         // rising_sck <= !prev_sck_r && spi_clk_i;
@@ -95,7 +98,7 @@ module spi_slave (
                 if (rising_sck)
                 begin
                     // MOSI: store the incoming SI bit to RX shift register, MSB first
-                    rx_data_shift <= { rx_data_shift[6:0], smosi_r };
+                    rx_data_shift <= { rx_data_shift[6:0], prev2_smosi_r };
                     // inc the bit counter
                     counter_r <= counter_r + 4'd1;
                     // MISO: update the output bit register (SO) from TX shift register, MSB:
