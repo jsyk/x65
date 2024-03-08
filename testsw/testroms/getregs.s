@@ -13,12 +13,12 @@
 .PC02
 
 START:
-    PHP             ; and we get S
+    PHP             ; we get PC, SP, Flags
     PLP             ; 
-    STA 2           ; +block_wr; 816: we get B depending on flag M, and we get DH/DL from CA
-    STX $4440           ; +block_wr; 816: we get XH depending on flag X
-    STY 6           ; +block_wr; 816: we get YH depending on flag X
-    ;BRA START
+    STA 2           ; block writes; We get A, and on 65816 we get B depending on flag M, and we get DH/DL (DPR) on address bus
+    STX $4440       ; block writes; We get X, and on 65816 we get XH depending on flag X, we get DBR from CPU Bank Address.
+    STY 6           ; block writes; We get Y, and on 65816 we get YH depending on flag X
+    ;BRA START       ; jump back to the back to leave CPU registers in the original state
 
     NOP
     NOP
