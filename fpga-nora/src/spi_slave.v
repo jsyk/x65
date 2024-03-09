@@ -17,7 +17,13 @@ module spi_slave (
     output reg      rx_db_en_o,     // flag: received next byte
     // Send data
     input [7:0]     tx_byte_i,      // transmit byte
-    input           tx_en_i         // flag: catch the transmit byte
+    input           tx_en_i,        // flag: catch the transmit byte
+    // Histogram sample data
+    input           fast_clk,
+    input  [4:0]    histidx_i,
+    output [15:0]   histcnt_o,
+    input           run_hist_i,
+    input           clear_hist_i
 );
 // IMPLEMENTATION
     // synced input values
@@ -117,6 +123,90 @@ module spi_slave (
         end
     end 
 
+    // sampling register for spi_mosi_i at the 240MHz clock
+    reg [31:0]      samp_smosi_r;
+    // holding register - written at the spi_clk rising_edge
+    reg [31:0]      hold_smosi_r;
+    // histogram counters
+    reg [15:0]      histcnt_r [0:31];
+    // flag to update the histogram counters
+    reg             upd_hist_r;
+    // reference value that was sampled to the spi_slave.
+    reg             ref_smosi_val_r;
 
+
+    // sync the input signals to the system clock domain
+    always @(posedge fast_clk)
+    begin
+        samp_smosi_r <= { samp_smosi_r[30:0], spi_mosi_i };
+    end
+
+    always @(posedge clk6x)
+    begin
+        upd_hist_r <= 0;
+
+        if (!resetn || scsn_r)
+        begin
+            hold_smosi_r <= 0;
+            ref_smosi_val_r <= 0;
+        end else begin
+            // SPI_SCN_I is active;
+            // shifted eight bits already?
+            if (counter_r[3])
+            begin
+                // end of byte
+            end else begin
+                if (rising_sck)
+                begin
+                    hold_smosi_r <= samp_smosi_r;
+                    upd_hist_r <= run_hist_i;
+                    ref_smosi_val_r <= prev2_smosi_r;
+                end
+            end
+
+            // update the histogram memory?
+            // if (upd_hist_r)
+            // begin
+            //     if (hold_smosi_r[0] != ref_smosi_val_r)
+            //     begin
+            //         histcnt_r[0] <= histcnt_r[0] + 1;
+            //     end
+            // end
+        end
+    end
+
+    genvar i;
+    
+    generate
+        for (i = 0; i < 32; i++) 
+        begin
+            always @(posedge clk6x)
+            begin
+                // update the histogram memory?
+                if (upd_hist_r)
+                begin
+                    if ((i == 0) || (hold_smosi_r[i] != ref_smosi_val_r))
+                    begin
+                        if (histcnt_r[i] != 16'hFFFF)       // saturate
+                        begin
+                            histcnt_r[i] <= histcnt_r[i] + 1;
+                        end
+                    end
+                end
+                if (clear_hist_i)
+                begin
+                    histcnt_r[i] <= 0;
+                end
+            end
+        end
+    endgenerate
+
+    assign histcnt_o = histcnt_r[histidx_i];
+
+    // read from ROM
+    // always @(posedge clk6x) 
+    // begin
+    //     histcnt_o <= histcnt_r[histidx_i];
+    // end
 
 endmodule

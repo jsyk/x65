@@ -95,6 +95,14 @@
  *                                  [5]     1 => ignore Writes, 0 => normal writes.
  *                          RX 2nd byte = byte for the CPU DB (opcode or opcode arg)
  *
+ *      |       0x7         READ SS PERF COUNTER
+ *      `----------------------->   [4]     1 => run perf counter
+ *                                  [5]     1 => clear perf counter
+ *
+ *                          TX:2nd byte = dummy
+ *                          TX:3rd byte = dummy
+ *                          TX:4th...nth byte = ss histogram from 0 to 31, lsd first
+ *
  */
 module icd_controller #(
     parameter CPUTRACE_WIDTH = 48,
@@ -142,7 +150,13 @@ module icd_controller #(
     // Trace input
     input [CPUTRACE_WIDTH-1:0]    cpubus_trace_i,
     input           trace_catch_i,
-    input           release_cs_i
+    input           release_cs_i,
+
+    // Histogram sample data
+    output reg  [4:0]    histidx_o,
+    input [15:0]    histcnt_i,
+    output reg      run_hist_o,
+    output reg      clear_hist_o
 );
 // IMPLEMENTATION
 
@@ -152,6 +166,7 @@ module icd_controller #(
     localparam CMD_CPUCTRL = 4'h2;
     localparam CMD_READTRACEREG = 4'h3;
     localparam CMD_FORCECDB = 4'h6;
+    localparam CMD_READ_SS_PERFCNT = 4'h7;
     // arguments
     localparam nSRAM_OTHER_BIT = 4;
     localparam nWRITE_READ_BIT = 5;
@@ -159,7 +174,7 @@ module icd_controller #(
 
     // command byte from the host
     reg [7:0]   icd_cmd;        // first byte
-    reg [3:0]   counter;        // data bytes counter, saturates.
+    reg [6:0]   counter;        // data bytes counter, saturates.
 
     // trace of the CPU/BUS
     reg [CPUTRACE_WIDTH-1:0]    cpubus_trace_reg;
@@ -215,6 +230,7 @@ module icd_controller #(
     begin
         tx_byte_o <= 8'h00;
         tx_en_o <= 0;
+        clear_hist_o <= 0;
 
         if (!resetn)
         begin
@@ -242,6 +258,8 @@ module icd_controller #(
             force_cpu_db_o <= 0;
             ignore_cpu_writes_o <= 0;
             cpu_db_forced_o <= 8'h00;
+            run_hist_o <= 0;
+            histidx_o <= 0;
         end else begin
             // always reset signals
             trb_rdeq <= 0;
@@ -317,6 +335,14 @@ module icd_controller #(
                     begin
                         cpubus_trace_reg <= cpubus_trace_i;
                     end
+                end
+
+                if (rx_byte_i[3:0] == CMD_READ_SS_PERFCNT)
+                begin
+                    // handle READ_SS_PERFCNT
+                    run_hist_o <= rx_byte_i[4];
+                    clear_hist_o <= rx_byte_i[5];
+                    histidx_o <= 0;
                 end
             end
 
@@ -411,6 +437,26 @@ module icd_controller #(
                     cpu_db_forced_o <= rx_byte_i;
                     counter <= counter + 1;
                 end
+            end
+
+            if ((icd_cmd[3:0] == CMD_READ_SS_PERFCNT) && rx_db_en_i)
+            begin
+                // handle READ SS PERFCNT
+                if (counter[0] == 0)
+                begin
+                    // tx_byte_o <= 8'h12; //histcnt_i[7:0];
+                    tx_byte_o <= histcnt_i[7:0];
+                end else begin
+                    // tx_byte_o <= 8'h34; //histcnt_i[15:8];
+                    tx_byte_o <= histcnt_i[15:8];
+                end
+                tx_en_o <= 1;
+                // increment histogram counter index?
+                if (counter[0] == 1)
+                begin
+                    histidx_o <= histidx_o + 1;
+                end
+                counter <= counter + 1;
             end
 
             // finishing a bus/mem access?

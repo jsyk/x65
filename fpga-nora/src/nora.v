@@ -122,14 +122,17 @@ module top (
     wire clk6x_locked;
     wire rst_req;
     wire resetn;
+    wire fast_clk;
 
 `ifdef SIMULATION
     // simulation - skip PLL
     assign clk6x = FPGACLK;
     assign clk6x_locked = 1'b1;
+    assign fast_clk = FPGACLK;
 `else
     // synthesis PLL
-    pll pll0 ( .clock_in(FPGACLK), .clock_out(clk6x), .locked(clk6x_locked));
+    // pll pll0 ( .clock_in(FPGACLK), .clock_out(clk6x), .locked(clk6x_locked));
+    pll_fast pll0 ( .clock_in(FPGACLK), .clock_out(clk6x), .locked(clk6x_locked), .fast_clk (fast_clk));
 `endif
 
     /**
@@ -335,6 +338,12 @@ module top (
     wire        ignore_cpu_writes;
     wire [7:0]  cpu_db_forced_data;         // data to be forced in CPU CDB[7:0]
 
+    // Histogram sample data
+    wire  [4:0]    ss_histidx;
+    wire [15:0]     ss_histcnt;
+    wire           ss_run_hist_i;
+    wire           ss_clear_hist_i;
+
     /**
     * SPI Slave (Target) - for ICD function.
     */
@@ -354,7 +363,13 @@ module top (
         .rx_db_en_o (icd_rx_db),     // flag: received next byte
         // Send data
         .tx_byte_i (icd_tx_byte),      // transmit byte
-        .tx_en_i (icd_tx_en)         // flag: catch the transmit byte
+        .tx_en_i (icd_tx_en),         // flag: catch the transmit byte
+        // Histogram sample data
+        .fast_clk  (fast_clk),
+        .histidx_i (ss_histidx),
+        .histcnt_o (ss_histcnt),
+        .run_hist_i (ss_run_hist),
+        .clear_hist_i (ss_clear_hist)
     );
 
     icd_controller #( .CPUTRACE_WIDTH (CPUTRACE_WIDTH), .CPUTRACE_DEPTH(8) ) 
@@ -404,7 +419,12 @@ module top (
         // Trace input
         .cpubus_trace_i (cpubus_trace),
         .trace_catch_i  (release_wr),
-        .release_cs_i   (release_cs)
+        .release_cs_i   (release_cs),
+        // Histogram sample data
+        .histidx_o (ss_histidx),
+        .histcnt_i (ss_histcnt),
+        .run_hist_o (ss_run_hist),
+        .clear_hist_o (ss_clear_hist)
     );
 
 
