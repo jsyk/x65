@@ -459,7 +459,7 @@
       "idf": "",
       "netlist": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "x65-sbc-revB1.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""
