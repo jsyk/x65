@@ -42,91 +42,6 @@ is_cputype02 = icd.is_cputype02()
 
 
 def print_traceline(tbuf: ICD.TraceReg, is_upcoming=False):
-    # extract signal values from trace buffer array
-    # CBA = tbuf.CBA  #tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
-    # MAH = tbuf.MAH  #tbuf[5]           # Memory Address High = SRAM Page
-    # CA = tbuf.CA  #tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
-    # CD = tbuf.CD  #tbuf[2]                # CPU Data
-    # is_sync = tbuf.is_sync  #(tbuf[0] & ISYNC) == ISYNC
-    # is_emu = tbuf.is_emu8   #tbuf[0] & TRACE_FLAG_EF
-
-    # if is_upcoming:
-    #     # the upcoming instruction is not yet executed/committed -> CD is invalid.
-    #     # Get CD from memory directly:
-    #     # TBD: this is partly WRONG because MAH is update AFTER the instruction goes through execution!
-    #     # So the current MAH is just stale from the previous cycle, which could be a data cycle.
-    #     CD = icd.read_byte_as_cpu(CBA, MAH, CA)
-
-    # if is_cputype02:
-    #     # decode 6502 instruction
-    #     disinst = w65c02_dismap[CD] if is_sync else ""
-    # else:
-    #     # decode 65816 instruction
-    #     if is_sync:
-    #         disinst = w65c816_dismap[CD]
-    #         # check for opcode collisions between 6502 and 65816
-    #         if is_emu and ((CD & 0x07) == 7):
-    #             # yes -> warning!
-    #             disinst += "    ; WARNING: 6502-only opcode while in the EMU mode!"
-    #     else:
-    #         disinst = ""
-    
-    # m_flag = tbuf.is_am8   #tbuf[0] & TRACE_FLAG_CSOB_M
-    # x_flag = tbuf.is_xy8   #tbuf[1] & TRACE_FLAG_CSOB_X
-
-    # # replace byte value
-    # if disinst.find('.1') >= 0:
-    #     byteval = icd.read_byte_as_cpu(CBA, MAH, CA+1)
-    #     disinst = disinst.replace('.1', '${:x}'.format(byteval))
-
-    # # replace byte or word value based on Memory Flag
-    # if disinst.find('.M12') >= 0:
-    #     if m_flag:
-    #         # M=1 => 8-bit access
-    #         byteval = icd.read_byte_as_cpu(CBA, MAH, CA+1)
-    #         disinst = disinst.replace('.M12', '${:x}'.format(byteval))
-    #     else:
-    #         # M=0 => 16-bit access
-    #         wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256
-    #         disinst = disinst.replace('.M12', '${:x}'.format(wordval))
-
-    # # replace byte or word value based on X Flag
-    # if disinst.find('.X12') >= 0:
-    #     if x_flag:
-    #         # X=1 => 8-bit access
-    #         byteval = icd.read_byte_as_cpu(CBA, MAH, CA+1)
-    #         disinst = disinst.replace('.X12', '${:x}'.format(byteval))
-    #     else:
-    #         # X=0 => 16-bit access
-    #         wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + read_byte_as_cpu(CBA, MAH, CA+2)*256
-    #         disinst = disinst.replace('.X12', '${:x}'.format(wordval))
-
-    # # replace byte value displacement
-    # if disinst.find(':1') >= 0:
-    #     byteval = icd.read_byte_as_cpu(CBA, MAH, CA+1)
-    #     # convert to signed: negative?
-    #     if byteval > 127:
-    #         byteval = byteval - 256
-    #     disinst = disinst.replace(':1', '${:x}'.format(CA+2+byteval))
-
-    # # replace word value
-    # if disinst.find('.2') >= 0:
-    #     wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256
-    #     disinst = disinst.replace('.2', '${:x}'.format(wordval))
-
-    # # replace word value displacement
-    # if disinst.find(':2') >= 0:
-    #     wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256
-    #     # convert to signed: negative?
-    #     if wordval > 32767:
-    #         wordval = wordval - 32768
-    #     disinst = disinst.replace(':2', '${:x}'.format(CA+3+wordval))
-
-    # # replace 3-byte value
-    # if disinst.find('.3') >= 0:
-    #     wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256 + icd.read_byte_as_cpu(CBA, MAH, CA+3)*65536
-    #     disinst = disinst.replace('.3', '${:x}'.format(wordval))
-
     # decode instruction in the trace buffer
     disinst = decode_traced_instr(icd, tbuf, is_upcoming)
 
@@ -136,7 +51,6 @@ def print_traceline(tbuf: ICD.TraceReg, is_upcoming=False):
     CA = tbuf.CA  #tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
     CD = tbuf.CD  #tbuf[2]                # CPU Data
     is_sync = tbuf.is_sync  #(tbuf[0] & ISYNC) == ISYNC
-    is_emu = tbuf.is_emu8   #tbuf[0] & TRACE_FLAG_EF
 
 
     is_io = (CA >= 0x9F00 and CA <= 0x9FFF)
@@ -157,12 +71,6 @@ def print_traceline(tbuf: ICD.TraceReg, is_upcoming=False):
         # some RAMB
         mah_area = "RAMB:{:3}".format(MAH ^ 0x80)
 
-
-    # if (MAH <= 183) or (188 <= MAH <= 191):
-    #     # High memory – mapped to CPU page 5 according to REG00 (RAMBANK)
-    # elif MAH <= 191:
-    # else:
-    #     # >= 192 to 255
 
     addr_color = Fore.LIGHTBLACK_EX if is_addr_invalid \
                 else Fore.YELLOW if is_io  \

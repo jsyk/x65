@@ -116,7 +116,7 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
             disinst = disinst.replace('.X12', '${:x}'.format(byteval))
         else:
             # X=0 => 16-bit access
-            wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + read_byte_as_cpu(CBA, MAH, CA+2)*256
+            wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256
             disinst = disinst.replace('.X12', '${:x}'.format(wordval))
 
     # replace byte value displacement
