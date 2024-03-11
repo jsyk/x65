@@ -55,6 +55,15 @@ class ICD:
     def __init__(self, com):
         # communication link - x65ftdi
         self.com = com
+        self.is_cputype02_hw = None
+
+    # return true iff the CPU is 65C02, and false iff it is 65C816.
+    def is_cputype02(self) -> bool:
+        # cached?
+        if self.is_cputype02_hw is None:
+            # no -> read from the hw!
+            self.is_cputype02_hw = self.com.is_cputype02()
+        return self.is_cputype02_hw
 
     # Read bytes from X65 bus
     def busread(self, cmd, maddr, n):
@@ -171,6 +180,48 @@ class ICD:
 
         print("Memtest done with {} errors.".format(errors))
         return errors
+
+
+    # Read a byte via ICD memory access from the target.
+    # The address is identified by captured CBA (CPU Bank Address [7:0]), MAH (Memory High Address = SRAM Page, [20:13]) and CA (CPU Address [15:0]).
+    # MAH is decoded into the bank address.
+    def read_byte_as_cpu(self, CBA, MAH, CA):
+        # rambank = banks[0]
+        # rombank = banks[1]
+        if CBA == 0:
+            # bank zero -> must decode carefuly
+            if 0 <= CA < 2:
+                # bank regs
+                rdata = self.bankregs_read(CA, 1)
+            elif CA < 0x9F00:
+                # CPU low memory starts at sram fix 0x000000
+                rdata = self.sram_blockread(CA + 0x000000, 1)
+            elif 0xA000 <= CA < 0xC000:
+                # CPU RAM Bank starts at sram fix 0x000
+                rambank = MAH
+                offs = (CA - 0xA000)
+                rdata = self.sram_blockread(offs + rambank*ICD.PAGESIZE, 1)
+            elif 0xC000 <= CA:
+                # CPU ROM bank
+                offs = (CA - 0xC000)
+                # rombank = (MAH >> 1)
+                # print("read_by_as_cpu: cpu-rom-bank; rombank={}".format(rombank))
+                # MAH is the top 8 bits from SRAM addressing. 
+                # If MAH[7] is set while CBA=0 and CA is in ROMBLOCK, then this flags access to the bootrom.
+                if (MAH & 0x80) == 0:
+                    # MAH[0] is part of the offset within a 16kB ROMBLOCK. So we must shift right by 1 to skip it.
+                    # There are just 32 ROMBLOCKs, but the higher bits of MAH are offset within SRAM, which must be cleared out here.
+                    rombank = (MAH >> 1) & 0x1F
+                    # CPU ROM bank starts at sram fix 0x080000
+                    rdata = self.sram_blockread(offs + 0x080000 + rombank*2*ICD.PAGESIZE, 1)
+                else:
+                    # bootrom inside of NORA
+                    # print("[bootrom_blockread({})]".format(offs))
+                    rdata = self.bootrom_blockread(offs, 1)
+        else:
+            # CPU Bank non-zero -> linear address into SRAM
+            rdata = self.sram_blockread(((MAH >> 3) << 16) | CA, 1)
+        return rdata[0]
 
 
     # 
