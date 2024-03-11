@@ -43,11 +43,11 @@ class ICD:
     TRACE_FLAG_CSOB_M =     64
     TRACE_FLAG_RDY =        128
     # CPU Control flags
-    TRACE_FLAG_CSOB_X =     16      # status
-    TRACE_FLAG_RESETN =     8
-    TRACE_FLAG_IRQN =       4
-    TRACE_FLAG_NMIN =       2
-    TRACE_FLAG_ABORTN =     1
+    TRACE_FLAG_CSOB_X =     16 << 8     # status
+    TRACE_FLAG_RESETN =     8 << 8
+    TRACE_FLAG_IRQN =       4 << 8
+    TRACE_FLAG_NMIN =       2 << 8
+    TRACE_FLAG_ABORTN =     1 << 8
 
     TRACE_FLAG_ISYNC = TRACE_FLAG_VDA | TRACE_FLAG_SYNC_VPA            # both must be set to indicate first byte of an instruction
 
@@ -292,18 +292,44 @@ class ICD:
 
         return (is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rxdata[3:])
 
+
+    # Trace Register structure
+    class TraceReg:
+        # Decode trace-reg raw buffer received by cpu_read_trace()
+        def __init__(self, rawbuf):
+            # rawbuf must be (at least) 7 elements
+            while len(rawbuf) < 7:
+                rawbuf.append(0)
+            
+            self.sta_flags = rawbuf[0]
+            self.ctr_flags = rawbuf[1]
+            self.CBA = rawbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
+            self.MAH = rawbuf[5]           # Memory Address High = SRAM Page
+            self.CA = rawbuf[4] * 256 + rawbuf[3]        # CPU Address, 16-bit
+            self.CD = rawbuf[2]                # CPU Data
+
+            self.tr_flag = self.sta_flags + (self.ctr_flags << 8)
+
+            self.is_sync = (self.tr_flag & ICD.TRACE_FLAG_ISYNC) == ICD.TRACE_FLAG_ISYNC
+            self.is_resetn = ((self.tr_flag & ICD.TRACE_FLAG_RESETN) == ICD.TRACE_FLAG_RESETN)
+            self.is_irqn = ((self.tr_flag & ICD.TRACE_FLAG_IRQN) == ICD.TRACE_FLAG_IRQN)
+            self.is_nmin = ((self.tr_flag & ICD.TRACE_FLAG_NMIN) == ICD.TRACE_FLAG_NMIN)
+            self.is_abortn = ((self.tr_flag & ICD.TRACE_FLAG_ABORTN) == ICD.TRACE_FLAG_ABORTN)
+            self.is_read_nwrite = ((self.tr_flag & ICD.TRACE_FLAG_RWN) == ICD.TRACE_FLAG_RWN)
+            self.is_emu8 = (self.tr_flag & ICD.TRACE_FLAG_EF) == ICD.TRACE_FLAG_EF
+            self.is_nat16 = not self.is_emu8
+            self.is_vda = (self.tr_flag & ICD.TRACE_FLAG_VDA) == ICD.TRACE_FLAG_VDA
+            self.is_vectpull = (self.tr_flag & ICD.TRACE_FLAG_VECTPULL) == ICD.TRACE_FLAG_VECTPULL
+            self.is_mlock = (self.tr_flag & ICD.TRACE_FLAG_MLOCK) == ICD.TRACE_FLAG_MLOCK
+            self.is_vpa = (self.tr_flag & ICD.TRACE_FLAG_SYNC_VPA) == ICD.TRACE_FLAG_SYNC_VPA
+            self.is_am8 = ((self.tr_flag & ICD.TRACE_FLAG_CSOB_M) == ICD.TRACE_FLAG_CSOB_M)  
+            self.is_xy8 = ((self.tr_flag & ICD.TRACE_FLAG_CSOB_X)  == ICD.TRACE_FLAG_CSOB_X)
+            self.is_rdy = (self.tr_flag & ICD.TRACE_FLAG_RDY) == ICD.TRACE_FLAG_RDY
+
     # 
-    # Unpack trace-reg/buffer received by cpu_read_trace()
-    # and return a tuple of (tr_flag:u16, CD:u8, CA:u16, MAH:u8, CBA:u8)
+    # Decode trace-reg raw buffer received by cpu_read_trace()
+    # and return a structure TraceReg
     # 
-    def unpack_tracereg(self, tbuf):
-        # tbuf must be (at least) 7 elements
-        while len(tbuf) < 7:
-            tbuf.append(0)
-        
-        tr_flag = tbuf[0] + (tbuf[1] << 8)
-        CBA = tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
-        MAH = tbuf[5]           # Memory Address High = SRAM Page
-        CA = tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
-        CD = tbuf[2]                # CPU Data
-        return (tr_flag, CD, CA, MAH, CBA)
+    # def decode_tracereg(self, rawbuf):
+    #     tbuf = ICD.TraceReg(rawbuf)
+    #     return tbuf

@@ -74,7 +74,7 @@ class CpuRegs:
         # We should check the CPU state first and continue just if there is NOT a new instruction
         # upcoming.
         # read the current trace register
-        is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace(sample_cpu=True)
+        is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = icd.cpu_read_trace(sample_cpu=True)
         # is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_get_status()
         # sanity check /assert:
         if is_valid or is_cpuruns:
@@ -82,9 +82,10 @@ class CpuRegs:
             return False
         # We expect is_valid=False because this is not a trace reg from a finished CPU cycle.
         # Instead, the command sample_cpu=True just samples the stopped CPU state before it is commited.
+        tbuf = ICD.TraceReg(rawbuf)
         # Let's inspect it to see if this is already a new upcoming instruction, or contination of the old (last) one.
-        is_sync = (tbuf[0] & ICD.TRACE_FLAG_ISYNC) == ICD.TRACE_FLAG_ISYNC
-        if not is_sync:
+        # is_sync = (tbuf[0] & ICD.TRACE_FLAG_ISYNC) == ICD.TRACE_FLAG_ISYNC
+        if not tbuf.is_sync:
             # no upcoming instruction -> we could not do the reg read sequence!
             print("ERROR: not is_sync: invalid CPU state for reading the regs!!")
             return False
@@ -129,7 +130,7 @@ class CpuRegs:
                     block_irq=True, block_nmi=True, block_abort=True)
 
             # read the current trace register
-            is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace()
+            is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = icd.cpu_read_trace()
             
             # check if trace buffer memory is non-empty
             if is_tbr_valid:
@@ -142,46 +143,52 @@ class CpuRegs:
                 print("ERROR: Unexpected (not is_valid) during cpu_read_regs!!")
                 return False
 
-            # extract signal values from trace buffer array; TBD move to a common module!!
-            CBA = tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
-            MAH = tbuf[5]           # Memory Address High = SRAM Page
-            CA = tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
-            CD = tbuf[2]                # CPU Data
-            self.EMU = 1 if (tbuf[0] & ICD.TRACE_FLAG_EF) else 0
-            is_sync = (tbuf[0] & ICD.TRACE_FLAG_ISYNC) == ICD.TRACE_FLAG_ISYNC
-            is_am16 = not ((tbuf[0] & ICD.TRACE_FLAG_CSOB_M) == ICD.TRACE_FLAG_CSOB_M)
-            is_xy16 = not ((tbuf[1] & ICD.TRACE_FLAG_CSOB_X)  == ICD.TRACE_FLAG_CSOB_X)
+            # extract signal values from raw trace buffer array; TBD move to a common module!!
+            tbuf = ICD.TraceReg(rawbuf)
+
+            # CBA = tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
+            # MAH = tbuf[5]           # Memory Address High = SRAM Page
+            # CA = tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
+            # CD = tbuf[2]                # CPU Data
+            # self.EMU = 1 if (tbuf[0] & ICD.TRACE_FLAG_EF) else 0
+            # is_sync = (tbuf[0] & ICD.TRACE_FLAG_ISYNC) == ICD.TRACE_FLAG_ISYNC
+            # is_am16 = not ((tbuf[0] & ICD.TRACE_FLAG_CSOB_M) == ICD.TRACE_FLAG_CSOB_M)
+            # is_xy16 = not ((tbuf[1] & ICD.TRACE_FLAG_CSOB_X)  == ICD.TRACE_FLAG_CSOB_X)
+
+            self.EMU = tbuf.is_emu8
+            is_am16 = not tbuf.is_am8
+            is_xy16 = not tbuf.is_xy8
 
             # check if SYNC/notSYNC is as it should be
-            if exp_sync != is_sync:
+            if exp_sync != tbuf.is_sync:
                 print("ERROR: sync expectation vs reality differs!!")
-                print("    step={}, sta={:2x}, ctr={:2x}, CD={:2x}".format(step, tbuf[0], tbuf[1], CD))
+                print("    step={}, sta={:2x}, ctr={:2x}, CD={:2x}".format(step, tbuf.sta_flags, tbuf.ctr_flags, tbuf.CD))
                 return False
 
             cmd = st['cmd'] 
             # decode commands
             if cmd & CpuRegs.CMD_GET_A:
-                self.AL = CD
+                self.AL = tbuf.CD
             if cmd & CpuRegs.CMD_GET_AH:
-                self.AH = CD
+                self.AH = tbuf.CD
             if cmd & CpuRegs.CMD_GET_FLAGS:
-                self.FL = CD
+                self.FL = tbuf.CD
             if cmd & CpuRegs.CMD_GET_PC:
-                self.PC = (CBA << 16) | CA
+                self.PC = (tbuf.CBA << 16) | tbuf.CA
             if cmd & CpuRegs.CMD_GET_SP:
-                self.SP = CA
+                self.SP = tbuf.CA
             if cmd & CpuRegs.CMD_GET_X:
-                self.XL = CD
+                self.XL = tbuf.CD
             if cmd & CpuRegs.CMD_GET_XH:
-                self.XH = CD
+                self.XH = tbuf.CD
             if cmd & CpuRegs.CMD_GET_Y:
-                self.YL = CD
+                self.YL = tbuf.CD
             if cmd & CpuRegs.CMD_GET_YH:
-                self.YH = CD
+                self.YH = tbuf.CD
             if cmd & CpuRegs.CMD_GET_DPR:
-                self.DPR = CA - 2
+                self.DPR = tbuf.CA - 2
             if cmd & CpuRegs.CMD_GET_DBR:
-                self.DBR = CBA
+                self.DBR = tbuf.CBA
 
             step = step + 1
 

@@ -33,28 +33,28 @@ args = apa.parse_args()
 step_count = int(args.count, 0)
 
 # define connection to the target board via the USB FTDI
-icd = ICD(x65ftdi.X65Ftdi())
+icd = ICD(x65ftdi.X65Ftdi(log_file_name='spi-log.txt'))
 
 # which CPU is installed in the target?
 is_cputype02 = icd.com.is_cputype02()
 
-# CPU Status flags
-TRACE_FLAG_RWN =		1
-TRACE_FLAG_EF =         2
-TRACE_FLAG_VDA =        4
-TRACE_FLAG_VECTPULL =	8
-TRACE_FLAG_MLOCK =		16
-TRACE_FLAG_SYNC_VPA =   32
-TRACE_FLAG_CSOB_M =     64
-TRACE_FLAG_RDY =        128
-# CPU Control flags
-TRACE_FLAG_CSOB_X =     16      # status
-TRACE_FLAG_RESETN =     8
-TRACE_FLAG_IRQN =       4
-TRACE_FLAG_NMIN =       2
-TRACE_FLAG_ABORTN =     1
+# # CPU Status flags
+# TRACE_FLAG_RWN =		1
+# TRACE_FLAG_EF =         2
+# TRACE_FLAG_VDA =        4
+# TRACE_FLAG_VECTPULL =	8
+# TRACE_FLAG_MLOCK =		16
+# TRACE_FLAG_SYNC_VPA =   32
+# TRACE_FLAG_CSOB_M =     64
+# TRACE_FLAG_RDY =        128
+# # CPU Control flags
+# TRACE_FLAG_CSOB_X =     16      # status
+# TRACE_FLAG_RESETN =     8
+# TRACE_FLAG_IRQN =       4
+# TRACE_FLAG_NMIN =       2
+# TRACE_FLAG_ABORTN =     1
 
-ISYNC = TRACE_FLAG_VDA | TRACE_FLAG_SYNC_VPA            # both must be set to indicate first byte of an instruction
+# ISYNC = TRACE_FLAG_VDA | TRACE_FLAG_SYNC_VPA            # both must be set to indicate first byte of an instruction
 
 w65c02_dismap = [
     "BRK #.1", "ORA (.1,X)", "?", "?", "TSB .1", "ORA .1", "ASL .1", "RMB0 .1", "PHP", "ORA #.1", "ASL A", "?", "TSB A", "ORA .2", "ASL .2", "BBR0 :1",
@@ -140,14 +140,14 @@ def read_byte_as_cpu(CBA, MAH, CA):
 
 
 
-def print_traceline(tbuf, is_upcoming=False):
+def print_traceline(tbuf: ICD.TraceReg, is_upcoming=False):
     # extract signal values from trace buffer array
-    CBA = tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
-    MAH = tbuf[5]           # Memory Address High = SRAM Page
-    CA = tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
-    CD = tbuf[2]                # CPU Data
-    is_sync = (tbuf[0] & ISYNC) == ISYNC
-    is_emu = tbuf[0] & TRACE_FLAG_EF
+    CBA = tbuf.CBA  #tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
+    MAH = tbuf.MAH  #tbuf[5]           # Memory Address High = SRAM Page
+    CA = tbuf.CA  #tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
+    CD = tbuf.CD  #tbuf[2]                # CPU Data
+    is_sync = tbuf.is_sync  #(tbuf[0] & ISYNC) == ISYNC
+    is_emu = tbuf.is_emu8   #tbuf[0] & TRACE_FLAG_EF
 
     if is_upcoming:
         # the upcoming instruction is not yet executed/committed -> CD is invalid.
@@ -170,8 +170,8 @@ def print_traceline(tbuf, is_upcoming=False):
         else:
             disinst = ""
     
-    m_flag = tbuf[0] & TRACE_FLAG_CSOB_M
-    x_flag = tbuf[1] & TRACE_FLAG_CSOB_X
+    m_flag = tbuf.is_am8   #tbuf[0] & TRACE_FLAG_CSOB_M
+    x_flag = tbuf.is_xy8   #tbuf[1] & TRACE_FLAG_CSOB_X
 
     # replace byte value
     if disinst.find('.1') >= 0:
@@ -227,8 +227,8 @@ def print_traceline(tbuf, is_upcoming=False):
         disinst = disinst.replace('.3', '${:x}'.format(wordval))
 
     is_io = (CA >= 0x9F00 and CA <= 0x9FFF)
-    is_write = not(tbuf[0] & TRACE_FLAG_RWN)
-    is_addr_invalid = not((tbuf[0] & TRACE_FLAG_SYNC_VPA) or (tbuf[0] & TRACE_FLAG_VDA))
+    is_write = not tbuf.is_read_nwrite  #not(tbuf[0] & TRACE_FLAG_RWN)
+    is_addr_invalid = not(tbuf.is_vpa or tbuf.is_vda)   # not((tbuf[0] & TRACE_FLAG_SYNC_VPA) or (tbuf[0] & TRACE_FLAG_VDA))
 
 
     if (MAH <= 4):
@@ -270,19 +270,21 @@ def print_traceline(tbuf, is_upcoming=False):
             CD,  #/*CD:*/
             Style.RESET_ALL,
             #/*ctr:*/
-            tbuf[1], ('-' if (tbuf[1] & TRACE_FLAG_RESETN) else 'R'),
-            ('-' if tbuf[1] & TRACE_FLAG_IRQN else 'I'),
-            ('-' if tbuf[1] & TRACE_FLAG_NMIN else 'N'),
-            ('-' if tbuf[1] & TRACE_FLAG_ABORTN else Fore.RED+'A'+Style.RESET_ALL),
+            tbuf.ctr_flags, 
+            ('-' if tbuf.is_resetn else 'R'),
+            ('-' if tbuf.is_irqn else 'I'),
+            ('-' if tbuf.is_nmin else 'N'),
+            ('-' if tbuf.is_abortn else Fore.RED+'A'+Style.RESET_ALL),
             #/*sta:*/ 
-            tbuf[0], ('r' if tbuf[0] & TRACE_FLAG_RWN else Fore.RED+'W'+Style.RESET_ALL), 
-            ('-' if tbuf[0] & TRACE_FLAG_VECTPULL else Fore.YELLOW+'v'+Style.RESET_ALL),        # vector pull, active low
-            ('-' if tbuf[0] & TRACE_FLAG_MLOCK else 'L'),           # mem lock, active low
-            ('e' if tbuf[0] & TRACE_FLAG_EF else Fore.BLUE+'N'+Style.RESET_ALL),        # 'e': emulation mode, active high; 'N' native mode
-            ('m' if tbuf[0] & TRACE_FLAG_CSOB_M else Fore.BLUE+'M'+Style.RESET_ALL),    # '816 M-flag (acumulator): 0=> 16-bit 'M', 1=> 8-bit 'm'
-            ('x' if tbuf[1] & TRACE_FLAG_CSOB_X else Fore.BLUE+'X'+Style.RESET_ALL),    # '816 X-flag (index regs): 0=> 16-bit 'X', 1=> 8-bit 'x'
-            ('P' if tbuf[0] & TRACE_FLAG_SYNC_VPA else '-'),        # '02: SYNC, '816: VPA (valid program address)
-            ('D' if tbuf[0] & TRACE_FLAG_VDA else '-'),             # '02: always 1, '816: VDA (valid data address)
+            tbuf.sta_flags, 
+            ('r' if tbuf.is_read_nwrite else Fore.RED+'W'+Style.RESET_ALL), 
+            ('-' if tbuf.is_vectpull else Fore.YELLOW+'v'+Style.RESET_ALL),        # vector pull, active low
+            ('-' if tbuf.is_mlock else 'L'),           # mem lock, active low
+            ('e' if tbuf.is_emu8 else Fore.BLUE+'N'+Style.RESET_ALL),        # 'e': emulation mode, active high; 'N' native mode
+            ('m' if tbuf.is_am8 else Fore.BLUE+'M'+Style.RESET_ALL),    # '816 M-flag (acumulator): 0=> 16-bit 'M', 1=> 8-bit 'm'
+            ('x' if tbuf.is_xy8 else Fore.BLUE+'X'+Style.RESET_ALL),    # '816 X-flag (index regs): 0=> 16-bit 'X', 1=> 8-bit 'x'
+            ('P' if tbuf.is_vpa else '-'),        # '02: SYNC, '816: VPA (valid program address)
+            ('D' if tbuf.is_vda else '-'),             # '02: always 1, '816: VDA (valid data address)
             ('S' if is_sync else '-'),
             Fore.GREEN if not is_upcoming else Fore.LIGHTBLACK_EX, disinst, Style.RESET_ALL
         ))
@@ -290,17 +292,18 @@ def print_traceline(tbuf, is_upcoming=False):
 
 def print_tracebuffer():
     # retrieve line from trace buffer
-    is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace(tbr_deq=True)
-    tbuf_list = []
+    is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = icd.cpu_read_trace(tbr_deq=True)
+    rbuf_list = []
     while is_tbr_valid:
         # note down
-        tbuf_list.append(tbuf)
+        rbuf_list.append(rawbuf)
         # fetch next trace item into reg
-        is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace(tbr_deq=True)
+        is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = icd.cpu_read_trace(tbr_deq=True)
     # print out
-    for i in range(0, len(tbuf_list)):
-        print("Cyc #{:5}:  ".format(i - len(tbuf_list)), end='')
-        print_traceline(tbuf_list[i])
+    for i in range(0, len(rbuf_list)):
+        print("Cyc #{:5}:  ".format(i - len(rbuf_list)), end='')
+        tbuf = ICD.TraceReg(rbuf_list[i])
+        print_traceline(tbuf)
 
 
 banks = icd.bankregs_read(0, 2)
@@ -328,7 +331,7 @@ while step_i <= step_count:
             # Yes => we should check the CPU state first and continue just if there is NOT a new instruction
             # upcoming.
             # read the current trace register
-            is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace(sample_cpu=True)
+            is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = icd.cpu_read_trace(sample_cpu=True)
             # sanity check /assert:
             if is_valid or is_cpuruns:
                 print("ERROR: Unexpected IS_VALID=TRUE or IS_CPURUNS=True: COMMUNICATION ERROR!!")
@@ -336,8 +339,9 @@ while step_i <= step_count:
             # We expect is_valid=False because this is not a trace reg from a finished CPU cycle.
             # Instead, the command sample_cpu=True just samples the stopped CPU state before it is commited.
             # Let's inspect it to see if this is already a new upcoming instruction, or contination of the old (last) one.
-            is_sync = (tbuf[0] & ISYNC) == ISYNC
-            if is_sync:
+            tbuf = ICD.TraceReg(rawbuf)
+            # is_sync = (tbuf[0] & ISYNC) == ISYNC
+            if tbuf.is_sync:
                 # new upcoming instruction & we have already reached the desired number of instruction steps => exit the loop here
                 print()
                 print("Upcoming:    ", end='')
@@ -359,7 +363,7 @@ while step_i <= step_count:
     # in the history. Cycles before that were recorded in the trace buffer, which is read right after that.
     
     # read the current (last) trace cycle register
-    is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_read_trace()
+    is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = icd.cpu_read_trace()
     
     # check if trace buffer memory is non-empty
     if is_tbr_valid:
@@ -377,8 +381,9 @@ while step_i <= step_count:
     
     if is_valid:
         # is this a beginning of next instruction?
-        is_sync = (tbuf[0] & ISYNC) == ISYNC
-        if is_sync:
+        tbuf = ICD.TraceReg(rawbuf)
+        # is_sync = (tbuf[0] & ISYNC) == ISYNC
+        if tbuf.is_sync:
             step_i += 1
         # decode and print cycle line
         print_traceline(tbuf)
