@@ -293,7 +293,8 @@ class ICD:
         return (is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rxdata[3:])
 
 
-    # Trace Register structure
+    # Trace Register
+    # with decoder from the raw buffer
     class TraceReg:
         # Decode trace-reg raw buffer received by cpu_read_trace()
         def __init__(self, rawbuf):
@@ -301,6 +302,7 @@ class ICD:
             while len(rawbuf) < 7:
                 rawbuf.append(0)
             
+            # extract the basic fields from the raw buffer
             self.sta_flags = rawbuf[0]
             self.ctr_flags = rawbuf[1]
             self.CBA = rawbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
@@ -308,8 +310,10 @@ class ICD:
             self.CA = rawbuf[4] * 256 + rawbuf[3]        # CPU Address, 16-bit
             self.CD = rawbuf[2]                # CPU Data
 
+            # tr_flag is a combination of status and ctrl flags
             self.tr_flag = self.sta_flags + (self.ctr_flags << 8)
 
+            # extract individual flags from the status and control fields
             self.is_sync = (self.tr_flag & ICD.TRACE_FLAG_ISYNC) == ICD.TRACE_FLAG_ISYNC
             self.is_resetn = ((self.tr_flag & ICD.TRACE_FLAG_RESETN) == ICD.TRACE_FLAG_RESETN)
             self.is_irqn = ((self.tr_flag & ICD.TRACE_FLAG_IRQN) == ICD.TRACE_FLAG_IRQN)
@@ -326,10 +330,3 @@ class ICD:
             self.is_xy8 = ((self.tr_flag & ICD.TRACE_FLAG_CSOB_X)  == ICD.TRACE_FLAG_CSOB_X)
             self.is_rdy = (self.tr_flag & ICD.TRACE_FLAG_RDY) == ICD.TRACE_FLAG_RDY
 
-    # 
-    # Decode trace-reg raw buffer received by cpu_read_trace()
-    # and return a structure TraceReg
-    # 
-    # def decode_tracereg(self, rawbuf):
-    #     tbuf = ICD.TraceReg(rawbuf)
-    #     return tbuf

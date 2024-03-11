@@ -145,17 +145,9 @@ class CpuRegs:
 
             # extract signal values from raw trace buffer array; TBD move to a common module!!
             tbuf = ICD.TraceReg(rawbuf)
-
-            # CBA = tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
-            # MAH = tbuf[5]           # Memory Address High = SRAM Page
-            # CA = tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
-            # CD = tbuf[2]                # CPU Data
-            # self.EMU = 1 if (tbuf[0] & ICD.TRACE_FLAG_EF) else 0
-            # is_sync = (tbuf[0] & ICD.TRACE_FLAG_ISYNC) == ICD.TRACE_FLAG_ISYNC
-            # is_am16 = not ((tbuf[0] & ICD.TRACE_FLAG_CSOB_M) == ICD.TRACE_FLAG_CSOB_M)
-            # is_xy16 = not ((tbuf[1] & ICD.TRACE_FLAG_CSOB_X)  == ICD.TRACE_FLAG_CSOB_X)
-
+            # Emulation Flag is obtained from the instruction trace directly
             self.EMU = tbuf.is_emu8
+            # remmember the 8/16 bitnes of the A+M and X+Y registers
             is_am16 = not tbuf.is_am8
             is_xy16 = not tbuf.is_xy8
 

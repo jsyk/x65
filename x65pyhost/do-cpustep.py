@@ -38,23 +38,6 @@ icd = ICD(x65ftdi.X65Ftdi(log_file_name='spi-log.txt'))
 # which CPU is installed in the target?
 is_cputype02 = icd.com.is_cputype02()
 
-# # CPU Status flags
-# TRACE_FLAG_RWN =		1
-# TRACE_FLAG_EF =         2
-# TRACE_FLAG_VDA =        4
-# TRACE_FLAG_VECTPULL =	8
-# TRACE_FLAG_MLOCK =		16
-# TRACE_FLAG_SYNC_VPA =   32
-# TRACE_FLAG_CSOB_M =     64
-# TRACE_FLAG_RDY =        128
-# # CPU Control flags
-# TRACE_FLAG_CSOB_X =     16      # status
-# TRACE_FLAG_RESETN =     8
-# TRACE_FLAG_IRQN =       4
-# TRACE_FLAG_NMIN =       2
-# TRACE_FLAG_ABORTN =     1
-
-# ISYNC = TRACE_FLAG_VDA | TRACE_FLAG_SYNC_VPA            # both must be set to indicate first byte of an instruction
 
 w65c02_dismap = [
     "BRK #.1", "ORA (.1,X)", "?", "?", "TSB .1", "ORA .1", "ASL .1", "RMB0 .1", "PHP", "ORA #.1", "ASL A", "?", "TSB A", "ORA .2", "ASL .2", "BBR0 :1",
