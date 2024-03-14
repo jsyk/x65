@@ -5,8 +5,9 @@ from icd import *
 
 # 
 # Dis-assembly map for 65C02 and 65C816 instructions, opcodes 00 to FF.
-# 
-# Argument templates:
+# The map is used to decode the instruction from the trace buffer.
+# The map is indexed by the opcode value, and the value is a string with the instruction and its parameters.
+# The parameters are encoded as follows:
 #   .1  = 1 byte immediate
 #   .2  = word (2B) immediate
 #   .3  = 3 bytes immediate (65816)
@@ -15,6 +16,9 @@ from icd import *
 #   .M12 = one or 2 bytes immediate, depending on the M-flag
 #   .X12 = one or 2 bytes immediate, depending on the X-flag
 #   
+# The instruction "?" means that the opcode is not defined for the CPU; there are some of these in 65C02.
+# In 65C816, all opcodes 00-FF have defined instruction meaning.
+#
 w65c02_dismap = [
     "BRK #.1", "ORA (.1,X)", "?", "?", "TSB .1", "ORA .1", "ASL .1", "RMB0 .1", "PHP", "ORA #.1", "ASL A", "?", "TSB A", "ORA .2", "ASL .2", "BBR0 :1",
     "BPL :1", "ORA (.1),Y", "ORA (.1)", "?", "TRB .1", "ORA .1,X", "ASL .1,X", "RMB1 .1", "CLC", "ORA .2,Y", "INC A", "?", "TRB .2", "ORA .2,x", "ASL .2,x", "BBR1 :1",
@@ -55,9 +59,10 @@ w65c816_dismap = [
 ]
 
 
-# Decode instruction from the trace buffer line, if there is SYNC.
+# Decode instruction from the trace buffer line, if there is SYNC at this point.
 # Returns string of the instruction including parameters.
 # If this was not a SYNC, then return empty string.
+# If the next instruction is upcoming, the tbus is just a sample of CPU state at cycle BEGINNING and CD is invalid. 
 def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
     # extract signal values from trace buffer array
     CBA = tbuf.CBA  #tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
@@ -68,10 +73,12 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
     is_emu = tbuf.is_emu8   #tbuf[0] & TRACE_FLAG_EF
 
     if is_upcoming:
-        # the upcoming instruction is not yet executed/committed -> CD is invalid.
+        # the upcoming instruction is not yet executed/committed -> CD is invalid, and CPU is stopped at the moment.
         # Get CD from memory directly:
-        # TBD: this is partly WRONG because MAH is update AFTER the instruction goes through execution!
+        # FIXME: this is partly WRONG because MAH is update AFTER the instruction goes through execution!
         # So the current MAH is just stale from the previous cycle, which could be a data cycle.
+        # Possible solution: since the processor is stopped at the moment, we could read the contents of the RAMBLOCK
+        # and ROMBLOCK registers from the hardware now. But this is not implemented yet.
         CD = icd.read_byte_as_cpu(CBA, MAH, CA)
         tbuf.CD = CD
 
@@ -89,8 +96,11 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
         else:
             disinst = ""
     
-    m_flag = tbuf.is_am8   #tbuf[0] & TRACE_FLAG_CSOB_M
-    x_flag = tbuf.is_xy8   #tbuf[1] & TRACE_FLAG_CSOB_X
+    # 65816: check for M (Memory+Acumulator width) and X (X and Y regs width) flags.
+    # These flags are not available in 6502, but NORA ICD hw forces them to 1 (8-bit) automatically in that case,
+    # so the higher-level software (disassembly) gets the correct info anyway.
+    m_flag = tbuf.is_am8
+    x_flag = tbuf.is_xy8
 
     # replace byte value
     if disinst.find('.1') >= 0:

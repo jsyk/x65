@@ -1,6 +1,11 @@
 # import x65ftdi
 import random
 
+# ICD - In-Circuit Debugger
+# This class provides the low-level access to the ICD (In-Circuit Debugger) of the X65.
+# The ICD is a part of the NORA (NORmalized Architecture) of the X65, and it is used to
+# access the CPU, SRAM, IO registers, and other parts of the X65.
+# The ICD is accessed via the USB interface of the X65, which is converted by FTDI chip to SPI.
 class ICD:
     # Definition of ICD protocol:
     # First byte low nible = command:
@@ -28,12 +33,12 @@ class ICD:
     ICD_OTHER_READ = (CMD_BUSMEM_ACC | (1 << nSRAM_OTHER_BIT) | (1 << nWRITE_READ_BIT) | (1 << ADR_INC_BIT))
 
     # Aux definitions
-    BLOCKSIZE = 256             # misnomer => PAGE
-    PAGESIZE = 8192             # misnomer => BLOCK
-    MAXREQSIZE = 16384
+    PG65SIZE = 256             # misnomer => PAGE
+    BLOCKSIZE = 8192             # misnomer => BLOCK
+    MAXREQSIZE = 16384          # max size of a single request (FTDI limit)
     SIZE_2MB =	(2048 * 1024)
 
-    # CPU Status flags
+    # CPU Status flags (low byte of tr_flag)
     TRACE_FLAG_RWN =		1
     TRACE_FLAG_EF =         2
     TRACE_FLAG_VDA =        4
@@ -42,15 +47,15 @@ class ICD:
     TRACE_FLAG_SYNC_VPA =   32
     TRACE_FLAG_CSOB_M =     64
     TRACE_FLAG_RDY =        128
-    # CPU Control flags
+    # CPU Control flag (high byte of tr_flag)
     TRACE_FLAG_CSOB_X =     16 << 8     # status
     TRACE_FLAG_RESETN =     8 << 8
     TRACE_FLAG_IRQN =       4 << 8
     TRACE_FLAG_NMIN =       2 << 8
     TRACE_FLAG_ABORTN =     1 << 8
 
+    # Composite flag: ISYNC = start of an instruction (first CPU cycle)
     TRACE_FLAG_ISYNC = TRACE_FLAG_VDA | TRACE_FLAG_SYNC_VPA            # both must be set to indicate first byte of an instruction
-
 
     def __init__(self, com):
         # communication link - x65ftdi
@@ -58,6 +63,7 @@ class ICD:
         self.is_cputype02_hw = None
 
     # return true iff the CPU is 65C02, and false iff it is 65C816.
+    # The result is cached, and the CPU type is read from the hw only once.
     def is_cputype02(self) -> bool:
         # cached?
         if self.is_cputype02_hw is None:
@@ -65,7 +71,10 @@ class ICD:
             self.is_cputype02_hw = self.com.is_cputype02()
         return self.is_cputype02_hw
 
-    # Read bytes from X65 bus
+    # Read bytes from X65 bus. This is a primitive base function used in below methods.
+    # cmd: command byte, one of ICD.CMD_*
+    # maddr: 24-bit bus address
+    # n: number of bytes to read
     def busread(self, cmd, maddr, n):
         hdr = bytes( [cmd, maddr & 0xFF, (maddr >> 8) & 0xFF, (maddr >> 16) & 0xFF, 0x00 ] )
         self.com.icd_chip_select()
@@ -75,7 +84,10 @@ class ICD:
         self.com.icd_chip_deselect()
         return rxdata[5:]
 
-    # Write data bytes to X65 bus
+    # Write data bytes to X65 bus. This is a primitive base function used in below methods.
+    # cmd: command byte, one of ICD.CMD_*
+    # maddr: 24-bit bus address
+    # data: bytes to write
     def buswrite(self, cmd, maddr, data):
         hdr = bytes([cmd, maddr & 0xFF, (maddr >> 8) & 0xFF, (maddr >> 16) & 0xFF ])
         self.com.icd_chip_select()
@@ -84,66 +96,106 @@ class ICD:
         self.com.icd_chip_deselect()
 
 
-    # read from BLOCKREGs
+    # Read from BLOCKREGs area.
+    # maddr: 0 or 1, corresponding to RAMBLOCK_REG and ROMBLOCK_REG
+    # n: number of bytes to read (practically just 1 or 2 is allowed)
     def bankregs_read(self, maddr, n):
+        # BLOCKREGs area is just 2Bytes wide, so the maddr is just 1 bit
         maddr &= 1
         maddr |= (1 << ICD.ICD_OTHER_BANKREG_BIT)
         return self.busread(ICD.ICD_OTHER_READ, maddr, n)
 
-    # write to BLOCKREGs
+    # Write to BLOCKREGs
+    # maddr: 0 or 1, corresponding to RAMBLOCK_REG and ROMBLOCK_REG
+    # data: bytes to write (practically just 1 or 2 is allowed)
     def bankregs_write(self, maddr, data):
+        # BLOCKREGs area is just 2Bytes wide, so the maddr is just 1 bit
         maddr &= 1
         maddr |= (1 << ICD.ICD_OTHER_BANKREG_BIT)
         return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
 
-    # read bytes from IO registers
+    # Read bytes from IO registers.
+    # maddr: 8-bit address of the IO register
+    # n: number of bytes to read, max 256
     def ioregs_read(self, maddr, n):
+        # IOREGs area is just 256Bytes wide, so the maddr is just 8 bits
         maddr &= 0xFF
         # The 0x9F helps NORA to position Scratchpad area in SRAM for the ICD access
         maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT) | 0x9F00
         return self.busread(ICD.ICD_OTHER_READ, maddr, n)
 
-    # write bytes to IO registers
+    # Write bytes to IO registers.
+    # The IO area is located in the CPU address space at 0x9F00-0x9FFF, but here
+    # it is accessed via the ICD as a separate area, thus it as the base address 0x0000.
+    # maddr: 8-bit address of the IO register
+    # data: bytes to write
     def ioregs_write(self, maddr, data):
+        # IOREGs area is just 256Bytes wide, so the maddr is just 8 bits
         maddr &= 0xFF
-        # The 0x9F helps NORA to position Scratchpad area in SRAM for the ICD access
+        # The 0x9F helps NORA to position Scratchpad area in SRAM for the ICD access,
+        # but it is not necessary otherwise.
         maddr |= (1 << ICD.ICD_OTHER_IOREG_BIT) | 0x9F00
         return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
 
-    # write 1byte to IO register
+    # Write 1byte to IO register. Helper function.
+    # The IO area is located in the CPU address space at 0x9F00-0x9FFF, but here
+    # it is accessed via the ICD as a separate area, thus it as the base address 0x0000.
+    # addr: 8-bit address of the IO register
+    # data: 1 byte to write
     def iopoke(self, addr, data):
         return self.ioregs_write(addr, [data])
 
-    # read 1byte from IO register
+    # read 1byte from IO register. Helper function.
+    # addr: 8-bit address of the IO register
     def iopeek(self, addr):
         data = self.ioregs_read(addr, 1)
         return data[0]
 
-
+    # Read from the bootrom area used by the PBL (Primary Boot Loader).
+    # maddr: 12-bit offset in the bootrom
+    # n: number of bytes to read
     def bootrom_blockread(self, maddr, n):
+        # Bootrom area is just 4kB wide, so the maddr is just 12 bits
         maddr &= 0xFFF
         maddr |= (1 << ICD.ICD_OTHER_BOOTROM_BIT)
         return self.busread(ICD.ICD_OTHER_READ, maddr, n)
 
+    # Write the bootrom area used by the PBL (Primary Boot Loader).
+    # maddr: 12-bit offset in the bootrom
+    # data: bytes to write
     def bootrom_blockwrite(self, maddr, data):
+        # Bootrom area is just 4kB wide, so the maddr is just 12 bits
         maddr &= 0xFFF
         maddr |= (1 << ICD.ICD_OTHER_BOOTROM_BIT)
         return self.buswrite(ICD.ICD_OTHER_WRITE, maddr, data)
 
-
+    # Write bytes to SRAM.
+    # maddr: 24-bit address in the SRAM
+    # data: bytes to write
     def sram_blockwrite(self, maddr, data):
         k = 0
+        # write in chunks of MAXREQSIZE (FTDI limit)
         while len(data)-k > ICD.MAXREQSIZE:
             self.buswrite(ICD.ICD_SRAM_WRITE, maddr+k, data[k:k+ICD.MAXREQSIZE])
             k = k + ICD.MAXREQSIZE
+        # write the rest
         self.buswrite(ICD.ICD_SRAM_WRITE, maddr+k, data[k:])
 
+    # Read bytes from SRAM.
+    # maddr: 24-bit address in the SRAM
+    # n: number of bytes to read
     def sram_blockread(self, maddr, n):
+        # FIXME: read in chunks of MAXREQSIZE (FTDI limit) - is this necessary?
         return self.busread(ICD.ICD_SRAM_READ, maddr, n)
 
+    # Run memory test on the SRAM. Destroys the content of the SRAM.
+    # seed: random seed for the test
+    # mstart: start address of the test
+    # mbytes: number of bytes to test; should be a multiple of PG65SIZE (256Bytes)
     def sram_memtest(self, seed, mstart, mbytes):
-        # uint8_t buf[BLOCKSIZE];
-        blocks = int(mbytes / ICD.BLOCKSIZE)
+        # uint8_t buf[PG65SIZE];
+        # calculate the number of blocks
+        blocks = int(mbytes / ICD.PG65SIZE)
 
         print("SRAM Memtest from 0x{:x} to 0x{:x}, rand seed 0x{:x}".format(
                 mstart, mstart + mbytes - 1, seed));
@@ -151,43 +203,50 @@ class ICD:
         # restart rand sequence
         random.seed(seed)
 
+        # write the tested memory with a pseudo-random sequence
         for b in range(0, blocks):
-            buf = random.randbytes(ICD.BLOCKSIZE)
-            if ((b * ICD.BLOCKSIZE) % ICD.PAGESIZE == 0):
-                print("  Writing block 0x{:x} (0x{:x} to 0x{:x})...".format(int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE / ICD.PAGESIZE),
-                        int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE), int((b+1) + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE - 1))
-            
-            self.sram_blockwrite(mstart + b * ICD.BLOCKSIZE, buf);
+            # generate a random block
+            buf = random.randbytes(ICD.PG65SIZE)
+            # print message for each page
+            if ((b * ICD.PG65SIZE) % ICD.BLOCKSIZE == 0):
+                print("  Writing block 0x{:x} (0x{:x} to 0x{:x})...".format(int((b + mstart/ICD.PG65SIZE) * ICD.PG65SIZE / ICD.BLOCKSIZE),
+                        int((b + mstart/ICD.PG65SIZE) * ICD.PG65SIZE), int((b+1) + mstart/ICD.PG65SIZE) * ICD.PG65SIZE - 1))
+            # write to the X65 SRAM
+            self.sram_blockwrite(mstart + b * ICD.PG65SIZE, buf);
         
-        # restart rand sequence
+        # restart rand sequence to get the same sequence for verification
         random.seed(seed)
         
-        errors = 0
+        errors = 0          # count the errors
 
         for b in range(0, blocks):
-            if ((b * ICD.BLOCKSIZE) % ICD.PAGESIZE == 0):
-                print("  Reading block 0x{:x} (0x{:x} to 0x{:x})...".format(int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE / ICD.PAGESIZE),
-                        int(b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE, int((b+1) + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE - 1))
-            
-            buf1 = self.sram_blockread(mstart + b * ICD.BLOCKSIZE, ICD.BLOCKSIZE)
-            buf2 = random.randbytes(ICD.BLOCKSIZE)
-            # print('buf1={}'.format(buf1.hex()))
-            # print('buf2={}'.format(buf2.hex()))
+            if ((b * ICD.PG65SIZE) % ICD.BLOCKSIZE == 0):
+                print("  Reading block 0x{:x} (0x{:x} to 0x{:x})...".format(int((b + mstart/ICD.PG65SIZE) * ICD.PG65SIZE / ICD.BLOCKSIZE),
+                        int(b + mstart/ICD.PG65SIZE) * ICD.PG65SIZE, int((b+1) + mstart/ICD.PG65SIZE) * ICD.PG65SIZE - 1))
+            # read from X65 SRAM
+            buf1 = self.sram_blockread(mstart + b * ICD.PG65SIZE, ICD.PG65SIZE)
+            # generate the same random block
+            buf2 = random.randbytes(ICD.PG65SIZE)
+            # compare the read and generated blocks
             if buf1 != buf2:
+                # there is an error :-(
                 errors += 1
-                print("  Error in block 0x{:x} (0x{:x} to 0x{:x})!".format(int((b + mstart/ICD.BLOCKSIZE) * ICD.BLOCKSIZE / ICD.PAGESIZE),
-                            mstart + b*ICD.BLOCKSIZE, mstart + (b-1)*ICD.BLOCKSIZE - 1))
+                print("  Error in block 0x{:x} (0x{:x} to 0x{:x})!".format(int((b + mstart/ICD.PG65SIZE) * ICD.PG65SIZE / ICD.BLOCKSIZE),
+                            mstart + b*ICD.PG65SIZE, mstart + (b-1)*ICD.PG65SIZE - 1))
 
+        # summary:
         print("Memtest done with {} errors.".format(errors))
         return errors
 
 
-    # Read a byte via ICD memory access from the target.
-    # The address is identified by captured CBA (CPU Bank Address [7:0]), MAH (Memory High Address = SRAM Page, [20:13]) and CA (CPU Address [15:0]).
+    # Read a byte via ICD memory access from the target, the way a CPU would do.
+    # The address is identified by captured CBA (CPU Bank Address [7:0]), MAH (Memory High Address = SRAM 8kb BLOCK, [20:13]) 
+    # and CA (CPU Address [15:0]).
     # MAH is decoded into the bank address.
     def read_byte_as_cpu(self, CBA, MAH, CA):
-        # rambank = banks[0]
-        # rombank = banks[1]
+        # We have to differentiate based on the CPU Bank Address (65C816 topmost 8 bits of the address).
+        # In case of CBA = 0, we must decode the address carefully, because it could be in the ROM, RAM, or IO area.
+        # In case of CBA != 0, the address is linear into the SRAM and can be read directly.
         if CBA == 0:
             # bank zero -> must decode carefuly
             if 0 <= CA < 2:
@@ -200,7 +259,7 @@ class ICD:
                 # CPU RAM Bank starts at sram fix 0x000
                 rambank = MAH
                 offs = (CA - 0xA000)
-                rdata = self.sram_blockread(offs + rambank*ICD.PAGESIZE, 1)
+                rdata = self.sram_blockread(offs + rambank*ICD.BLOCKSIZE, 1)
             elif 0xC000 <= CA:
                 # CPU ROM bank
                 offs = (CA - 0xC000)
@@ -213,7 +272,7 @@ class ICD:
                     # There are just 32 ROMBLOCKs, but the higher bits of MAH are offset within SRAM, which must be cleared out here.
                     rombank = (MAH >> 1) & 0x1F
                     # CPU ROM bank starts at sram fix 0x080000
-                    rdata = self.sram_blockread(offs + 0x080000 + rombank*2*ICD.PAGESIZE, 1)
+                    rdata = self.sram_blockread(offs + 0x080000 + rombank*2*ICD.BLOCKSIZE, 1)
                 else:
                     # bootrom inside of NORA
                     # print("[bootrom_blockread({})]".format(offs))

@@ -10,35 +10,73 @@ from colorama import Style
 
 colorama_init()
 
-apa = argparse.ArgumentParser(usage="%(prog)s [OPTION] [count]",
-    description="Step the CPU."
-)
+def parse_arguments():
+    apa = argparse.ArgumentParser(usage="%(prog)s [OPTION] [count]",
+        description="Step the CPU."
+    )
 
-apa.add_argument("-v", "--version", action="version", version = f"{apa.prog} version 1.0.0")
+    apa.add_argument("-v", "--version", action="version", version = f"{apa.prog} version 1.0.0")
 
-apa.add_argument("-I", "--force_irq", action="store_true", help="Force CPU IRQ line active.")
-apa.add_argument("-i", "--block_irq", action="store_true", help="Block CPU IRQ line (deassert).")
+    apa.add_argument("-I", "--force_irq", action="store_true", help="Force CPU IRQ line active.")
+    apa.add_argument("-i", "--block_irq", action="store_true", help="Block CPU IRQ line (deassert).")
 
-apa.add_argument("-N", "--force_nmi", action="store_true", help="Force CPU NMI line active.")
-apa.add_argument("-n", "--block_nmi", action="store_true", help="Block CPU NMI line (deassert).")
+    apa.add_argument("-N", "--force_nmi", action="store_true", help="Force CPU NMI line active.")
+    apa.add_argument("-n", "--block_nmi", action="store_true", help="Block CPU NMI line (deassert).")
 
-apa.add_argument("-A", "--force_abort", action="store_true", help="Force CPU ABORT line active.")
-apa.add_argument("-a", "--block_abort", action="store_true", help="Block CPU ABORT line (deassert).")
+    apa.add_argument("-A", "--force_abort", action="store_true", help="Force CPU ABORT line active.")
+    apa.add_argument("-a", "--block_abort", action="store_true", help="Block CPU ABORT line (deassert).")
 
-apa.add_argument('count', default=32, help="Number of CPU steps to perform.")
+    apa.add_argument('count', default=32, help="Number of CPU steps to perform.")
 
-apa.add_argument('-o', "--force_opcode", action="store", help="Force an opcode")
+    apa.add_argument('-o', "--force_opcode", action="store", help="Force an opcode")
 
-args = apa.parse_args()
+    return apa.parse_args()
 
+
+args = parse_arguments()
 step_count = int(args.count, 0)
 
 # define connection to the target board via the USB FTDI
-icd = ICD(x65ftdi.X65Ftdi(log_file_name='spi-log.txt'))
+#icd = ICD(x65ftdi.X65Ftdi(log_file_name='spi-log.txt'))
+icd = ICD(x65ftdi.X65Ftdi())
 
 # which CPU is installed in the target?
 is_cputype02 = icd.is_cputype02()
 
+
+# IO area is between 0x9F00 and 0x9FFF of the CPU memory map
+IO_START_ADDR = 0x9F00
+IO_END_ADDR = 0x9FFF
+# the ROM and PBL area is between 0xC000 and 0xFFFF of the CPU memory map
+PBL_ROM_CA_START = 0xC000
+
+# "MAH" means Memory Address High, and it is the top 8 bits of the 21-bit SRAM address bus.
+# The SRAM is 2048 kB, and the top 8 bits are used to select one of 256, 8kB blocks.
+# Low memoory from 0 to 40kB = 5 memory blocks (each 8kB)
+MAH_BELOW_40KB = 5
+MAH_OVER_512KB = 64
+MAH_BELOW_1024KB = 128
+MAH_TOP = 255
+
+# Decode the MAH, CBA and CA values into a human-readable string
+# MAH: Memory Address High (top 8 bits of the 21-bit SRAM address bus)
+# CBA: CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
+# CA: CPU Address, 16-bit
+def mah_area_name(MAH: int, CBA: int, CA: int) -> str:
+    if (MAH < MAH_BELOW_40KB):
+        # Low memory – fix-mapped at CPU blocks 0-4 ; unused 5-7 due to alignment (can be accessed as high-mem pages 189-191)
+        mah_area = "low :{:3}".format(MAH)
+    elif (MAH >= MAH_OVER_512KB) and (MAH < MAH_BELOW_1024KB):
+        # ROM banks: 32 a 16kB, mapped to CPU blocks 6-7 according to REG01
+        mah_area = "ROMB:{:3}".format((MAH - 64)//2)
+    elif (MAH == MAH_TOP) and (CBA == 0) and (CA >= PBL_ROM_CA_START):
+        # special case (flag): this combination indicates an access to the PBL ROM
+        mah_area = "PBL     "
+    else:
+        # all else -> some RAMB
+        mah_area = "RAMB:{:3}".format(MAH ^ 0x80)
+    
+    return mah_area
 
 
 def print_traceline(tbuf: ICD.TraceReg, is_upcoming=False):
@@ -47,30 +85,15 @@ def print_traceline(tbuf: ICD.TraceReg, is_upcoming=False):
 
     # extract signal values from trace buffer array
     CBA = tbuf.CBA  #tbuf[6]           # CPU Bank Address (816 topmost 8 bits; dont confuse with CX16 stuff!!)
-    MAH = tbuf.MAH  #tbuf[5]           # Memory Address High = SRAM Page
+    MAH = tbuf.MAH  #tbuf[5]           # Memory Address High = Physical 8kB Page in SRAM
     CA = tbuf.CA  #tbuf[4] * 256 + tbuf[3]        # CPU Address, 16-bit
     CD = tbuf.CD  #tbuf[2]                # CPU Data
     is_sync = tbuf.is_sync  #(tbuf[0] & ISYNC) == ISYNC
-
-
-    is_io = (CA >= 0x9F00 and CA <= 0x9FFF)
+    is_io = (CA >= IO_START_ADDR and CA <= IO_END_ADDR)
     is_write = not tbuf.is_read_nwrite  #not(tbuf[0] & TRACE_FLAG_RWN)
     is_addr_invalid = not(tbuf.is_vpa or tbuf.is_vda)   # not((tbuf[0] & TRACE_FLAG_SYNC_VPA) or (tbuf[0] & TRACE_FLAG_VDA))
 
-
-    if (MAH <= 4):
-        # Low memory – fix-mapped at CPU pages 0-4 ; unused 5-7 due to alignment (can be accessed as high-mem pages 189-191)
-        mah_area = "low :{:3}".format(MAH)
-    elif (MAH >= 64) and (MAH <= 127):
-        # ROM banks: 32 a 16kB, mapped to CPU pages 6-7 according to REG01
-        mah_area = "ROMB:{:3}".format((MAH - 64)//2)
-    elif (MAH == 255) and (CBA == 0) and (CA >= 0xC000):
-        # special case (flag): this combination indicates an access to the PBL ROM
-        mah_area = "PBL     "
-    else:
-        # some RAMB
-        mah_area = "RAMB:{:3}".format(MAH ^ 0x80)
-
+    mah_area = mah_area_name(MAH, CBA, CA)
 
     addr_color = Fore.LIGHTBLACK_EX if is_addr_invalid \
                 else Fore.YELLOW if is_io  \
@@ -127,16 +150,18 @@ def print_tracebuffer():
         print_traceline(tbuf)
 
 
-banks = icd.bankregs_read(0, 2)
 print('Options: block-irq={}, force-irq={}'.format(args.block_irq, args.force_irq))
-print('Active memory blocks: RAMBLOCK={:2x}  ROMBLOCK={:2x}'.format(banks[0], banks[1]))
 print('CPU Type (from strap): {}'.format("65C02" if is_cputype02 else "65C816"))
-print("CPU Step:\n")
 
 # // deactivate the reset, STOP the cpu
 icd.cpu_ctrl(False, False, False, 
                 force_irq=args.force_irq, force_nmi=args.force_nmi, force_abort=args.force_abort,
                 block_irq=args.block_irq, block_nmi=args.block_nmi, block_abort=args.block_abort)
+
+banks = icd.bankregs_read(0, 2)
+print('Active memory blocks: RAMBLOCK={:2x}  ROMBLOCK={:2x}'.format(banks[0], banks[1]))
+
+print("CPU Step:\n")
 
 cycle_i = 0
 step_i = 0
