@@ -52,6 +52,7 @@ module phaser (
     begin
         if (!resetn) 
         begin
+            // reset the state machine
             state_reg <= S0L;
             cphi2 <= 1'b0;
             latch_ad <= 1'b0;
@@ -68,14 +69,15 @@ module phaser (
             release_cs <= 1'b0;
             stopped <= 1'b0;
 
+            // state machine
             case (state_reg)
-                S0L:
+                S0L:        // initial state, first clock when PHI2=low
                     begin
                         state_reg <= S1L;
                         cphi2 <= 1'b0;
                     end
 
-                S1L:
+                S1L:        // mid of PHI2=low; the CPU can be stopped in this phase
                     begin
                         if (run) 
                         begin
@@ -88,20 +90,20 @@ module phaser (
                         end
                     end
                 
-                S2L: 
+                S2L:       // last clock during PHI2=low before PHI2 rising edge
                     begin
                         state_reg <= S3H;
                         cphi2 <= 1'b1;      // rising edge cphi2
                     end
                 
-                S3H:
+                S3H:        // first clock after PHI2 rising edge
                     begin
                         state_reg <= S4H;
                         cphi2 <= 1'b1;
                         s4_ext_r <= s4_ext_i;       // get the extension cycle count for S4H state
                     end
 
-                S4H:
+                S4H:        // mid-clock during PHI2=hi; S4H can be extended by the s4_ext_r cycles on request.
                     begin
                         // shall we extend the S4H ?
                         if (s4_ext_r != 2'b00)
@@ -119,14 +121,14 @@ module phaser (
                         cphi2 <= 1'b1;
                     end
 
-                S5H:
+                S5H:        // last clock during PHI2=hi before PHI2 falling edge, which concludes the 65x CPU cycle
                     begin
                         state_reg <= S0L;
                         cphi2 <= 1'b0;          // falling edge cphi2
                         release_cs <= 1'b1;     // release CS signals in the next microcycle
                     end
 
-                default:
+                default:    // this should never be reached
                     begin
                         state_reg <= S0L;
                         cphi2 <= 1'b0;

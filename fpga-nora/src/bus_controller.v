@@ -2,6 +2,21 @@
  * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory. */
 /**
  * External CPU and Memory Bus controller
+ * This Verilog module implements a bus controller that handles the communication between a CPU 
+ * and external memory and devices. It provides control signals for the CPU bus, as well as address 
+ * and data signals for the memory bus. It also handles decoding of CPU address space regions 
+ * and generates the appropriate chip-select signals for external devices.
+ *
+ * The module includes a master service finite state machine (FSM) that handles master requests from 
+ * an internal debug controller (ICD) and pauses the CPU in the S1L state before servicing the request. 
+ * It also handles read and write operations to internal devices implemented inside the module.
+ * 
+ * The module supports different CPU types (65C816 and 65C02) and provides the necessary control signals 
+ * and address decoding logic for each type. It also includes functionality for handling bank registers 
+ * and switching between different ROM and RAM banks.
+ *
+ * Overall, this module serves as a central controller for managing the communication between a CPU 
+ * and external memory and devices in a system.
  */
 module bus_controller (
     // Global signals
