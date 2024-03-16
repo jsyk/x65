@@ -239,11 +239,71 @@ class ICD:
         return errors
 
 
+    # Decode the MAH (Memory Address High) register from the trace data
+    # into the ROMBLOCK and RAMBLOCK numbers - depending also on the captured CBA and CA.
+    # Note that not all fields are valid for all combinations of CBA and CA.
+    # Alternatively, the ROMBLOCK and RAMBLOCK could be read from the HW via the ICD link,
+    # but this is not always possible  (e.g. when the CPU is running) or suitable (e.g. in mid-trace,
+    # since the present HW state could be different from the historic trace data).
+    class MAHDecoded:
+        # This __init__ method is private and should not be called directly.
+        # Use from_trace() or from_hw() instead.
+        def __init__(self):
+            self.romblock = None
+            self.ramblock_raw = None
+            self.is_bootrom = None
+        
+        @classmethod
+        def from_trace(cls, MAH, CBA, CA):
+            # create MAHDecoded object
+            self = cls()
+            # note: the validity of romblock and ramblock depends on the CBA and CA,
+            # For CBA == 0, the CA is in the ROM, RAM, or IO area.
+            if CBA == 0:
+                # bank zero -> must decode carefuly
+                if 0 <= CA < 2:
+                    # bank regs
+                    self.romblock = None
+                    self.ramblock_raw = None
+                elif CA < 0x9F00:
+                    # CPU low memory starts at sram fix 0x000000
+                    self.romblock = None
+                    self.ramblock_raw = None
+                elif 0xA000 <= CA < 0xC000:
+                    # CPU RAM Bank starts at sram fix 0x000
+                    self.romblock = None
+                    self.ramblock_raw = MAH
+                elif 0xC000 <= CA:
+                    # CPU ROM bank
+                    self.romblock = (MAH >> 1) & 0x1F
+                    self.ramblock_raw = None
+                    self.is_bootrom = (MAH & 0x80) != 0
+            else:
+                # CPU Bank non-zero -> linear address into SRAM, we could not extract the bloc
+                # numbers from the given trace data!
+                self.romblock = None
+                self.ramblock_raw = MAH
+                self.is_bootrom = None
+            return self
+
+        @classmethod
+        def from_hw(cls, icd):
+            # create MAHDecoded object
+            self = cls()
+            # read current ROMBLOCK and RAMBLOCK registers from the hw via the icd link
+            bregs = icd.bankregs_read(0, 2)
+            # Extract the bank regs from the buffer; keep in mind that logical RAMBLOCK_REG 
+            # is mapped to physical 8kB SRAM block with inverted MSB (see doc/mem-map.md).
+            self.ramblock_raw = bregs[0] ^ 0x80
+            self.romblock = bregs[1] 
+            self.is_bootrom = (self.romblock & 0x80) != 0
+            return self
+        
     # Read a byte via ICD memory access from the target, the way a CPU would do.
     # The address is identified by captured CBA (CPU Bank Address [7:0]), MAH (Memory High Address = SRAM 8kb BLOCK, [20:13]) 
     # and CA (CPU Address [15:0]).
     # MAH is decoded into the bank address.
-    def read_byte_as_cpu(self, CBA, MAH, CA):
+    def read_byte_as_cpu(self, CBA: int, mahd: MAHDecoded, CA: int) -> int:
         # We have to differentiate based on the CPU Bank Address (65C816 topmost 8 bits of the address).
         # In case of CBA = 0, we must decode the address carefully, because it could be in the ROM, RAM, or IO area.
         # In case of CBA != 0, the address is linear into the SRAM and can be read directly.
@@ -257,7 +317,8 @@ class ICD:
                 rdata = self.sram_blockread(CA + 0x000000, 1)
             elif 0xA000 <= CA < 0xC000:
                 # CPU RAM Bank starts at sram fix 0x000
-                rambank = MAH
+                #rambank = MAH
+                rambank = mahd.ramblock_raw
                 offs = (CA - 0xA000)
                 rdata = self.sram_blockread(offs + rambank*ICD.BLOCKSIZE, 1)
             elif 0xC000 <= CA:
@@ -267,10 +328,12 @@ class ICD:
                 # print("read_by_as_cpu: cpu-rom-bank; rombank={}".format(rombank))
                 # MAH is the top 8 bits from SRAM addressing. 
                 # If MAH[7] is set while CBA=0 and CA is in ROMBLOCK, then this flags access to the bootrom.
-                if (MAH & 0x80) == 0:
+                # if (MAH & 0x80) == 0:
+                if not mahd.is_bootrom:
                     # MAH[0] is part of the offset within a 16kB ROMBLOCK. So we must shift right by 1 to skip it.
                     # There are just 32 ROMBLOCKs, but the higher bits of MAH are offset within SRAM, which must be cleared out here.
-                    rombank = (MAH >> 1) & 0x1F
+                    # rombank = (MAH >> 1) & 0x1F
+                    rombank = mahd.romblock
                     # CPU ROM bank starts at sram fix 0x080000
                     rdata = self.sram_blockread(offs + 0x080000 + rombank*2*ICD.BLOCKSIZE, 1)
                 else:
@@ -279,7 +342,11 @@ class ICD:
                     rdata = self.bootrom_blockread(offs, 1)
         else:
             # CPU Bank non-zero -> linear address into SRAM
-            rdata = self.sram_blockread(((MAH >> 3) << 16) | CA, 1)
+            # rdata = self.sram_blockread(((MAH >> 3) << 16) | CA, 1)
+            # Form linear address from CBA (highest 8 bits) and CA (lower 16 bits).
+            # Since we have just 2 MB or RAM, mask out the remaining bits.
+            lin_addr = ((CBA << 16) | CA) & 0x1FFFFF
+            rdata = self.sram_blockread(lin_addr, 1)
         return rdata[0]
 
 

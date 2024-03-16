@@ -68,7 +68,7 @@ def mah_area_name(MAH: int, CBA: int, CA: int) -> str:
         mah_area = "low :{:3}".format(MAH)
     elif (MAH >= MAH_OVER_512KB) and (MAH < MAH_BELOW_1024KB):
         # ROM banks: 32 a 16kB, mapped to CPU blocks 6-7 according to REG01
-        mah_area = "ROMB:{:3}".format((MAH - 64)//2)
+        mah_area = "RomB:{:3}".format((MAH - 64)//2)
     elif (MAH == MAH_TOP) and (CBA == 0) and (CA >= PBL_ROM_CA_START):
         # special case (flag): this combination indicates an access to the PBL ROM
         mah_area = "PBL     "

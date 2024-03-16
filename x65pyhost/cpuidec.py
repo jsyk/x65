@@ -72,15 +72,22 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
     is_sync = tbuf.is_sync  #(tbuf[0] & ISYNC) == ISYNC
     is_emu = tbuf.is_emu8   #tbuf[0] & TRACE_FLAG_EF
 
+    mahd = None
+
     if is_upcoming:
         # the upcoming instruction is not yet executed/committed -> CD is invalid, and CPU is stopped at the moment.
-        # Get CD from memory directly:
-        # FIXME: this is partly WRONG because MAH is update AFTER the instruction goes through execution!
-        # So the current MAH is just stale from the previous cycle, which could be a data cycle.
-        # Possible solution: since the processor is stopped at the moment, we could read the contents of the RAMBLOCK
-        # and ROMBLOCK registers from the hardware now. But this is not implemented yet.
-        CD = icd.read_byte_as_cpu(CBA, MAH, CA)
+        # Get CD from memory directly...
+        # MAH is update AFTER the instruction goes through execution!
+        # The MAH we have is just stale from the previous cycle, which could be a data cycle.
+        # Since the processor is stopped at the moment, we read the contents of the RAMBLOCK
+        # and ROMBLOCK registers from the hardware now.
+        mahd = ICD.MAHDecoded.from_hw(icd)
+        CD = icd.read_byte_as_cpu(CBA, mahd, CA)
         tbuf.CD = CD
+    else:
+        # decode MAH together with CBA and CA, this gets us the romblock/ramblock at this point of trace
+        # (if they could be inferred from MAH, CBA and CA, otherwise they are invalid)
+        mahd = ICD.MAHDecoded.from_trace(MAH, CBA, CA)
 
     if icd.is_cputype02():
         # decode 6502 instruction
@@ -104,34 +111,34 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
 
     # replace byte value
     if disinst.find('.1') >= 0:
-        byteval = icd.read_byte_as_cpu(CBA, MAH, CA+1)
+        byteval = icd.read_byte_as_cpu(CBA, mahd, CA+1)
         disinst = disinst.replace('.1', '${:x}'.format(byteval))
 
     # replace byte or word value based on Memory Flag
     if disinst.find('.M12') >= 0:
         if m_flag:
             # M=1 => 8-bit access
-            byteval = icd.read_byte_as_cpu(CBA, MAH, CA+1)
+            byteval = icd.read_byte_as_cpu(CBA, mahd, CA+1)
             disinst = disinst.replace('.M12', '${:x}'.format(byteval))
         else:
             # M=0 => 16-bit access
-            wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256
+            wordval = icd.read_byte_as_cpu(CBA, mahd, CA+1) + icd.read_byte_as_cpu(CBA, mahd, CA+2)*256
             disinst = disinst.replace('.M12', '${:x}'.format(wordval))
 
     # replace byte or word value based on X Flag
     if disinst.find('.X12') >= 0:
         if x_flag:
             # X=1 => 8-bit access
-            byteval = icd.read_byte_as_cpu(CBA, MAH, CA+1)
+            byteval = icd.read_byte_as_cpu(CBA, mahd, CA+1)
             disinst = disinst.replace('.X12', '${:x}'.format(byteval))
         else:
             # X=0 => 16-bit access
-            wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256
+            wordval = icd.read_byte_as_cpu(CBA, mahd, CA+1) + icd.read_byte_as_cpu(CBA, mahd, CA+2)*256
             disinst = disinst.replace('.X12', '${:x}'.format(wordval))
 
     # replace byte value displacement
     if disinst.find(':1') >= 0:
-        byteval = icd.read_byte_as_cpu(CBA, MAH, CA+1)
+        byteval = icd.read_byte_as_cpu(CBA, mahd, CA+1)
         # convert to signed: negative?
         if byteval > 127:
             byteval = byteval - 256
@@ -139,12 +146,12 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
 
     # replace word value
     if disinst.find('.2') >= 0:
-        wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256
+        wordval = icd.read_byte_as_cpu(CBA, mahd, CA+1) + icd.read_byte_as_cpu(CBA, mahd, CA+2)*256
         disinst = disinst.replace('.2', '${:x}'.format(wordval))
 
     # replace word value displacement
     if disinst.find(':2') >= 0:
-        wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256
+        wordval = icd.read_byte_as_cpu(CBA, mahd, CA+1) + icd.read_byte_as_cpu(CBA, mahd, CA+2)*256
         # convert to signed: negative?
         if wordval > 32767:
             wordval = wordval - 32768
@@ -152,7 +159,7 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
 
     # replace 3-byte value
     if disinst.find('.3') >= 0:
-        wordval = icd.read_byte_as_cpu(CBA, MAH, CA+1) + icd.read_byte_as_cpu(CBA, MAH, CA+2)*256 + icd.read_byte_as_cpu(CBA, MAH, CA+3)*65536
+        wordval = icd.read_byte_as_cpu(CBA, mahd, CA+1) + icd.read_byte_as_cpu(CBA, mahd, CA+2)*256 + icd.read_byte_as_cpu(CBA, mahd, CA+3)*65536
         disinst = disinst.replace('.3', '${:x}'.format(wordval))
 
     return disinst
