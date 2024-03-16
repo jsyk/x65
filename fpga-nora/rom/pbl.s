@@ -57,6 +57,41 @@ START:
     ; LDA #CPULED1N            ; 1 => make it off
     STA VIA2_PRB_REG
 
+    ; If the ROMBLOCK_REG bit 6 is set (1), then it is a request to boot from the specified ROMBLOCK
+    ; instead from the PBL ROM.
+    LDA ROMBLOCK_REG
+    BIT #$40
+    BEQ bootwait            ; if bit 6 is zero, then boot NORMALY from the PBL ROM
+    ; otherwise, boot from the specified ROMBLOCK.
+    ; We use the hardware feature: when bit 6 and 7 are set in ROMBLOCK, then these bits get cleared on next RTI.
+    ; automatically. We prepare stack for the RTI:
+    ;    1. push the reset vector address high byte
+    ;    2. push the reset vector address low byte
+    ;    3. push the flags
+    ; But first we must read the reset vector address from the ROMBLOCK's end.
+    ; This is done by mapping the ROMBLOCK to RAMBLOCK and reading from there.
+    ;
+    ; First, make the whole 2MB RAM available through the RAMBANK (unblock the mask)
+    LDX #$FF
+    STX RAMBANK_MASK_REG
+    ; get the pure ROMBLOCK number from the ROMBLOCK_REG by clearing control bits 6 and 7
+    AND #$3F                ; clear bit 6 and 7 -> pure ROMBLOCK number
+    ; multiply by 2 and add 192+1 to get the RAMBLOCK number of the higher half of the ROMBLOCK
+    ASL A                   ; multiply by 2
+    CLC
+    ADC #193                ; convert to RAMBLOCK number, go to the higher part of the ROM
+    ; ... and set it:
+    STA RAMBLOCK_REG
+    ; read reset vector adresses as the CPU would do:
+    LDA $BFFD           ; read the reset vector from the new RAMBLOCK, high byte
+    PHA                     ; push it to the stack for RTI
+    LDA $BFFC           ; read the reset vector from the new RAMBLOCK, low byte
+    PHA                     ; push it to the stack for RTI
+    PHP                 ; push flags to the stack for RTI
+    RTI                 ; "return" to the reset code in the new ROMBLOCK (hardware will clear bits 6 and 7 in ROMBLOCK_REG automatically!)
+
+    ; NORMAL reset path:
+    ; Spin on DIP switch 0 ?
     ; read DIPLED0: 0 => DIP ON => stop boot here; 1 => DIP OFF => normal boot (SPI)
 bootwait:
     LDA VIA2_PRB_REG        ; read DIP

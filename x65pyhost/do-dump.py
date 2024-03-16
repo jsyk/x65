@@ -83,13 +83,13 @@ elif args.area == 'cpu':
     elif 0xA000 <= start < 0xC000:
         # CPU RAM Bank starts at sram fix 0x000
         offs = (start - 0xA000)
-        rdata = icd.sram_blockread(offs + (rambank ^ 0x80)*ICD.PAGESIZE, length)
+        rdata = icd.sram_blockread(offs + (rambank ^ 0x80)*ICD.BLOCKSIZE, length)
     elif 0xC000 <= start:
         # CPU ROM bank
         offs = (start - 0xC000)
         if rombank < 32:
             # CPU ROM bank starts at sram fix 0x080000
-            rdata = icd.sram_blockread(offs + 0x080000 + rombank*2*ICD.PAGESIZE, length)
+            rdata = icd.sram_blockread(offs + 0x080000 + rombank*2*ICD.BLOCKSIZE, length)
         else:
             # bootrom inside of NORA
             rdata = icd.bootrom_blockread(offs, length)

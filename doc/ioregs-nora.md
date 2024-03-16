@@ -41,6 +41,10 @@ Two special registers at the beginning of the CPU zero page:
                                                         ROM-Block #31 is from SRAM 0x0F_C000 to 0x0F_FFFF (= also known as the 8kB RAM-Blocks #254 and #255).
                                                     The ROMBLOCK register allows addressing up to 64 ROM-Blocks, but only the first 32 are available in the SRAM.
 
+```
+RAMBLOCK    = $0000
+ROMBLOCK    = $0001
+```
 
 NORA's main register block starts at $00_9F50 (65816 address), that is $9F50 in 6502.
 The first two registers support *RAM-Block mapping* (at $A000) and *system reset* functions:
