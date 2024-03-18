@@ -12,7 +12,7 @@ pbl.o: pbl.s
 	ld65 -C pbl.ld $< -o $@
 
 %.o: %.s
-	ca65 --cpu 65c02  $<
+	ca65 -I ../../include --cpu 65c02  $<
 
 clean:
 	rm -f pbl.bin pbl.mem pbl.o

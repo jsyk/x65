@@ -7,37 +7,40 @@
 ; Assemble & link with ca65 + ld65.
 ;
 
+.include "nora.inc"
+.include "via.inc"
+
 ; Register locations:
 ; RAM/ROM bank mapper:
-RAMBLOCK_REG = $0
-ROMBLOCK_REG = $1
+;NORA_RAMBLOCK_REG = $0
+;NORA_ROMBLOCK_REG = $1
 
 ; VIA2 - for LEDs
-VIA2_PRB_REG = $9F10
-VIA2_DDRB_REG = $9F12
+; VIA2_PRB_REG = $9F10
+; VIA2_DDRB_REG = $9F12
 
-CPULED0N = $01      ; green
-CPULED1N = $02      ; red
-DIPLED0N = $04
-DIPLED1N = $08
+; CPULED0N = $01      ; green
+; CPULED1N = $02      ; red
+; DIPLED0N = $04
+; DIPLED1N = $08
 
 ; NORA registers:
-RAMBANK_MASK_REG = $9F50
-SYSCTRL_REG = $9F51
+; NORA_RAMBMASK_REG = $9F50
+; NORA_SYSCTRL_REG = $9F51
 ; NORA SPI to access the SPI-Flash memory of NORA
-SPI_CTRL_REG = $9F52
-SPI_STAT_REG = $9F53
-SPI_DATA_REG = $9F54
+; NORA_SPI_CTRL_REG = $9F52
+; NORA_SPI_STAT_REG = $9F53
+; NORA_SPI_DATA_REG = $9F54
 
-; BUSY flag mask in the SPI_STAT_REG
-SPI_STAT__BUSY = (1 << 7)
+; BUSY flag mask in the NORA_SPI_STAT_REG
+; SPI_STAT__BUSY = (1 << 7)
 
 ; Working Variables in the zero page
 LOAD_POINTER = $10          ; 2B
 LDPAGE_COUNTER = $12        ; 1B
 
 ; this is where the RAMBANK window starts in the CPU address space: $A000 up to +8kB
-RAMBANK_WIN = $A000
+; RAMBLOCK_AREA_START = $A000
 
 .SEGMENT "CODE"
 
@@ -50,16 +53,16 @@ START:
     TXS
 
     ; setup the CPU LEDs for pin driving, other bits (DIP LEDs) for input
-    LDA #(CPULED0N | CPULED1N)        ; CPULED
+    LDA #(VIA2_PRB__CPULED0N | VIA2_PRB__CPULED1N)        ; CPULED
     STA VIA2_DDRB_REG       ; VIA2 DDRB
     ; Turn CPULED0 = ON, CPULED1 = ON
     LDA #$00            ; 1 => make it off
     ; LDA #CPULED1N            ; 1 => make it off
     STA VIA2_PRB_REG
 
-    ; If the ROMBLOCK_REG bit 6 is set (1), then it is a request to boot from the specified ROMBLOCK
+    ; If the NORA_ROMBLOCK_REG bit 6 is set (1), then it is a request to boot from the specified ROMBLOCK
     ; instead from the PBL ROM.
-    LDA ROMBLOCK_REG
+    LDA NORA_ROMBLOCK_REG
     BIT #$40
     BEQ bootwait            ; if bit 6 is zero, then boot NORMALY from the PBL ROM
     ; otherwise, boot from the specified ROMBLOCK.
@@ -73,46 +76,46 @@ START:
     ;
     ; First, make the whole 2MB RAM available through the RAMBANK (unblock the mask)
     LDX #$FF
-    STX RAMBANK_MASK_REG
-    ; get the pure ROMBLOCK number from the ROMBLOCK_REG by clearing control bits 6 and 7
+    STX NORA_RAMBMASK_REG
+    ; get the pure ROMBLOCK number from the NORA_ROMBLOCK_REG by clearing control bits 6 and 7
     AND #$3F                ; clear bit 6 and 7 -> pure ROMBLOCK number
     ; multiply by 2 and add 192+1 to get the RAMBLOCK number of the higher half of the ROMBLOCK
     ASL A                   ; multiply by 2
     CLC
     ADC #193                ; convert to RAMBLOCK number, go to the higher part of the ROM
     ; ... and set it:
-    STA RAMBLOCK_REG
+    STA NORA_RAMBLOCK_REG
     ; read reset vector adresses as the CPU would do:
     LDA $BFFD           ; read the reset vector from the new RAMBLOCK, high byte
     PHA                     ; push it to the stack for RTI
     LDA $BFFC           ; read the reset vector from the new RAMBLOCK, low byte
     PHA                     ; push it to the stack for RTI
     PHP                 ; push flags to the stack for RTI
-    RTI                 ; "return" to the reset code in the new ROMBLOCK (hardware will clear bits 6 and 7 in ROMBLOCK_REG automatically!)
+    RTI                 ; "return" to the reset code in the new ROMBLOCK (hardware will clear bits 6 and 7 in NORA_ROMBLOCK_REG automatically!)
 
     ; NORMAL reset path:
     ; Spin on DIP switch 0 ?
     ; read DIPLED0: 0 => DIP ON => stop boot here; 1 => DIP OFF => normal boot (SPI)
 bootwait:
     LDA VIA2_PRB_REG        ; read DIP
-    AND #DIPLED0N           ; test DIP0
+    AND #VIA2_PRB__DIPLED0N           ; test DIP0
     BEQ bootwait            ; inf loop here while the bit it zero.
 
     ; Turn CPULED0 = ON, CPULED1 = off
-    LDA #CPULED1N            ; 1 => make it off
+    LDA #VIA2_PRB__CPULED1N            ; 1 => make it off
     STA VIA2_PRB_REG
 
     ; set SPI CONTROL REG: target the slave #1 = flash memory, at the normal speed (8MHz)
     LDA #$19
-    STA SPI_CTRL_REG
+    STA NORA_SPI_CTRL_REG
     ; send to the SPI Flash the 0xAB RELEASE FROM POWER DOWN
     LDA #$AB
-    STA SPI_DATA_REG
-    ; wait until done - test the BUSY flag in SPI_STAT_REG
+    STA NORA_SPI_DATA_REG
+    ; wait until done - test the BUSY flag in NORA_SPI_STAT_REG
     JSR SPI_waitNonBusy
     ; de-select the SPI Flash to complete the release command in the flash
     LDA #$00
-    STA SPI_CTRL_REG
+    STA NORA_SPI_CTRL_REG
     ; 
     ; MIN 3 us WAIT NECESSARY HERE!
     LDA #32
@@ -122,32 +125,32 @@ L2_wait3us:
     
     ; set SPI CONTROL REG: target the slave #1 = flash memory, at the normal speed (8MHz)
     LDA #$19
-    STA SPI_CTRL_REG
+    STA NORA_SPI_CTRL_REG
     ; send to the SPI Flash the command = 0x03 READ DATA
     LDA #$03
-    STA SPI_DATA_REG
+    STA NORA_SPI_DATA_REG
     ; send the 24-bit start address inside of SPI flash: at offset 256k (262144 = 0x04_0000)
     LDA #$04
-    STA SPI_DATA_REG
+    STA NORA_SPI_DATA_REG
     LDA #0
-    STA SPI_DATA_REG
-    STA SPI_DATA_REG
+    STA NORA_SPI_DATA_REG
+    STA NORA_SPI_DATA_REG
     ; wait until the SPI is not busy, which means all was sent
     JSR SPI_waitNonBusy
     ; remove the first 4 bytes from SPI RX fifo - they were received just during the above commands
-    LDA SPI_DATA_REG        ; dummy
-    LDA SPI_DATA_REG        ; dummy
-    LDA SPI_DATA_REG        ; dummy
-    LDA SPI_DATA_REG        ; dummy
+    LDA NORA_SPI_DATA_REG        ; dummy
+    LDA NORA_SPI_DATA_REG        ; dummy
+    LDA NORA_SPI_DATA_REG        ; dummy
+    LDA NORA_SPI_DATA_REG        ; dummy
 
 
     ; make the whole 2MB RAM available through the RAMBANK (unblock the mask)
     LDA #$FF
-    STA RAMBANK_MASK_REG
+    STA NORA_RAMBMASK_REG
     ; swith RAMBANK to the first 8k of ROMBANK #0 - this is RAMBANK #192
     LDA #192
     ; LDA #1
-    STA RAMBLOCK_REG     ; now $A000 points to SRAM 0x180000, which is also ROMBANK #0
+    STA NORA_RAMBLOCK_REG     ; now $A000 points to SRAM 0x180000, which is also ROMBANK #0
 
 
     ; how many 8kB pages shall we load from the SPI flash?
@@ -159,17 +162,17 @@ L1:
     JSR load_8kB
     ; invert the green LED
     LDA VIA2_PRB_REG
-    EOR #CPULED0N
+    EOR #VIA2_PRB__CPULED0N
     STA VIA2_PRB_REG
     ; increment the RAMBANK
-    INC RAMBLOCK_REG
+    INC NORA_RAMBLOCK_REG
     ; check for-loop counter
     DEC LDPAGE_COUNTER
     BNE L1
     ; done
 
     ; turn ON the green LED, turn OFF the red LED
-    LDA #CPULED1N           ; off
+    LDA #VIA2_PRB__CPULED1N           ; off
     ; ORA $02
     ; AND #(!CPULED0N)        ; 0 => led on
     STA VIA2_PRB_REG
@@ -177,7 +180,7 @@ L1:
     ; prepare the trampoline code at 0x80
     LDA #$85            ; STA
     STA $80
-    LDA #$01            ;       $01    ; (ROMBLOCK_REG)
+    LDA #$01            ;       $01    ; (NORA_ROMBLOCK_REG)
     STA $81
     LDA #$6C            ; JMP ()
     STA $82
@@ -188,11 +191,11 @@ L1:
 
     ; make just the 1MB RAM available through the RAMBANK (block the mask)
     LDA #$7F                ; TBD make parametric!!
-    STA RAMBANK_MASK_REG
+    STA NORA_RAMBMASK_REG
 
     ; de-select the SPI Flash
     LDA #$00
-    STA SPI_CTRL_REG
+    STA NORA_SPI_CTRL_REG
 
     ; load target ROMBANK => 0
     LDA #0
@@ -214,11 +217,11 @@ load_256B:
 L1_load256:
     ; send any (dummy) data to the SPI to trigger an exchange
     LDA #0
-    STA SPI_DATA_REG
+    STA NORA_SPI_DATA_REG
     ; wait for SPI
     JSR SPI_waitNonBusy
     ; get the input data byte
-    LDA SPI_DATA_REG
+    LDA NORA_SPI_DATA_REG
     ; store to RAM
     ; STA $400, X
     STA (LOAD_POINTER), Y
@@ -233,9 +236,9 @@ L1_load256:
 ;   X, A, Y
 load_8kB:
     ; set the LOAD_POINTER with the beginning of the RAMBANK window 0xA000
-    LDA #<RAMBANK_WIN
+    LDA #<RAMBLOCK_AREA_START
     STA LOAD_POINTER
-    LDA #>RAMBANK_WIN
+    LDA #>RAMBLOCK_AREA_START
     STA LOAD_POINTER+1
     ; for-loop 32x
     LDX #(8192/256)
@@ -252,10 +255,10 @@ L1_load_8kB:
 
 
 ; SUBROUTINE ---------------------------------------------------
-; Wait until SPI is done - test the BUSY flag in SPI_STAT_REG
+; Wait until SPI is done - test the BUSY flag in NORA_SPI_STAT_REG
 SPI_waitNonBusy:
-    LDA SPI_STAT_REG
-    AND #SPI_STAT__BUSY
+    LDA NORA_SPI_STAT_REG
+    AND #NORA_SPI_STAT__BUSY
     BNE SPI_waitNonBusy          ; loop while BUSY is not Zero
     ; done.
     RTS
@@ -272,10 +275,10 @@ EMUABORT:
     PHY
     ; DEBUG: stop the CPU
     ;LDA  #$80
-    ;STA  SYSCTRL_REG            ; unlock
-    ;LDA  SYSCTRL_REG
+    ;STA  NORA_SYSCTRL_REG            ; unlock
+    ;LDA  NORA_SYSCTRL_REG
     ;ORA  #$02
-    ;STA  SYSCTRL_REG
+    ;STA  NORA_SYSCTRL_REG
 
     ; switch to Native mode
     CLC
