@@ -10,7 +10,7 @@ PACKAGE = tq144
 # 		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_pg.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_primitives.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_reg.v \
 # 		../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timer.v  ../../IKAOPM/HDL/IKAOPM_modules/IKAOPM_timinggen.v
 
-PBL = ../rom/pbl.mem
+PBL = ../bootrom-pbl/pbl.mem
 
 SYNSRC = ../src/nora.v ../src/bus_controller.v ../src/phaser.v ../src/blinker.v \
 	../src/resetgen.v ../src/pll.v ../src/spi_slave.v ../src/icd_controller.v \

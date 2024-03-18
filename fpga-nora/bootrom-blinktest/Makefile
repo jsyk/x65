@@ -13,3 +13,6 @@ pbl.o: pbl.s
 
 %.o: %.s
 	ca65 --cpu 65c02  $<
+
+clean:
+	rm -f pbl.bin pbl.mem pbl.o
