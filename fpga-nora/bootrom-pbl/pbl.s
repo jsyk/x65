@@ -9,43 +9,15 @@
 
 .include "nora.inc"
 .include "via.inc"
-
-; Register locations:
-; RAM/ROM bank mapper:
-;NORA_RAMBLOCK_REG = $0
-;NORA_ROMBLOCK_REG = $1
-
-; VIA2 - for LEDs
-; VIA2_PRB_REG = $9F10
-; VIA2_DDRB_REG = $9F12
-
-; CPULED0N = $01      ; green
-; CPULED1N = $02      ; red
-; DIPLED0N = $04
-; DIPLED1N = $08
-
-; NORA registers:
-; NORA_RAMBMASK_REG = $9F50
-; NORA_SYSCTRL_REG = $9F51
-; NORA SPI to access the SPI-Flash memory of NORA
-; NORA_SPI_CTRL_REG = $9F52
-; NORA_SPI_STAT_REG = $9F53
-; NORA_SPI_DATA_REG = $9F54
-
-; BUSY flag mask in the NORA_SPI_STAT_REG
-; SPI_STAT__BUSY = (1 << 7)
+.include "config-pbl.inc"
 
 ; Working Variables in the zero page
 LOAD_POINTER = $10          ; 2B
 LDPAGE_COUNTER = $12        ; 1B
 
-; this is where the RAMBANK window starts in the CPU address space: $A000 up to +8kB
-; RAMBLOCK_AREA_START = $A000
 
 .SEGMENT "CODE"
-
-; CPU=65C02
-.Pc02
+.Pc02           ; CPU=65C02
 
 START:
     ; stack reset
@@ -129,8 +101,8 @@ L2_wait3us:
     ; send to the SPI Flash the command = 0x03 READ DATA
     LDA #$03
     STA NORA_SPI_DATA_REG
-    ; send the 24-bit start address inside of SPI flash: at offset 256k (262144 = 0x04_0000)
-    LDA #$04
+    ; send the 24-bit start address inside of SPI flash: at offset $04 -> 256k (262144 = 0x04_0000)
+    LDA #config_flash_offset_msd
     STA NORA_SPI_DATA_REG
     LDA #0
     STA NORA_SPI_DATA_REG
@@ -147,14 +119,13 @@ L2_wait3us:
     ; make the whole 2MB RAM available through the RAMBANK (unblock the mask)
     LDA #$FF
     STA NORA_RAMBMASK_REG
-    ; swith RAMBANK to the first 8k of ROMBANK #0 - this is RAMBANK #192
-    LDA #192
-    ; LDA #1
+    ; swith RAMBANK to the first 8kb block where the SPI data will be loaded
+    LDA #config_load_ramblock
     STA NORA_RAMBLOCK_REG     ; now $A000 points to SRAM 0x180000, which is also ROMBANK #0
 
 
     ; how many 8kB pages shall we load from the SPI flash?
-    LDA #32             ; TBD! make parametric!
+    LDA #config_load_count
     STA LDPAGE_COUNTER
     ; for-loop over LDPAGE_COUNTER
 L1:
@@ -177,6 +148,11 @@ L1:
     ; AND #(!CPULED0N)        ; 0 => led on
     STA VIA2_PRB_REG
 
+    ; de-select the SPI Flash
+    LDA #$00
+    STA NORA_SPI_CTRL_REG
+
+.if config_with_trampoline = 1
     ; prepare the trampoline code at 0x80
     LDA #$85            ; STA
     STA $80
@@ -193,15 +169,20 @@ L1:
     LDA #$7F                ; TBD make parametric!!
     STA NORA_RAMBMASK_REG
 
-    ; de-select the SPI Flash
-    LDA #$00
-    STA NORA_SPI_CTRL_REG
-
     ; load target ROMBANK => 0
     LDA #0
+
     ; jump to the trampoline
     JMP $80
+.endif
 
+.if config_jump_address <> 0
+    ; jump to the specified address
+    JMP config_jump_address
+.endif
+
+        ; end of the bootloader
+        ; loop forever if we ever reach this!
 end:
     BRA end
 

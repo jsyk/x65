@@ -1,4 +1,5 @@
 # the rom.bin is found in x16-rom/build/x16/
+# and shall be copied here.
 SBLBIN=rom.bin
 
 # program the binary into SPI-Flash as the SBL
