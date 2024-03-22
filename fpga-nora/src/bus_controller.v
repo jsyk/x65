@@ -228,6 +228,7 @@ module bus_controller (
                     // and skip the rest of decoding.
                 end
                 // Allowed to decode CPU address space regions;
+                //  note: cpu_db_i is the bank address of 65C816 in this cycle!
                 else if (cputype02_i || (cpu_db_i == 8'h00))
                 begin
                     // is 65c02 (16-bit), or zero bank of 65c816.

@@ -44,8 +44,11 @@
 ;                                                     ROM-Block #31 is from SRAM 0x0F_C000 to 0x0F_FFFF (= also known as the 8kB RAM-Blocks #254 and #255).
 ;                                                 The ROMBLOCK register allows addressing up to 64 ROM-Blocks, but only the first 32 are available in the SRAM.
 
-NORA_RAMBLOCK_REG    = $0000
-NORA_ROMBLOCK_REG    = $0001
+.pushseg
+.zeropage
+NORA_RAMBLOCK_REG    = $00
+NORA_ROMBLOCK_REG    = $01
+.popseg
 
 RAMBLOCK_AREA_START  = $A000
 RAMBLOCK_AREA_END    = $BFFF
@@ -57,15 +60,20 @@ ROMBLOCK_AREA_SIZE   = $4000
 
 /*
     Address         Reg.name            Bits        Description
-    $9F50           RAMBMASK            [7:0]       Mask register for RAMBLOCK effective address calculation. 
+    $9F52           RAMBMASK            [7:0]       Mask register for RAMBLOCK effective address calculation. 
                                                     The effective RAM-Block number is = RAMBLOCK & RAMBMASK.
                                                     For CX16 ROMs this register should be set to 0x7F to limit the RAMBLOCK addressing to 1MB.
                                                     Otherwise, RAM-Blocks 128-132, mapped to CPU "low-memory", get overwriten by the OS.
                                                     For software aware of X65 memory map this register could be set to 0xFF to allow full SRAM access even 
                                                     from 8-bit (6502) code.
                                                     (For 16-bit code (65816) using 24-bit native linear addressing the RAMBMASK is irrelevant.)
-        
-    $9F51           SYSCTRL                         System control / reset trigger.
+*/
+
+NORA_RAMBMASK_REG    = $9F52
+
+
+/*                                                    
+    $9F54           SYSCTRL                         System control / reset trigger.
                                         [7] bit UNLOCK: to prevent unintended system resets, the SYSCTRL must be first unlocked by writing 0x80 into the register.
                                             This bit always reads 0.
                                         [6] bit ABRT02: writing 1 (after UNLOCKing) will enable ABORTing of 65C02-only opcodes
@@ -83,53 +91,10 @@ ROMBLOCK_AREA_SIZE   = $4000
                                             This bit always reads 0.
 */
 
-NORA_RAMBMASK_REG    = $9F50
-NORA_SYSCTRL_REG     = $9F51
+NORA_SYSCTRL_REG     = $9F54
 
 
-/*
-    Address         Reg.name            Bits        Description
-    $9F52           N_SPI_CTRL
-                                        [7:6] = reserved, 0
-                                        TBD: IRQ???
-                                        [5:3] = set the SPI speed - SCK clock frequency:
-                                                000 = 100kHz
-                                                001 = 400kHz
-                                                010 = 1MHz
-                                                011 = 8MHz
-                                                100 = 24MHz
-                                                other = reserved.
-                   
-                                        [2:0] = set the target SPI slave (1-7), or no slave (CS high) when 0.
-                                                000 = no slave (all deselect)
-                                                001 = UNIFIED ROM = NORA's SPI-Flash
-                                                010 = UEXT SPI-Bus
-                                                other = reserved.
 
-    $9F53           N_SPI_STAT                      SPI Status
-                                        [0] = Is RX FIFO empty?
-                                        [1] = Is RX FIFO full?
-                                        [2] = Is TX FIFO empty?
-                                        [3] = Is TX FIFO full?
-                                        [4] = reserved, 0
-                                        [5] = reserved, 0
-                                        [6] = reserved, 0
-                                        [7] = Is BUSY - is TX/RX in progress?
-
-    $9F54           N_SPI_DATA                      Reading dequeues data from the RX FIFO.
-                                                    Writing enqueues to the TX FIFO.
-*/
-
-NORA_SPI_CTRL_REG  = $9F52
-
-NORA_SPI_STAT_REG  = $9F53
-NORA_SPI_STAT__RX_EMPTY     = (1 << 0)      ; RX FIFO empty flag mask in the NORA_SPI_STAT_REG
-NORA_SPI_STAT__RX_FULL      = (1 << 1)       ; RX FIFO full flag mask in the NORA_SPI_STAT_REG
-NORA_SPI_STAT__TX_EMPTY     = (1 << 2)      ; TX FIFO empty flag mask in the NORA_SPI_STAT_REG
-NORA_SPI_STAT__TX_FULL      = (1 << 3)       ; TX FIFO full flag mask in the NORA_SPI_STAT_REG
-NORA_SPI_STAT__BUSY         = (1 << 7)          ; BUSY flag mask in the NORA_SPI_STAT_REG
-
-NORA_SPI_DATA_REG  = $9F54
 
 /*
     Address         Reg.name            Bits        Description
@@ -247,3 +212,47 @@ NORA_PS2K_BUF_REG    = $9F60
 NORA_PS2K_RSTAT_REG  = $9F61
 NORA_PS2M_BUF_REG    = $9F62
 
+
+/*
+    Address         Reg.name            Bits        Description
+    $9F63           N_SPI_CTRL
+                                        [7:6] = reserved, 0
+                                        TBD: IRQ???
+                                        [5:3] = set the SPI speed - SCK clock frequency:
+                                                000 = 100kHz
+                                                001 = 400kHz
+                                                010 = 1MHz
+                                                011 = 8MHz
+                                                100 = 24MHz
+                                                other = reserved.
+                   
+                                        [2:0] = set the target SPI slave (1-7), or no slave (CS high) when 0.
+                                                000 = no slave (all deselect)
+                                                001 = UNIFIED ROM = NORA's SPI-Flash
+                                                010 = UEXT SPI-Bus
+                                                other = reserved.
+
+    $9F64           N_SPI_STAT                      SPI Status
+                                        [0] = Is RX FIFO empty?
+                                        [1] = Is RX FIFO full?
+                                        [2] = Is TX FIFO empty?
+                                        [3] = Is TX FIFO full?
+                                        [4] = reserved, 0
+                                        [5] = reserved, 0
+                                        [6] = reserved, 0
+                                        [7] = Is BUSY - is TX/RX in progress?
+
+    $9F65           N_SPI_DATA                      Reading dequeues data from the RX FIFO.
+                                                    Writing enqueues to the TX FIFO.
+*/
+
+NORA_SPI_CTRL_REG  = $9F63
+
+NORA_SPI_STAT_REG  = $9F64
+NORA_SPI_STAT__RX_EMPTY     = (1 << 0)      ; RX FIFO empty flag mask in the NORA_SPI_STAT_REG
+NORA_SPI_STAT__RX_FULL      = (1 << 1)       ; RX FIFO full flag mask in the NORA_SPI_STAT_REG
+NORA_SPI_STAT__TX_EMPTY     = (1 << 2)      ; TX FIFO empty flag mask in the NORA_SPI_STAT_REG
+NORA_SPI_STAT__TX_FULL      = (1 << 3)       ; TX FIFO full flag mask in the NORA_SPI_STAT_REG
+NORA_SPI_STAT__BUSY         = (1 << 7)          ; BUSY flag mask in the NORA_SPI_STAT_REG
+
+NORA_SPI_DATA_REG  = $9F65

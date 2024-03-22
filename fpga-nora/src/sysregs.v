@@ -78,26 +78,19 @@ module sysregs (
         sysctrl_cs = 0;
 
         case (slv_addr_i ^ 5'b10000)
-            5'h00: begin            // 0x9F50
-                slv_datard_o = rambank_mask_o;       // RAMBANK_MASK
+            5'h00: begin            // 0x9F50       RamBLOCK_AB
+            end
+            5'h01: begin            // 0x9F51       RamBLOCK_CD / ROMBLOCK
+            end
+            5'h02: begin            // 0x9F52       RamBMASK
+                slv_datard_o = rambank_mask_o;       
                 rambank_mask_cs = slv_req_i;
             end
-            5'h01: begin            // 0x9F51   SYSCTRL
+            5'h03: begin             // 0x9F53      RMBCTRL
+            end
+            5'h04: begin            // 0x9F54   SYSCTRL
                 slv_datard_o = { 1'b0, abrt02_en_o, 6'b00_0000 };
                 sysctrl_cs = slv_req_i;
-            end
-            5'h02: begin        // $9F52        N_SPI_CTRL
-                slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
-                spireg_cs_ctrl_o = slv_req_i;
-            end
-            5'h03: begin        // $9F53        N_SPI_STAT
-                slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
-                spireg_cs_stat_o = slv_req_i;
-            end
-            5'h04: begin        // $9F54        N_SPI_DATA
-                slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
-                // spireg_cs = slv_req_i;
-                spireg_cs_data_o = slv_req_i;
             end
             5'h05: begin        // $9F55           USB_UART_CTRL
                 slv_datard_o = usbuart_d_i;
@@ -132,6 +125,19 @@ module sysregs (
             5'h12: begin        // $9F62           PS2M_BUF            [7:0]       Mouse buffer (FIFO output).
                 slv_datard_o = ps2_d_i;
                 ps2_cs_mbuf_o = slv_req_i;
+            end
+            5'h13: begin        // $9F63        N_SPI_CTRL
+                slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
+                spireg_cs_ctrl_o = slv_req_i;
+            end
+            5'h14: begin        // $9F64        N_SPI_STAT
+                slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
+                spireg_cs_stat_o = slv_req_i;
+            end
+            5'h15: begin        // $9F65        N_SPI_DATA
+                slv_datard_o = spireg_d_i;           // SPI MASTER/ READ CONTROL or DATA REG
+                // spireg_cs = slv_req_i;
+                spireg_cs_data_o = slv_req_i;
             end
 
         endcase
