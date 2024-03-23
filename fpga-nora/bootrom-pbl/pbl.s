@@ -137,6 +137,9 @@ stop_not_x:
     BNE stop_not_x
     ; ok
 
+    ; Run the SBL's pre_loading_callback
+    JSR  $A020
+
     ; Get index of block where we should load the rest of the SPI data
     LDA $A010
     STA PAYLOADING_BLOCK

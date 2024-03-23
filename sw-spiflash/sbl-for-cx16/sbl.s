@@ -32,6 +32,12 @@ loading_done:       ; offset 40 ($28) - Jump address from PBL after loading the 
     .align 8
 abrt02:             ; offset 48 ($30) - Callback for PBL to call when illegal 6502 opcode is executed in the 65816 CPU -> Isafix.
                         ; We arrive here via the JSL instruction: this is called in the Native mode of 65816 CPU.
+    ; DEBUG: stop the CPU
+    LDA  #$80
+    STA  NORA_SYSCTRL_REG            ; unlock
+    LDA  NORA_SYSCTRL_REG
+    ORA  #$02
+    STA  NORA_SYSCTRL_REG
     rtl
 .Pc02
 

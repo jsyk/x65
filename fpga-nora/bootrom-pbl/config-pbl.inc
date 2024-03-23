@@ -8,12 +8,13 @@
 ; The lower 16 bits are set to 0x0000.
 config_flash_offset_msd     = $04           ; 0x040000 = 256k
 
-; The RAM-block Number where the Secondary Bootloader will be stored.
+; The RAM-block Number where the Secondary Bootloader will be stored - the first block.
 ; config_load_ramblock        = 192           ; RAMBLOCK 192 (080000) ==> ROMBLOCK 0
 config_load_ramblock        = 191           ; RAMBLOCK 191 (07E000) ==> just below the ROMBLOCK 0
 
 ; How many 8kB pages shall we load from the SPI flash?
-config_load_count           = 32            ; 32 * 8kB = 256kB
+; config_load_count           = 32            ; 32 * 8kB = 256kB
+; xx removed, as this value is now read from the first block header
 
 ; Shall we use the trampoline mechanism?
 ; This is necessary if the Secondary Bootloader is located directly in the ROMBLOCK 0.
