@@ -12,9 +12,9 @@
 .include "config-pbl.inc"
 
 ; Working Variables in the zero page
-LOAD_POINTER = $10          ; 2B
-LDPAGE_COUNTER = $12        ; 1B
-
+LOAD_POINTER = $10          ; 2B -> ptr where to store the next byte from SPI, points inside RamBlock frame
+LDPAGE_COUNTER = $12        ; 1B -> int counter for the number of 8kB pages to load from SPI
+PAYLOADING_BLOCK = $13      ; 1B -> the block where the second 8kB and then the rest from SPI are loaded
 
 .SEGMENT "CODE"
 .Pc02           ; CPU=65C02
@@ -79,6 +79,7 @@ bootwait:
     LDA #VIA2_PRB__CPULED1N            ; 1 => make it off
     STA VIA2_PRB_REG
 
+    ; Open the SPI interface to the SPI Flash:
     ; set SPI CONTROL REG: target the slave #1 = flash memory, at the normal speed (8MHz)
     LDA #$19
     STA NORA_SPI_CTRL_REG
@@ -122,13 +123,36 @@ L2_wait3us:
     LDA #$FF
     STA NORA_RAMBMASK_REG
     ; swith RAMBANK to the first 8kb block where the SPI data will be loaded
-    LDA #config_load_ramblock
-    STA NORA_RamBLOCK_AB_REG     ; now $A000 points to SRAM 0x180000, which is also ROMBANK #0
+    LDA #config_load_ramblock   ; which RAM block to use for the SPI data?
+    STA NORA_RamBLOCK_AB_REG     ; ((now $A000 points to SRAM 0x180000, which is also ROMBANK #0 - not true maybe!))
 
+    ; get the first 8kB from SPI flash
+    JSR load_8kB
+
+    ; Now inspect the loaded block at the frame $A000:
+    ; The first byte must be 'X'
+    LDA $A000
+    CMP #'X'
+stop_not_x:
+    BNE stop_not_x
+    ; ok
+
+    ; Get index of block where we should load the rest of the SPI data
+    LDA $A010
+    STA PAYLOADING_BLOCK
+
+    ; Get the number of additional blocks to load from the SPI
+    LDA $A011
+    STA LDPAGE_COUNTER
 
     ; how many 8kB pages shall we load from the SPI flash?
-    LDA #config_load_count
-    STA LDPAGE_COUNTER
+    ; LDA #config_load_count
+    ; STA LDPAGE_COUNTER
+
+    ; Configure RamBlock frame to the first 8kB block where we should load the payload
+    LDA PAYLOADING_BLOCK
+    STA NORA_RamBLOCK_AB_REG
+
     ; for-loop over LDPAGE_COUNTER
 L1:
     ; get the next 8kB from SPI flash
@@ -191,7 +215,11 @@ L1:
 .endif
 
 .if config_jump_address <> 0
-    ; jump to the specified address
+    ; restore the RAMBANK frame to the first 8kB block where the SPI data was loaded
+    LDA #config_load_ramblock   ; first RAM block from the SPI
+    STA NORA_RamBLOCK_AB_REG    
+    ; so that we can...
+    ;   ... jump to the specified address
     JMP config_jump_address
 .endif
 
@@ -279,7 +307,7 @@ EMUABORT:
     CLC
     XCE
     ; jump to handler in CBA=07, last 8kB in the bank = this is just below ROM-Block 0
-    JSL $07E000
+    JSL $07E030
     ; switch back to Emu mode
     SEC
     XCE
