@@ -379,12 +379,16 @@ struct __ym2151 {
 
 
 struct __nora {
+    unsigned char       ramblock_ab;        /* RAMBLOCK register A/B. */
+    union {
+        unsigned char   ramblock_cd;        /* RAMBLOCK register C/D. */
+        unsigned char   romblock;           /* ROMBLOCK register C/D/E/F. */
+    };
     unsigned char       rambmask;           /* Mask register for RAMBLOCK effective address calculation. */
+    unsigned char       rmbctrl;            /* RAM/ROM-BLOCK control register. */
+
     unsigned char       sysreset;           /* System reset trigger. */
     
-    unsigned char       n_spi_ctrl;         /* NORA SPI-Master Control reg */
-    unsigned char       n_spi_stat;         /* NORA SPI-Master Status reg */
-    unsigned char       n_spi_data;         /* NORA SPI-Master Data reg */
     
     unsigned char       usb_uart_ctrl;      /* USB/UART Control reg */
     unsigned char       usb_uart_stat;      /* USB/UART Status reg */
@@ -403,6 +407,10 @@ struct __nora {
     unsigned char       ps2k_buf;           /* Keyboard buffer (FIFO output). */
     unsigned char       ps2k_rstat;         /* Reply status from keyboard (in response from a command). */
     unsigned char       ps2m_buf;           /* Mouse buffer (FIFO output). */
+
+    unsigned char       n_spi_ctrl;         /* NORA SPI-Master Control reg */
+    unsigned char       n_spi_stat;         /* NORA SPI-Master Status reg */
+    unsigned char       n_spi_data;         /* NORA SPI-Master Data reg */
 };
 
 #define NORA  (*(volatile struct __nora *)0x9F50)
