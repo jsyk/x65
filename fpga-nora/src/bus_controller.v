@@ -569,7 +569,7 @@ module bus_controller (
                             // mem_wrn_adv2_r <= nora_mst_rwn_i;
 `endif
                         end
-                        else if (nora_mst_addr_i[7:4] == 4'h5)
+                        else if ((nora_mst_addr_i[7:4] == 4'h5) || (nora_mst_addr_i[7:4] == 4'h6))
                         begin
                             // 0x9F50 NORA-SCRB
                             nora_slv_req_SCRB_o <= 1;
