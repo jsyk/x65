@@ -1,50 +1,21 @@
 NORA Registers
 ===============
 
-Two special registers at the beginning of the CPU zero page:
+Two special registers at the beginning of the CPU zero page ARE ONLY AVAILABLE IF THE BIT [5] MIRROR_ZP IN RMBCTRL REG. IS SET.
+Otherwise, normal memory is displayed.
 
     Address         Reg.name            Bits        Description
-    $0000           RAMBLOCK            [7:0]       This 8-bit register specifies which 8kB-BLOCK of the 2MB SRAM
-                                                    is mapped into the 8kB RAM-BLOCK FRAME visible at the CPU address $A000 to $BFFF. The contents 
-                                                    of this 8b register is bit-wise ANDed with the register RAMBMASK (at $9F50) and the result 
-                                                    is the SRAM RAM-block number.
-                                                    (As described in memory-map, the 2MB SRAM has 256 of 8kB BLOCKs).
-                                                    These RAM-Blocks are numbered in the 2MB SRAM starting in the MIDDLE and wrapping around: 
-                                                        RAM-Block #0   is from SRAM 0x10_0000 to 0x10_1FFF,
-                                                        RAM-Block #1   is from SRAM 0x10_2000 to 0x10_3FFF, etc.,
-                                                        RAM-Block #127 is from SRAM 0x1F_E000 to 0x1F_FFFF,
-                                                        RAM-Block #128 is from SRAM 0x00_0000 to 0x00_1FFF,
-                                                        RAM-Block #129 is from SRAM 0x00_2000 to 0x00_2FFF, etc.,
-                                                        RAM-Block #255 is from SRAM 0x0F_E000 to 0x0F_FFFF.
-                                                    Note 1: in CX16 parlance this register is called "RAMBANK", but the function is (basically) the same.
-                                                    Note 2: RAM-Blocks 128 to 132 are always mapped to the CPU "low-memory" addresses from $0000 to $9EFF. 
-                                                    (65816: from $00_0000 to $00_9EFF => in Bank 0.)
-                                                    RAM-Blocks 192 to 255 are also available as ROM-Blocks, see below.
+    $0000           RAMBLOCK            [7:0]       MIRROR OF THE REGISTER RamBLOCK_AB at $9F50.
+                                                    This 8-bit register specifies which 8kB-BLOCK of the 2MB SRAM
+                                                    is mapped into the 8kB RAM-BLOCK FRAME visible at the CPU address $A000 to $BFFF.
+                                                    See description of RamBLOCK_AB below.
     
-    $0001           ROMBLOCK            
-                                        [7]         When set to 1, NORA's BootRom is displayed in the ROM-Block Frame at $C000, and bits [4:0] are ignored.
-                                                    When cleared to 0, bits [4:0] define the contents of ROM-Block Frame.
-                                                    BootRom is 512B and mirrored over the 16kB frame.
-
-                                        [6]         When set to 1 together with bit [7], then the next RTI instruction (Return From Interrupt)
-                                                    will automatically clear bits [7] and [6], thus switching the ROM-Block Frame according to bits [4:0].
-                                                    NMI is automatically blocked while bit [6] is set, and all other interrupts should be blocked in Sw.
-                                        
-                                        [5]         reserved, write 0
-                                        
+    $0001           ROMBLOCK                        MIRROR OF THE REGISTER ROMBLOCK at $9F51.
                                         [4:0]       This 5-bit register specifies which 16kB-BLOCK from the SRAM's 
                                                     512kB area 0x08_0000 to 0x0F_FFFF is mapped into the 16kB ROM-BLOCK FRAME
                                                     visible at the CPU address $C000 to $FFFF.
-                                                    There are 32 x 16kB ROM-Blocks in SRAM:
-                                                        ROM-Block #0  is from SRAM 0x08_0000 to 0x08_3FFF (= also known as the 8kB RAM-Blocks #192 and #193),
-                                                        ROM-Block #1  is from SRAM 0x08_4000 to 0x08_7FFF (= also known as the 8kB RAM-Blocks #194 and #195), etc.,
-                                                        ROM-Block #31 is from SRAM 0x0F_C000 to 0x0F_FFFF (= also known as the 8kB RAM-Blocks #254 and #255).
-                                                    The ROMBLOCK register allows addressing up to 64 ROM-Blocks, but only the first 32 are available in the SRAM.
+                                                    See description of ROMBLOCK below.
 
-```
-RAMBLOCK    = $0000
-ROMBLOCK    = $0001
-```
 
 NORA's main register block starts at $00_9F50 (65816 address), that is $9F50 in 6502.
 The first two registers support *RAM-Block mapping* (at $A000) and *system reset* functions:
