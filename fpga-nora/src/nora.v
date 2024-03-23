@@ -201,13 +201,14 @@ module top (
     wire    [7:0]   nora_slv_datard;
     wire            nora_slv_req_BOOTROM;
     wire            nora_slv_req_SCRB;
+    wire            nora_slv_req_BREGS;
     wire            nora_slv_req_VIA1;
     wire            nora_slv_req_VIA2;
     wire            nora_slv_req_OPM;
     wire            nora_slv_rwn;
     // Bank parameters from SCRB
     // wire    [7:0]   rambank_mask = 8'hFF;
-    wire    [7:0]   rambank_mask; // = 8'h7F;       // X16 compatibility: allow only 128 RAM banks after reset
+    // wire    [7:0]   rambank_mask; // = 8'h7F;       // X16 compatibility: allow only 128 RAM banks after reset
 
     // CPU address bus -virtual internal `input' signal
     // create the 16-bit CPU bus address by concatenating the two bus signals
@@ -283,7 +284,8 @@ module top (
     wire     icd_cpu_stop;
     wire     map_pblrom, unmap_pblrom;
     wire     bad_opc6502_abortn;
-    wire [7:0]  romblock_nr;
+    // wire [7:0]  romblock_nr;
+    wire     auto_unmap_bootrom;        // Auto-unmap PBL ROM after RTI instruction
 
     /* CPU Observer reports invalid opcodes in 65C816 Emulation Mode */
     cpu_observer cpuobs
@@ -299,7 +301,7 @@ module top (
         // Bus signals
         .release_wr_i   (release_wr),
         .release_cs_i   (release_cs),
-        .romblock_nr    (romblock_nr),
+        .auto_unmap_bootrom_i    (auto_unmap_bootrom),
         .isafix816_enabled (isafix816_enabled),
         // Control outputs
         .map_pblrom_o   (map_pblrom),
@@ -407,6 +409,15 @@ module top (
         .release_cs_i   (release_cs)
     );
 
+    //
+    // BLOCK parameters from SCRB to bus_controller
+    wire [7:0]     mm_block_ab;        // which 8kB SRAM block is mapped to address 0xA000-0xBFFF
+    wire [7:0]     mm_block_cd;        // which 8kB SRAM block is mapped to address 0xC000-0xDFFF
+    wire           bootrom_in_block_ef;        // Is PBL Bootrom mapped to the block 0xE000-0xFFFF ?
+    wire [7:0]     mm_block_ef;        // which 8kB SRAM block is mapped to address 0xE000-0xFFFF, for normal access, in case bootrom_in_block_ef_o=0
+    wire [7:0]     mm_vp_block_ef;        // which 8kB SRAM block is mapped to address 0xE000-0xFFFF, for VP (vector pull) access, in case bootrom_in_block_ef_o=0
+    wire           mirror_bregs_zp;            // Regs $9F50-$9F51 are mirrored to $00-$01
+    wire [1:0]     rdonly_cdef;                // Read-only protection for: [1]=$E000..$FFFF, [0]=$C000..$DFFF.
 
 
     /**
@@ -470,16 +481,26 @@ module top (
         .nora_slv_datawr_valid (nora_slv_datawr_valid),      // flags nora_slv_datawr_o to be valid
         .nora_slv_data_i (nora_slv_datard),
         .nora_slv_req_BOOTROM_o (nora_slv_req_BOOTROM),
-        .nora_slv_req_SCRB_o (nora_slv_req_SCRB),
-        .nora_slv_req_VIA1_o (nora_slv_req_VIA1),
-        .nora_slv_req_VIA2_o (nora_slv_req_VIA2),
-        .nora_slv_req_OPM_o (nora_slv_req_OPM),
-        .nora_slv_rwn_o (nora_slv_rwn),
+        .nora_slv_req_BREGS_o   (nora_slv_req_BREGS),        // a request to the BLOCKREGs at 0x0000 and 0x0001
+        .nora_slv_req_SCRB_o    (nora_slv_req_SCRB),
+        .nora_slv_req_VIA1_o    (nora_slv_req_VIA1),
+        .nora_slv_req_VIA2_o    (nora_slv_req_VIA2),
+        .nora_slv_req_OPM_o     (nora_slv_req_OPM),
+        .nora_slv_rwn_o         (nora_slv_rwn),
         // Bank parameters from SCRB
-        .rambank_mask_i     (rambank_mask),
-        .romblock_o         (romblock_nr),
-        .force_pblrom_i     (map_pblrom),
-        .clear_pblrom_i     (unmap_pblrom),
+        .mm_block_ab_i      (mm_block_ab),        // which 8kB SRAM block is mapped to address 0xA000-0xBFFF
+        .mm_block_cd_i      (mm_block_cd),        // which 8kB SRAM block is mapped to address 0xC000-0xDFFF
+        .bootrom_in_block_ef_i   (bootrom_in_block_ef),        // Is PBL Bootrom mapped to the block 0xE000-0xFFFF ?
+        .mm_block_ef_i      (mm_block_ef),        // which 8kB SRAM block is mapped to address 0xE000-0xFFFF, for normal access, in case bootrom_in_block_ef_o=0
+        .mm_vp_block_ef_i   (mm_vp_block_ef),        // which 8kB SRAM block is mapped to address 0xE000-0xFFFF, for VP (vector pull) access, in case bootrom_in_block_ef_o=0
+        .rdonly_cdef_i      (rdonly_cdef),                // Read-only protection for: [1]=$E000..$FFFF, [0]=$C000..$DFFF.
+        .mirror_bregs_zp_i  (mirror_bregs_zp),            // Regs $9F50-$9F51 are mirrored to $00-$01
+        .auto_unmap_bootrom_i (auto_unmap_bootrom),      // Auto-unmap PBL ROM after RTI instruction
+        // .rambank_mask_i     (rambank_mask),
+        // .romblock_o         (romblock_nr),
+        // .force_pblrom_i     (map_pblrom),
+        // .clear_pblrom_i     (unmap_pblrom),
+
         // ICD->CPU forcing of opcodes
         .force_cpu_db_i     (force_cpu_db_cmd),
         .ignore_cpu_writes_i (ignore_cpu_writes),
@@ -645,7 +666,7 @@ module top (
 
     assign CRESn = icd_cpu_force_resn;           // CPU reset
     assign CIRQn = (VIRQn & cpu_force_irqn) | cpu_block_irq;           // CPU IRQ request
-    assign CNMIn = ((nmi_req_n | romblock_nr[6]) & cpu_force_nmin) | cpu_block_nmi;           // CPU NMI request
+    assign CNMIn = ((nmi_req_n | auto_unmap_bootrom) & cpu_force_nmin) | cpu_block_nmi;           // CPU NMI request
     assign CABORTn = (bad_opc6502_abortn & cpu_force_abortn) | cpu_block_abort;         // CPU ABORT request (16b only)
     assign CRDY = 1'bZ;             // CPU ready signal (output)
     // assign CSOB_MX = 1'bZ;          // CPU SOB (set overflow - 8b) / MX (16b)
@@ -846,15 +867,26 @@ module top (
         .clk (clk6x),                    // 48MHz
         .resetn (resetn),                 // sync reset
         // NORA SLAVE Interface
-        .slv_addr_i (nora_slv_addr[4:0]),
-        .slv_datawr_i (nora_slv_datawr),     // write data = available just at the end of cycle!!
+        .slv_addr_i     (nora_slv_addr[4:0]),
+        .slv_datawr_i   (nora_slv_datawr),     // write data = available just at the end of cycle!!
         .slv_datawr_valid (nora_slv_datawr_valid),      // flags nora_slv_datawr_o to be valid
-        .slv_datard_o (SCRB_slv_datard),       // read data
-        .slv_req_i (nora_slv_req_SCRB),          // request (chip select)
+        .slv_datard_o   (SCRB_slv_datard),       // read data
+        .slv_req_i      (nora_slv_req_SCRB),          // request (chip select)
+        .slv_req_bregs_i  (nora_slv_req_BREGS),        // request to the block registers at $00 and $01
         .slv_rwn_i (nora_slv_rwn),           // read=1, write=0
         //
-        // RAMBANK_MASK
-        .rambank_mask_o (rambank_mask),
+        // ram/rom Block memory-mapping
+        // .rambank_mask_o (rambank_mask),
+        .mm_block_ab_o    (mm_block_ab),        // which 8kB SRAM block is mapped to address 0xA000-0xBFFF
+        .mm_block_cd_o    (mm_block_cd),        // which 8kB SRAM block is mapped to address 0xC000-0xDFFF
+        .bootrom_in_block_ef_o (bootrom_in_block_ef),        // Is PBL Bootrom mapped to the block 0xE000-0xFFFF ?
+        .mm_block_ef_o  (mm_block_ef),        // which 8kB SRAM block is mapped to address 0xE000-0xFFFF, for normal access, in case bootrom_in_block_ef_o=0
+        .mm_vp_block_ef_o (mm_vp_block_ef),        // which 8kB SRAM block is mapped to address 0xE000-0xFFFF, for VP (vector pull) access, in case bootrom_in_block_ef_o=0
+        .mirror_bregs_zp_o (mirror_bregs_zp),            // Regs $9F50-$9F51 are mirrored to $00-$01
+        .auto_unmap_bootrom_o (auto_unmap_bootrom),            // Auto-unmap PBL ROM after RTI instruction
+        .rdonly_cdef_o      (rdonly_cdef),                // Read-only protection for: [1]=$E000..$FFFF, [0]=$C000..$DFFF.
+        .map_bootrom_i      (map_pblrom),            // Map PBL ROM to $E000-$FFFF (for ISAFIX handler)
+        .unmap_bootrom_i    (unmap_pblrom),            // Unmap PBL ROM from $E000-$FFFF (for ISAFIX handler)
         // SYSCTRL
         .cpu_stop_req_o  (icd_cpu_stop),
         .cpu_reset_req_o  (icd_cpu_reset),
@@ -913,7 +945,7 @@ module top (
 `endif
 
     assign nora_slv_datard = (nora_slv_req_BOOTROM) ? bootrom_slv_datard : 
-                            (nora_slv_req_SCRB) ? SCRB_slv_datard :
+                            (nora_slv_req_SCRB | nora_slv_req_BREGS) ? SCRB_slv_datard :
                             (nora_slv_req_VIA1) ? via1_slv_datard :
                             (nora_slv_req_VIA2) ? via2_slv_datard :
                             (nora_slv_req_OPM) ? OPM_slv_datard :

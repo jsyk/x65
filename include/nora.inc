@@ -46,8 +46,8 @@
 
 .pushseg
 .zeropage
-NORA_RAMBLOCK_REG    = $00
-NORA_ROMBLOCK_REG    = $01
+NORA_RAMBLOCK_ZP_REG    = $00
+NORA_ROMBLOCK_ZP_REG    = $01
 .popseg
 
 RAMBLOCK_AREA_START  = $A000
@@ -57,6 +57,27 @@ RAMBLOCK_AREA_SIZE   = $2000
 ROMBLOCK_AREA_START  = $C000
 ROMBLOCK_AREA_END    = $FFFF
 ROMBLOCK_AREA_SIZE   = $4000
+
+
+/*
+    Address         Reg.name            Bits        Description
+    $9F50           RamBLOCK_AB         [7:0]       This 8-bit register specifies which 8kB-BLOCK of the 2MB SRAM
+                                                    is mapped into the 8kB RAM-BLOCK FRAME visible at the CPU address $A000 to $BFFF. The contents 
+*/
+NORA_RamBLOCK_AB_REG = $9F50
+
+/*
+    $9F51           RamBLOCK_CD                     [SHARED ADDRESS WITH ROMBLOCK reg (SEE BELOW). Must be enabled in bit [3] ENABLE_RA_CD of RMBCTRL]
+                                                    This 8-bit register specifies which 8kB-BLOCK of the 2MB SRAM
+                                                    is mapped into the 8kB RAM-BLOCK FRAME visible at the CPU address $C000 to $DFFF. 
+*/
+NORA_RamBLOCK_CD_REG = $9F51
+
+/*
+    $9F51           ROMBLOCK                        [SHARED ADDRESS WITH RamBLOCK_CD reg (SEE ABOVE). Must be enabled in bit [4] ENABLE_RO_CDEF of RMBCTRL]
+*/
+NORA_ROMBLOCK_REG   = $9F51
+
 
 /*
     Address         Reg.name            Bits        Description
@@ -71,6 +92,25 @@ ROMBLOCK_AREA_SIZE   = $4000
 
 NORA_RAMBMASK_REG    = $9F52
 
+/*
+    $9F53           RMBCTRL                         Controls the Ram/ROM Block region mapping between $A000 to $FFFF and the function of register $9F51.
+                                        [7] bit MAP_BOOTROM:
+                                        [6] bit AUTO_UNMAP_BOOTROM:
+                                        [5] bit MIRROR_ZP:
+                                        [4] bit ENABLE_ROM_CDEF:
+                                        [3] bit ENABLE_RAM_CD:
+                                        [2] bit RDONLY_EF:
+                                        [1] bit RDONLY_CD:
+*/
+NORA_RMBCTRL_REG    = $9F53
+
+NORA_RMBCTRL__MAP_BOOTROM           = (1 << 7)
+NORA_RMBCTRL__AUTO_UNMAP_BOOTROM    = (1 << 6)
+NORA_RMBCTRL__MIRROR_ZP             = (1 << 5)
+NORA_RMBCTRL__ENABLE_ROM_CDEF       = (1 << 4)
+NORA_RMBCTRL__ENABLE_RAM_CD         = (1 << 3)
+NORA_RMBCTRL__RDONLY_EF             = (1 << 2)
+NORA_RMBCTRL__RDONLY_CD             = (1 << 1)
 
 /*                                                    
     $9F54           SYSCTRL                         System control / reset trigger.

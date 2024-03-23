@@ -49,16 +49,101 @@ ROMBLOCK    = $0001
 NORA's main register block starts at $00_9F50 (65816 address), that is $9F50 in 6502.
 The first two registers support *RAM-Block mapping* (at $A000) and *system reset* functions:
 
+
     Address         Reg.name            Bits        Description
-    $9F50           RAMBMASK            [7:0]       Mask register for RAMBLOCK effective address calculation. 
+    $9F50           RamBLOCK_AB         [7:0]       This 8-bit register specifies which 8kB-BLOCK of the 2MB SRAM
+                                                    is mapped into the 8kB RAM-BLOCK FRAME visible at the CPU address $A000 to $BFFF. The contents 
+                                                    of this 8b register is bit-wise ANDed with the register RAMBMASK (at $9F52) and the result 
+                                                    is the SRAM RAM-block number.
+                                                    (As described in memory-map, the 2MB SRAM has 256 of 8kB BLOCKs).
+                                                    These RAM-Blocks are numbered in the 2MB SRAM starting in the MIDDLE and wrapping around: 
+                                                        RAM-Block #0   is from SRAM 0x10_0000 to 0x10_1FFF,
+                                                        RAM-Block #1   is from SRAM 0x10_2000 to 0x10_3FFF, etc.,
+                                                        RAM-Block #127 is from SRAM 0x1F_E000 to 0x1F_FFFF,
+                                                        RAM-Block #128 is from SRAM 0x00_0000 to 0x00_1FFF,
+                                                        RAM-Block #129 is from SRAM 0x00_2000 to 0x00_2FFF, etc.,
+                                                        RAM-Block #255 is from SRAM 0x0F_E000 to 0x0F_FFFF.
+                                                    Note 1: in CX16 parlance this register is called "RAMBANK", but the function is (basically) the same.
+                                                    Note 2: RAM-Blocks 128 to 132 are always mapped to the CPU "low-memory" addresses from $0000 to $9EFF. 
+                                                    (65816: from $00_0000 to $00_9EFF => in Bank 0.)
+                                                    RAM-Blocks 192 to 255 are also available as ROM-Blocks, see below.
+    
+    $9F51           RamBLOCK_CD                     [SHARED ADDRESS WITH ROMBLOCK reg (SEE BELOW). Must be enabled in bit [3] ENABLE_RA_CD of RMBCTRL]
+                                                    This 8-bit register specifies which 8kB-BLOCK of the 2MB SRAM
+                                                    is mapped into the 8kB RAM-BLOCK FRAME visible at the CPU address $C000 to $DFFF. 
+                                                    The contents  of this 8b register is bit-wise ANDed with the register RAMBMASK (at $9F52) 
+                                                    and the result is the SRAM RAM-block number. The mapping to SRAM is the same as for the $A000 area
+                                                    -> see RamBLOCK_AB description above.
+                                                    Bit [3] ENABLE_RA_CD of RMBCTRL must be set to 1 to enable this register.
+
+    $9F51           ROMBLOCK                        [SHARED ADDRESS WITH RamBLOCK_CD reg (SEE ABOVE). Must be enabled in bit [4] ENABLE_RO_CDEF of RMBCTRL]
+                                        
+                                        [7:5]   reserved, write 0
+                                        
+                                        [4:0]   This 5-bit register specifies which 16kB-BLOCK from the SRAM's 
+                                                512kB area 0x08_0000 to 0x0F_FFFF is mapped into the 16kB ROM-BLOCK FRAME
+                                                visible at the CPU address $C000 to $FFFF.
+                                                There are 32 x 16kB ROM-Blocks in SRAM:
+                                                    ROM-Block #0  is from SRAM 0x08_0000 to 0x08_3FFF (= also known as the 8kB RAM-Blocks #192 and #193),
+                                                    ROM-Block #1  is from SRAM 0x08_4000 to 0x08_7FFF (= also known as the 8kB RAM-Blocks #194 and #195), etc.,
+                                                    ROM-Block #31 is from SRAM 0x0F_C000 to 0x0F_FFFF (= also known as the 8kB RAM-Blocks #254 and #255).
+                                                The ROMBLOCK register allows addressing up to 64 ROM-Blocks, but only the first 32 are available in the SRAM.
+
+    $9F52           RamBMASK            [7:0]       Mask register for RamBLOCK_AB and RamBLOCK_CD effective address calculation. 
                                                     The effective RAM-Block number is = RAMBLOCK & RAMBMASK.
                                                     For CX16 ROMs this register should be set to 0x7F to limit the RAMBLOCK addressing to 1MB.
                                                     Otherwise, RAM-Blocks 128-132, mapped to CPU "low-memory", get overwriten by the OS.
                                                     For software aware of X65 memory map this register could be set to 0xFF to allow full SRAM access even 
                                                     from 8-bit (6502) code.
                                                     (For 16-bit code (65816) using 24-bit native linear addressing the RAMBMASK is irrelevant.)
-        
-    $9F51           SYSCTRL                         System control / reset trigger.
+    
+    $9F53           RMBCTRL                         Controls the Ram/ROM Block region mapping between $A000 to $FFFF and the function of register $9F51.
+
+                                        [7] bit MAP_BOOTROM:
+                                                When set to 1, NORA's BootRom is displayed in the ROM-Block Frame from $D000 to $FFFF, and any ROMBLOCK setting is ignored.
+                                                When cleared to 0, the ROMBLOCK, if enabled in bit 4, define the contents of ROM-Block Frame.
+                                                BootRom is 512B and mirrored over the 8kB frame.
+
+                                        [6] bit AUTO_UNMAP_BOOTROM:
+                                                When set to 1 together with bit [7], then the next RTI instruction (Return From Interrupt)
+                                                will automatically clear bits [7] and [6], thus taking the BootRom out of the ROM-Block Frame.
+                                                NMI is automatically blocked while bit [6] is set, and all other interrupts should be blocked in Sw.
+                                                This is used by special handlers like ISAFIX.
+
+                                        [5] bit MIRROR_ZP:
+                                                When set to 1 the registers $9F50 and $9F51 are _also_ displayed in the zero page at the absolute 
+                                                addresses $00_0000 and $00_0001. This is useful for 6502 code that needs to access these registers often
+                                                and it is necessary for compatibility with CX16 code (= their "RAMBANK" and "ROMBANK" registers).
+                                                When cleared to 0, the registers are not mirrored to the zero page.
+                                                For 65816 systems in Native 16-bit mode, it is recommended _not_ to mirror these registers to the zero page,
+                                                i.e. clear this bit to 0.
+                                        
+                                        [4] bit ENABLE_ROM_CDEF:
+                                                When set to 1, the 16kB ROM-Block Frame from $C000 to $FFFF is enabled, 
+                                                and the CPU sees the ROM-Block selected by the ROMBLOCK register at $9F51 (and $01 if MIRROR_ZP is set).
+                                                When cleared to 0, the ROM-Block Frame is disabled, and the CPU sees the SRAM directly at $C000 to $FFFF.
+                                                This is useful to enable for generic 6502 code and it is necessary for compatibility with CX16 code.
+                                                For 65816 systems in Native 16-bit mode, it is recommended to clear this bit to 0 and not use ROM-Blocks.
+                                        
+                                        [3] bit ENABLE_RAM_CD:
+                                                When set to 1, the second 8kB RAM-Block Frame between $C000 to $DFFF is enabled, and the CPU sees 
+                                                the RAM-Block selected by the RamBLOCK_CD ($9F51) register.
+                                                When cleared to 0, the second RAM-Block Frame is disabled, and the CPU sees the SRAM directly at $C000 to $DFFF.
+                                                For 6502 system (8-bit) the ROM-Block Frame should be enabled (bit ENABLE_RO_CDEF=1) and this bit should be cleared to 0;
+                                                this is also the necessary setting for compatibility with CX16 code.
+
+                                                Note: it is not allowed to simultaneosly set ENABE_RAM_CD and ENABLE_ROM_CDEF bits to 1 !!
+                                        
+                                        [2] bit RDONLY_EF:
+                                                When set (1), Read-only protect the area from $E000 to $FFFF.
+                                            
+                                        [1] bit RDONLY_CD:
+                                                When set (1), Read-only protect the area from $C000 to $DFFF.
+
+                                        [0] reserved, write 0
+
+
+    $9F54           SYSCTRL                         System control / reset trigger.
                                         [7] bit UNLOCK: to prevent unintended system resets, the SYSCTRL must be first unlocked by writing 0x80 into the register.
                                             This bit always reads 0.
                                         [6] bit ABRT02: writing 1 (after UNLOCKing) will enable ABORTing of 65C02-only opcodes
@@ -75,39 +160,6 @@ The first two registers support *RAM-Block mapping* (at $A000) and *system reset
                                             Note: ROMBANK or any other registers are not affected!
                                             This bit always reads 0.
 
-The next three registers control the *SPI-Master* periphery in NORA.
-The SPI-Master can access NORA's UNIFIED ROM (really the SPI-Flash primarilly for NORA bitstream), and the SPI bus on UEXT port:
-
-    Address         Reg.name            Bits        Description
-    $9F52           N_SPI_CTRL
-                                        [7:6] = reserved, 0
-                                        TBD: IRQ???
-                                        [5:3] = set the SPI speed - SCK clock frequency:
-                                                000 = 100kHz
-                                                001 = 400kHz
-                                                010 = 1MHz
-                                                011 = 8MHz
-                                                100 = 24MHz
-                                                other = reserved.
-                   
-                                        [2:0] = set the target SPI slave (1-7), or no slave (CS high) when 0.
-                                                000 = no slave (all deselect)
-                                                001 = UNIFIED ROM = NORA's SPI-Flash
-                                                010 = UEXT SPI-Bus
-                                                other = reserved.
-
-    $9F53           N_SPI_STAT                      SPI Status
-                                        [0] = Is RX FIFO empty?
-                                        [1] = Is RX FIFO full?
-                                        [2] = Is TX FIFO empty?
-                                        [3] = Is TX FIFO full?
-                                        [4] = reserved, 0
-                                        [5] = reserved, 0
-                                        [6] = reserved, 0
-                                        [7] = Is BUSY - is TX/RX in progress?
-
-    $9F54           N_SPI_DATA                      Reading dequeues data from the RX FIFO.
-                                                    Writing enqueues to the TX FIFO.
 
 The next three registers control the *USB_UART* periphery:
 
@@ -204,6 +256,41 @@ The next five registers control the dual-PS/2 periphery through the SMC:
 
     $9F62           PS2M_BUF            [7:0]       Mouse buffer (FIFO output).
    
+
+The next three registers control the *SPI-Master* periphery in NORA.
+The SPI-Master can access NORA's UNIFIED ROM (really the SPI-Flash primarilly for NORA bitstream), and the SPI bus on UEXT port:
+
+    Address         Reg.name            Bits        Description
+    $9F63           N_SPI_CTRL
+                                        [7:6] = reserved, 0
+                                        TBD: IRQ???
+                                        [5:3] = set the SPI speed - SCK clock frequency:
+                                                000 = 100kHz
+                                                001 = 400kHz
+                                                010 = 1MHz
+                                                011 = 8MHz
+                                                100 = 24MHz
+                                                other = reserved.
+                   
+                                        [2:0] = set the target SPI slave (1-7), or no slave (CS high) when 0.
+                                                000 = no slave (all deselect)
+                                                001 = UNIFIED ROM = NORA's SPI-Flash
+                                                010 = UEXT SPI-Bus
+                                                other = reserved.
+
+    $9F64           N_SPI_STAT                      SPI Status
+                                        [0] = Is RX FIFO empty?
+                                        [1] = Is RX FIFO full?
+                                        [2] = Is TX FIFO empty?
+                                        [3] = Is TX FIFO full?
+                                        [4] = reserved, 0
+                                        [5] = reserved, 0
+                                        [6] = reserved, 0
+                                        [7] = Is BUSY - is TX/RX in progress?
+
+    $9F65           N_SPI_DATA                      Reading dequeues data from the RX FIFO.
+                                                    Writing enqueues to the TX FIFO.
+
 
 
 The next register controls global IRQ/NMI masking:

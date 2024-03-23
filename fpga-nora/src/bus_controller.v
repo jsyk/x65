@@ -79,6 +79,7 @@ module bus_controller (
     output          nora_slv_datawr_valid,      // flags nora_slv_datawr_o to be valid
     input   [7:0]   nora_slv_data_i,            // read data from slave
     output reg      nora_slv_req_BOOTROM_o,     // a request to internal BOOTROM (PBL)
+    output reg      nora_slv_req_BREGS_o,        // a request to the BLOCKREGs at 0x0000 and 0x0001
     output reg      nora_slv_req_SCRB_o,        // a request to the SCRB at 0x9F50
     output reg      nora_slv_req_VIA1_o,        // a request to VIA1 at 0x9F00
     output reg      nora_slv_req_VIA2_o,        // a request to VIA2 at 0x9F10
@@ -86,10 +87,19 @@ module bus_controller (
     output reg      nora_slv_rwn_o,             // reading (1) or writing (0) to the slave
     //
     // Bank parameters from SCRB
-    input [7:0]     rambank_mask_i,              // CPU accesses using RAMBANK reg are limited to this range
-    output [7:0]    romblock_o,
-    input           force_pblrom_i,              // force switching to the PBL ROM -> sets bit 7 of romblock_nr register.
-    input           clear_pblrom_i,              // clear us out of the PBL ROM -> clears bit 7 of romblock_nr register.
+    input [7:0]     mm_block_ab_i,        // which 8kB SRAM block is mapped to address 0xA000-0xBFFF
+    input [7:0]     mm_block_cd_i,        // which 8kB SRAM block is mapped to address 0xC000-0xDFFF
+    input           bootrom_in_block_ef_i,        // Is PBL Bootrom mapped to the block 0xE000-0xFFFF ?
+    input [7:0]     mm_block_ef_i,        // which 8kB SRAM block is mapped to address 0xE000-0xFFFF, for normal access, in case bootrom_in_block_ef_o=0
+    input [7:0]     mm_vp_block_ef_i,        // which 8kB SRAM block is mapped to address 0xE000-0xFFFF, for VP (vector pull) access, in case bootrom_in_block_ef_o=0
+    input [1:0]     rdonly_cdef_i,                // Read-only protection for: [1]=$E000..$FFFF, [0]=$C000..$DFFF.
+    input           mirror_bregs_zp_i,            // Regs $9F50-$9F51 are mirrored to $00-$01
+    input           auto_unmap_bootrom_i,            // Auto-unmap PBL ROM after RTI instruction
+
+    // input [7:0]     rambank_mask_i,              // CPU accesses using RAMBANK reg are limited to this range
+    // output [7:0]    romblock_o,
+    // input           force_pblrom_i,              // force switching to the PBL ROM -> sets bit 7 of romblock_nr register.
+    // input           clear_pblrom_i,              // clear us out of the PBL ROM -> clears bit 7 of romblock_nr register.
     // ICD->CPU forcing of opcode
     input           force_cpu_db_i,
     input           ignore_cpu_writes_i,
@@ -137,12 +147,12 @@ module bus_controller (
 
 
     // Current Banks - remap
-    reg   [7:0]   rambank_nr;
-    reg   [7:0]   rambank_masked_nr;
-    reg   [7:0]   romblock_nr;
+    // reg   [7:0]   rambank_nr;
+    // reg   [7:0]   rambank_masked_nr;
+    // reg   [7:0]   romblock_nr;
 
     // BANKREGs are handled directly in this module
-    reg         nora_slv_req_BANKREG;
+    // reg         nora_slv_req_BANKREG;
 
     reg         nora_mst_driving_memdb;
 
@@ -184,14 +194,15 @@ module bus_controller (
             nora_mst_ack_o <= 0;
             nora_slv_req_BOOTROM_o <= 0;
             nora_slv_req_SCRB_o <= 0;
+            nora_slv_req_BREGS_o <= 0;
             nora_slv_req_VIA1_o <= 0;
             nora_slv_req_VIA2_o <= 0;
             nora_slv_req_OPM_o <= 0;
             cba_r <= 8'h00;
-            rambank_nr <= 8'h00;
-            romblock_nr <= 8'b1000_0000;        // rombank 128 - starts in BOOTROM
+            // rambank_nr <= 8'h00;
+            // romblock_nr <= 8'b1000_0000;        // rombank 128 - starts in BOOTROM
             // romblock_nr <= 6'b000000;        // rombank 0 - starts at 0x18_0000
-            nora_slv_req_BANKREG <= 0;
+            // nora_slv_req_BANKREG <= 0;
             mst_state <= MST_IDLE;
             nora_mst_driving_memdb <= 0;
             s4_ext_o <= 2'b00;
@@ -233,15 +244,21 @@ module bus_controller (
                 begin
                     // is 65c02 (16-bit), or zero bank of 65c816.
                     // Decoding inside of CPU Bank 0x00:
-                    if (cpu_ab_i[15:1] == 15'b000000000000000)
+                    if (mirror_bregs_zp_i && (cpu_ab_i[15:1] == 15'b000000000000000))
                     begin
-                        // registers 0x0000 RAMBANK and 0x0001 ROMBANK
-                        nora_slv_req_BANKREG <= 1;
+                        // registers 0x0000 RAMBLOCK and 0x0001 ROMBLOCK,
+                        // but only when allowed by sysreg bit mirror_bregs_zp_i
+                        nora_slv_req_BREGS_o <= 1;
                     end
-                    else if (cpu_abh_i[15:14] == 2'b11)
+                    // else if (cpu_abh_i[15:14] == 2'b11)
+                    else if (cpu_abh_i[15:13] == 3'b111)
                     begin
-                        // CPU address 0xC000 - 0xF000 => 32x 16k ROM pages mapped at SRAM pages 64 to 127;
-                        if (romblock_nr[7] == 1'b1)
+                        // CPU address 0xE000 - 0xF000:
+                        // either   32x 16k ROM pages (high part) mapped at SRAM pages 64 to 127;
+                        // or PBL bootrom,
+                        // or normal memory.
+
+                        if (bootrom_in_block_ef_i)
                         begin
                             // special PBL ROM bank is inside of FPGA
                             nora_slv_req_BOOTROM_o <= 1;
@@ -250,27 +267,41 @@ module bus_controller (
                             // the rombank 0 !!
                             mem_abh_o <= 9'h1FF;         // MAH=0x1FF is just a mark for the trace buffer, not a real address.
                         end else begin
-                            // normal ROM bank in SRAM.
+                            // normal ROM/RAM bank in SRAM.
                             // Check if this is a Vector Pull cycle?
                             if (!cpu_vpu_i)
                             begin
                                 // Vector Pull cycle (cpu_vpu_i is active low) -> must access the rombank 0x00 always!
-                                mem_abh_o <= { 2'b01, 5'b00000, cpu_abh_i[13:12] };
+                                // mem_abh_o <= { 2'b01, 5'b00000, cpu_abh_i[13:12] };
+                                mem_abh_o <= { mm_vp_block_ef_i, cpu_abh_i[12] };
                             end else begin
                                 // normal access through the active rompage, starting at SRAM Page 64
-                                mem_abh_o <= { 2'b01, romblock_nr[4:0], cpu_abh_i[13:12] };
+                                // mem_abh_o <= { 2'b01, romblock_nr[4:0], cpu_abh_i[13:12] };
+                                mem_abh_o <= { mm_block_ef_i, cpu_abh_i[12] };
                             end
                             sram_csn_o <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
-                            mem_wrn_o <= HIGH_INACTIVE;         // never allow writing to the ROM bank!
+                            mem_wrn_o <= cpu_rw_i | rdonly_cdef_i[1];         // writing to the ROM bank!
                             // mem_wrn_adv1_r <= HIGH_INACTIVE;
                             // mem_wrn_adv2_r <= HIGH_INACTIVE;
                         end
                     end 
+                    else if (cpu_abh_i[15:13] == 3'b110)
+                    begin
+                        // CPU address 0xC000 - 0xD000
+                        // either:  8k RAM Pages mapped from the middle of SRAM (MSB inverted)
+                        // or:      32x 16k ROM pages (low part) mapped at SRAM pages 64 to 127;
+                        // ... but this is handled in sysregs, here we receive the final target block!
+                        mem_abh_o <= { mm_block_cd_i, cpu_abh_i[12] };
+                        sram_csn_o <= LOW_ACTIVE;
+                        mem_rdn_o <= ~cpu_rw_i;
+                        mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i | rdonly_cdef_i[0];
+                    end
                     else if (cpu_abh_i[15:13] == 3'b101)
                     begin
                         // CPU address 0xA000 - 0xB000 => 8k RAM Pages mapped from the middle of SRAM (MSB inverted)
-                        mem_abh_o <= { rambank_masked_nr ^ 8'h80, cpu_abh_i[12] };
+                        // mem_abh_o <= { rambank_masked_nr ^ 8'h80, cpu_abh_i[12] };
+                        mem_abh_o <= { mm_block_ab_i, cpu_abh_i[12] };
                         // mem_abh_o <= { rambank_nr & rambank_mask_i, cpu_abh_i[12] };
                         sram_csn_o <= LOW_ACTIVE;
                         mem_rdn_o <= ~cpu_rw_i;
@@ -381,23 +412,23 @@ module bus_controller (
                 // mem_wrn_adv2_r <= HIGH_INACTIVE;
 
                 // perform the internal BANKREG slave operation
-                if (nora_slv_req_BANKREG)
-                begin
-                    // request for BANKREGs access from the CPU - finishing;
-                    // handle write data
-                    if (!nora_slv_rwn_o)
-                    begin
-                        // writing
-                        if (!nora_slv_addr_o[0])
-                        begin
-                            // 0x00 = RAMBLOCK
-                            rambank_nr <= nora_slv_datawr_o; // & rambank_mask_i;
-                        end else begin
-                            // 0x01 = ROMBLOCK
-                            romblock_nr <= nora_slv_datawr_o[7:0];
-                        end
-                    end
-                end
+                // if (nora_slv_req_BANKREG)
+                // begin
+                //     // request for BANKREGs access from the CPU - finishing;
+                //     // handle write data
+                //     if (!nora_slv_rwn_o)
+                //     begin
+                //         // writing
+                //         if (!nora_slv_addr_o[0])
+                //         begin
+                //             // 0x00 = RAMBLOCK
+                //             rambank_nr <= nora_slv_datawr_o; // & rambank_mask_i;
+                //         end else begin
+                //             // 0x01 = ROMBLOCK
+                //             romblock_nr <= nora_slv_datawr_o[7:0];
+                //         end
+                //     end
+                // end
             end
 
             if (release_cs || (mst_state == MST_FIN_ACC))
@@ -416,8 +447,9 @@ module bus_controller (
                 aio_csn_o <= HIGH_INACTIVE;
                 enet_csn_o <= HIGH_INACTIVE;
                 nora_slv_req_BOOTROM_o <= 0;
-                nora_slv_req_BANKREG <= 0;
+                // nora_slv_req_BANKREG <= 0;
                 nora_slv_req_SCRB_o <= 0;
+                nora_slv_req_BREGS_o <= 0;
                 nora_slv_req_VIA1_o <= 0;
                 nora_slv_req_VIA2_o <= 0;
                 nora_slv_req_OPM_o <= 0;
@@ -494,7 +526,7 @@ module bus_controller (
 
                     if (nora_mst_req_OTHER_BANKREG_i)
                     begin
-                        nora_slv_req_BANKREG <= 1;
+                        nora_slv_req_BREGS_o <= 1;
                     end
 
                     // if (nora_mst_req_OTHER_SCRB_i)
@@ -607,17 +639,17 @@ module bus_controller (
 
             endcase
 
-            if (force_pblrom_i)
-            begin
-                // set bit 7 to 1 to force the PBL ROM
-                romblock_nr <= { 1'b1, romblock_nr[6:0] };
-            end
+            // if (force_pblrom_i)
+            // begin
+            //     // set bit 7 to 1 to force the PBL ROM
+            //     romblock_nr <= { 1'b1, romblock_nr[6:0] };
+            // end
 
-            if (clear_pblrom_i)
-            begin
-                // clear bit 7 & 6 to 0 to clear us out of the PBL ROM
-                romblock_nr <= { 2'b00, romblock_nr[5:0] };
-            end
+            // if (clear_pblrom_i)
+            // begin
+            //     // clear bit 7 & 6 to 0 to clear us out of the PBL ROM
+            //     romblock_nr <= { 2'b00, romblock_nr[5:0] };
+            // end
 
             // DEBUG
             // enet_csn_o <= nora_slv_req_BANKREG;
@@ -637,19 +669,19 @@ module bus_controller (
             // ext Memory/Device reading
             cpu_db_o <= mem_db_i;
         end
-        else if (nora_slv_req_BANKREG)
-        begin
-            // reading one of the bank registers
-            if (!nora_slv_addr_o[0])
-            begin
-                // 0x00 = RAMBANK
-                cpu_db_o <= rambank_nr;
-            end else begin
-                // 0x01 = ROMBANK
-                cpu_db_o <= romblock_nr;
-            end
-        end
-        else if (nora_slv_req_SCRB_o || nora_slv_req_VIA1_o || nora_slv_req_VIA2_o || nora_slv_req_BOOTROM_o || nora_slv_req_OPM_o)
+        // else if (nora_slv_req_BANKREG)
+        // begin
+        //     // reading one of the bank registers
+        //     if (!nora_slv_addr_o[0])
+        //     begin
+        //         // 0x00 = RAMBANK
+        //         cpu_db_o <= rambank_nr;
+        //     end else begin
+        //         // 0x01 = ROMBANK
+        //         cpu_db_o <= romblock_nr;
+        //     end
+        // end
+        else if (nora_slv_req_SCRB_o || nora_slv_req_BREGS_o || nora_slv_req_VIA1_o || nora_slv_req_VIA2_o || nora_slv_req_BOOTROM_o || nora_slv_req_OPM_o)
         begin
             // internal slave reading
             cpu_db_o <= nora_slv_data_i;
@@ -660,7 +692,7 @@ module bus_controller (
         end
 
         // pre-compute the masked rambank
-        rambank_masked_nr <= rambank_nr & rambank_mask_i;
+        // rambank_masked_nr <= rambank_nr & rambank_mask_i;
 
         // Hold a valid CPU Data Bus value from the CPHI2=Hi state in a reg,
         // this is pushed to the memory bus during CPHI2=Low to provide additional hold time on writes
@@ -671,7 +703,7 @@ module bus_controller (
         end
     end
 
-    assign romblock_o = romblock_nr;
+    // assign romblock_o = romblock_nr;
    
 
 endmodule

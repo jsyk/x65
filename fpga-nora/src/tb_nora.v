@@ -289,13 +289,21 @@ module tb_nora ();
         cpu_read(16'h0013);  `assert(tb_cpuDataRead, 8'h78);
 
         // ============================================
+        // enable ram/rom-block regs at zero page
+        cpu_write(16'h9F53, 8'b0011_0000);
+
+        // ============================================
         // write to bank regs
         cpu_write(16'h0000, 8'hAB);         // RAMBANK
         cpu_write(16'h0001, 8'h0C);         // ROMBANK
 
-        // read from bank regs
+        // read from bank regs in the zero page
         cpu_read(16'h0000);  `assert(tb_cpuDataRead, 8'hAB);
         cpu_read(16'h0001);  `assert(tb_cpuDataRead, 8'h0C);
+
+        // read from the same bank regs in the io area
+        cpu_read(16'h9F50);  `assert(tb_cpuDataRead, 8'hAB);
+        cpu_read(16'h9F51);  `assert(tb_cpuDataRead, 8'h0C);
 
         // ============================================
         // write to VIA
@@ -312,7 +320,8 @@ module tb_nora ();
 
         // ============================================
         // go to the BOOTROM
-        cpu_write(16'h0001, 8'hFF);         // ROMBANK PBL
+        //cpu_write(16'h0001, 8'hFF);         // ROMBANK PBL
+        cpu_write(16'h9F53, 8'b1011_0000);      // RMBCTRL
         // test read from BOOTROM
         cpu_read(16'hFFFC);  `assert(tb_cpuDataRead, 8'h00);
         cpu_read(16'hFFFD);  `assert(tb_cpuDataRead, 8'hFE);
@@ -328,23 +337,23 @@ module tb_nora ();
         // ============================================
         // TEST OF SPI-MASTER 
         // activate SPI Master for flash access
-        cpu_write(16'h9F52, 8'b00_100_001);  
-        cpu_read(16'h9F52);  `assert(tb_cpuDataRead, 8'b00_100_001);
+        cpu_write(16'h9F63, 8'b00_100_001);     // N_SPI_CTRL  
+        cpu_read(16'h9F63);  `assert(tb_cpuDataRead, 8'b00_100_001);
         `assert(FLASHCSn, 0);
         // write data to the SPI master DATA REG for TX
-        cpu_write(16'h9F54, 8'h03);  
-        cpu_write(16'h9F54, 8'h12);  
-        cpu_write(16'h9F54, 8'h34);  
+        cpu_write(16'h9F65, 8'h03);     // N_SPI_DATA  
+        cpu_write(16'h9F65, 8'h12);  
+        cpu_write(16'h9F65, 8'h34);  
         // read SPIM STAT REG and poll until rx/tx is done
-        cpu_read(16'h9F53);
+        cpu_read(16'h9F64);         // N_SPI_STAT
         while (tb_cpuDataRead[7])   // bit [7] = Is BUSY?
         begin
-            cpu_read(16'h9F53);
+            cpu_read(16'h9F64);     // N_SPI_STAT
         end
         // read SPI DATA REG to pull out the RX bytes
-        cpu_read(16'h9F54);  `assert(tb_cpuDataRead, ~8'h03);
-        cpu_read(16'h9F54);  `assert(tb_cpuDataRead, ~8'h12);
-        cpu_read(16'h9F54);  `assert(tb_cpuDataRead, ~8'h34);
+        cpu_read(16'h9F65);  `assert(tb_cpuDataRead, ~8'h03);
+        cpu_read(16'h9F65);  `assert(tb_cpuDataRead, ~8'h12);
+        cpu_read(16'h9F65);  `assert(tb_cpuDataRead, ~8'h34);
 
         // ============================================
         // TEST OF USB-UART INTERFACE

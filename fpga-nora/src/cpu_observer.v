@@ -17,7 +17,7 @@ module cpu_observer
     // Bus signals
     input           release_wr_i,   // wr-phase
     input           release_cs_i,   // cs-phase
-    input [7:0]     romblock_nr,    // current romblock number
+    input           auto_unmap_bootrom_i,    // unmap bootrom on RTI ?
     input           isafix816_enabled,  // if the ISAFIX detection is enabled in SYSREGS
     // Control outputs
     output reg      map_pblrom_o,   // command to map the PBL ROM
@@ -82,7 +82,7 @@ module cpu_observer
                 end
 
                 // detect RTI opcode while ROMBLOCK bit #6 is set
-                if (is_rti_opcode && romblock_nr[6])
+                if (is_rti_opcode && auto_unmap_bootrom_i)
                 begin
                     // -> yes, then clear the ROMBLOCK bits 7 and 6 to remove the PBL ROM from the map.
                     unmap_pblrom_o <= 1;
