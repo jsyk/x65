@@ -32,6 +32,7 @@ START:
     ; LDA #CPULED1N            ; 1 => make it off
     STA VIA2_PRB_REG
 
+/*
     ; If the NORA_ROMBLOCK_REG bit 6 is set (1), then it is a request to boot from the specified ROMBLOCK
     ; instead from the PBL ROM.
     LDA NORA_ROMBLOCK_REG
@@ -64,6 +65,7 @@ START:
     PHA                     ; push it to the stack for RTI
     PHP                 ; push flags to the stack for RTI
     RTI                 ; "return" to the reset code in the new ROMBLOCK (hardware will clear bits 6 and 7 in NORA_ROMBLOCK_REG automatically!)
+*/
 
     ; NORMAL reset path:
     ; Spin on DIP switch 0 ?
@@ -121,7 +123,7 @@ L2_wait3us:
     STA NORA_RAMBMASK_REG
     ; swith RAMBANK to the first 8kb block where the SPI data will be loaded
     LDA #config_load_ramblock
-    STA NORA_RAMBLOCK_REG     ; now $A000 points to SRAM 0x180000, which is also ROMBANK #0
+    STA NORA_RamBLOCK_AB_REG     ; now $A000 points to SRAM 0x180000, which is also ROMBANK #0
 
 
     ; how many 8kB pages shall we load from the SPI flash?
@@ -136,7 +138,7 @@ L1:
     EOR #VIA2_PRB__CPULED0N
     STA VIA2_PRB_REG
     ; increment the RAMBANK
-    INC NORA_RAMBLOCK_REG
+    INC NORA_RamBLOCK_AB_REG
     ; check for-loop counter
     DEC LDPAGE_COUNTER
     BNE L1
@@ -152,25 +154,37 @@ L1:
     LDA #$00
     STA NORA_SPI_CTRL_REG
 
+    STZ NORA_ROMBLOCK_REG        ; ROMBLOCK = 0, but the PBL still stays mapped thanks to NORA_RMBCTRL__MAP_BOOTROM
+
+
 .if config_with_trampoline = 1
-    ; prepare the trampoline code at 0x80
-    LDA #$85            ; STA
+    ; prepare the trampoline code at 0x80:
+    ; 000000r 1  8D 53 9F         STA     NORA_RMBCTRL_REG
+    ; 000003r 1  6C FC FF         JMP     ($FFFC)
+
+    LDA #$8D            ; STA
     STA $80
-    LDA #$01            ;       $01    ; (NORA_ROMBLOCK_REG)
+    LDA #$53            ;       $..53
     STA $81
+    LDA #$9F
+    STA $82             ;       $9F..
     LDA #$6C            ; JMP ()
-    STA $82
-    LDA #$FC
     STA $83
+    LDA #$FC
+    STA $84
     LDA #$FF
-    STA $84             ;       $FFFC
+    STA $85             ;       $FFFC
 
     ; make just the 1MB RAM available through the RAMBANK (block the mask)
     LDA #$7F                ; TBD make parametric!!
     STA NORA_RAMBMASK_REG
 
     ; load target ROMBANK => 0
-    LDA #0
+    ; LDA #0
+    
+    ; prepare NORA_RMBCTRL_REG config. to enable MIRROR_ZP, ENABLE_ROM_CDEF, RDONLY_EF, RDONLY_CD;
+    ; clear NORA_RMBCTRL__MAP_BOOTROM so that this PBL ROM is not mapped anymore.
+    LDA     #NORA_RMBCTRL__MIRROR_ZP | NORA_RMBCTRL__ENABLE_ROM_CDEF | NORA_RMBCTRL__RDONLY_EF | NORA_RMBCTRL__RDONLY_CD
 
     ; jump to the trampoline
     JMP $80

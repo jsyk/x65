@@ -1,5 +1,5 @@
 
-all: pbl.mem
+all: pbl.mem trampoline.lst
 
 pbl.bin: pbl.o
 pbl.o: pbl.s
@@ -13,6 +13,9 @@ pbl.o: pbl.s
 
 %.o: %.s
 	ca65 -I ../../include --cpu 65c02  $<
+
+trampoline.lst: trampoline.s
+	ca65 -I ../../include --cpu 65c02 trampoline.s --listing trampoline.lst
 
 clean:
 	rm -f pbl.bin pbl.mem pbl.o
