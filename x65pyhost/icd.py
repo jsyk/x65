@@ -291,12 +291,16 @@ class ICD:
             # create MAHDecoded object
             self = cls()
             # read current ROMBLOCK and RAMBLOCK registers from the hw via the icd link
-            bregs = icd.bankregs_read(0, 2)
+            bregs = icd.ioregs_read(0x50, 2)
+            # bregs = icd.bankregs_read(0, 2)
             # Extract the bank regs from the buffer; keep in mind that logical RAMBLOCK_REG 
             # is mapped to physical 8kB SRAM block with inverted MSB (see doc/mem-map.md).
             self.ramblock_raw = bregs[0] ^ 0x80
             self.romblock = bregs[1] 
-            self.is_bootrom = (self.romblock & 0x80) != 0
+            # read RMBCTRL reg at 0x9F53
+            rmbctrl = icd.iopeek(0x53)
+            # self.is_bootrom = (self.romblock & 0x80) != 0
+            self.is_bootrom = (rmbctrl & 0x80) != 0
             return self
         
     # Read a byte via ICD memory access from the target, the way a CPU would do.
@@ -310,7 +314,7 @@ class ICD:
         if CBA == 0:
             # bank zero -> must decode carefuly
             if 0 <= CA < 2:
-                # bank regs
+                # bank regs: TBD must check the MIRROR bit!!!
                 rdata = self.bankregs_read(CA, 1)
             elif CA < 0x9F00:
                 # CPU low memory starts at sram fix 0x000000
