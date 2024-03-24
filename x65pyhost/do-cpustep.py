@@ -252,5 +252,7 @@ while step_i <= step_count:
 
 # Show the final CPU State (regs)
 cpust_fin = CpuRegs()
-cpust_fin.cpu_read_regs(icd)
-print(cpust_fin)
+if cpust_fin.cpu_read_regs(icd):
+    print(cpust_fin)
+else:
+    print("ERROR: CPU State read failed!!")

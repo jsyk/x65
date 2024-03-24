@@ -1,4 +1,5 @@
 from icd import *
+from cpuidec import *           # decode_traced_instr() - for debug here!
 
 # 
 # This class represents the 6502/65816 CPU architected registers
@@ -6,9 +7,10 @@ from icd import *
 # 
 class CpuRegs:
     # CPU status flasg for the opcode forcing table below
-    STA_ISYNC = 1
-    STA_AM16 = 2
-    STA_XY16 = 4
+    STA_ISYNC = 1           # Instruction SYNC flag expected
+    STA_AM16 = 2            # A/M flag in the 16-bit mode
+    STA_XY16 = 4            # X/Y flag in the 16-bit mode
+    STA_NO_SYNC_THEN_IRQ = 8 # If there is not SYNC flag here, then the CPU is actually entering an IRQ handler!
 
     # command flags for the opcode forcing table below
     CMD_BLOCK_WRITE = 1
@@ -26,7 +28,11 @@ class CpuRegs:
 
     # table defines the opcode steps to readout all the CPU regs
     steps_readregs = [
-        { 'CD': 0x08,   'sta': STA_ISYNC,   'cmd': CMD_GET_PC  },           # PHP
+        { 'CD': 0xEA,   'sta': STA_ISYNC,   'cmd': CMD_GET_PC  },           # NOP - guard for the first step, to detect interrupts
+        {               'sta': 0,           'cmd': 0 },                     # internal op
+
+        { 'CD': 0x08,   'sta': STA_ISYNC | STA_NO_SYNC_THEN_IRQ,   
+                                            'cmd': 0  },           # PHP
         {               'sta': 0,           'cmd': 0 },                # internal op (stack dec)
         {               'sta': 0,           'cmd': CMD_GET_SP | CMD_GET_FLAGS },              # writing Flags to the Stack
 
@@ -52,7 +58,7 @@ class CpuRegs:
         {               'sta': STA_XY16,    'cmd': CMD_BLOCK_WRITE | CMD_GET_YH  },              # writing YH to the (0x4441)
 
         { 'CD': 0x80,   'sta': STA_ISYNC,   'cmd': 0 },           # BRA
-        { 'CD': 0xF5,   'sta': 0,           'cmd': 0 },   # arg: 0xF5
+        { 'CD': 0xF4,   'sta': 0,           'cmd': 0 },   # arg: 0xF4
         {               'sta': 0,           'cmd': 0 },                # jump, internal op.
     ]
 
@@ -73,6 +79,8 @@ class CpuRegs:
     def cpu_read_regs(self, icd):
         # We should check the CPU state first and continue just if there is NOT a new instruction
         # upcoming.
+        # TBD use icd.cpu_get_status() here, as it is non-destructive for the trace-reg!
+
         # read the current trace register
         is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = icd.cpu_read_trace(sample_cpu=True)
         # is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, tbuf = icd.cpu_get_status()
@@ -105,6 +113,7 @@ class CpuRegs:
             exp_sync = True if (exp_sta & CpuRegs.STA_ISYNC) == CpuRegs.STA_ISYNC else False
             exp_am16 = True if (exp_sta & CpuRegs.STA_AM16) else False
             exp_xy16 = True if (exp_sta & CpuRegs.STA_XY16) else False
+            exp_no_sync_then_irq = True if (exp_sta & CpuRegs.STA_NO_SYNC_THEN_IRQ) else False
 
             if exp_am16 and not is_am16:
                 # the current Step expect M16 (A16), but reality is M8 (A8) => skip this step!
@@ -151,6 +160,17 @@ class CpuRegs:
             is_am16 = not tbuf.is_am8
             is_xy16 = not tbuf.is_xy8
 
+            # disinst = decode_traced_instr(icd, tbuf, False)
+            # print("  cpu-reg-read: CBA={:2x}, CA={:4x}, CD={:2x}, sta={:2x}   {}".format(
+            #     tbuf.CBA, tbuf.CA, tbuf.CD, tbuf.sta_flags, disinst))
+
+            # maybe the CPU is entering an IRQ handler?
+            if exp_no_sync_then_irq and not tbuf.is_sync:
+                # this is the IRQ handler entering seqence, the CPU is not gona execute our reg-read
+                # seuqnce -> we should stop the read sequence here!
+                print("INFO: The CPU is entering an IRQ handler => not possible to obtain the internal register state now.")
+                return False
+
             # check if SYNC/notSYNC is as it should be
             if exp_sync != tbuf.is_sync:
                 print("ERROR: sync expectation vs reality differs!!")
@@ -183,6 +203,8 @@ class CpuRegs:
                 self.DBR = tbuf.CBA
 
             step = step + 1
+        
+        return True
 
     def hex2(self, h, replace='.'):
         if h is None:
