@@ -90,6 +90,16 @@ abrt02_callback:        ; offset 136 ($88) - Callback for PBL to call when illeg
     ; Set ROMBLOCK to 0
     lda     #0
     sta     NORA_ROMBLOCK_REG           ; use the address in 9F50 area
+
+    ; Enable ABRT02 in the emulation mode - detection of wrong opcodes,
+    ; by setting the bit [6] ABRT02 in the NORA_SYSCTRL_REG register.
+    ; But first we must unlock the register by writing $80 to it.
+    lda     #$80
+    sta     NORA_SYSCTRL_REG            ; unlock
+    ; re-read
+    lda     NORA_SYSCTRL_REG
+    ora     #NORA_SYSCTRL__ABRT02
+    sta     NORA_SYSCTRL_REG        ; enable ABRT02 feature
     
     ; At this point the memory map is:
     ;   $0000-$0001: RAMBLOCK, ROMBLOCK registers (due to MIRROR_ZP)

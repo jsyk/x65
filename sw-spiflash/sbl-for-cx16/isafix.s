@@ -26,7 +26,7 @@ TMP_BITNR = $F9
 .P816       ; CPU=65C816
 .A8
 .I8
-    ; .asciiz "abrt02"
+    ; .asciiz "abrt02"      ; debug to see the name in the img file
 
 ; ISAFIX_ENTRY:           ; entry point for ISAFIX handler at address $07e000,
     ; This is called from PBL EMUABORT handler.
@@ -39,11 +39,11 @@ TMP_BITNR = $F9
     ; STA ROMBLOCK_REG
 
     ; DEBUG: stop the CPU
-    LDA  #$80
-    STA  f:NORA_SYSCTRL_REG            ; unlock
-    LDA  f:NORA_SYSCTRL_REG
-    ORA  #$02
-    STA  f:NORA_SYSCTRL_REG
+    ; LDA  #$80
+    ; STA  f:NORA_SYSCTRL_REG            ; unlock
+    ; LDA  f:NORA_SYSCTRL_REG
+    ; ORA  #$02
+    ; STA  f:NORA_SYSCTRL_REG
 
     ; Unmap BOOTROM from the memory space
     ; by clearing bits 7 and 6 of the NORA_RMBCTRL_REG register

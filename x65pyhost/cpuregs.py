@@ -168,7 +168,7 @@ class CpuRegs:
             if exp_no_sync_then_irq and not tbuf.is_sync:
                 # this is the IRQ handler entering seqence, the CPU is not gona execute our reg-read
                 # seuqnce -> we should stop the read sequence here!
-                print("INFO: The CPU is entering an IRQ handler => not possible to obtain the internal register state now.")
+                print("INFO: The CPU is entering an exception handler => not possible to obtain the internal register state now.")
                 return False
 
             # check if SYNC/notSYNC is as it should be
