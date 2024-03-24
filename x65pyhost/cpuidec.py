@@ -112,29 +112,29 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
     # replace byte value
     if disinst.find('.1') >= 0:
         byteval = icd.read_byte_as_cpu(CBA, mahd, CA+1)
-        disinst = disinst.replace('.1', '${:x}'.format(byteval))
+        disinst = disinst.replace('.1', '${:02x}'.format(byteval))
 
     # replace byte or word value based on Memory Flag
     if disinst.find('.M12') >= 0:
         if m_flag:
             # M=1 => 8-bit access
             byteval = icd.read_byte_as_cpu(CBA, mahd, CA+1)
-            disinst = disinst.replace('.M12', '${:x}'.format(byteval))
+            disinst = disinst.replace('.M12', '${:02x}'.format(byteval))
         else:
             # M=0 => 16-bit access
             wordval = icd.read_byte_as_cpu(CBA, mahd, CA+1) + icd.read_byte_as_cpu(CBA, mahd, CA+2)*256
-            disinst = disinst.replace('.M12', '${:x}'.format(wordval))
+            disinst = disinst.replace('.M12', '${:04x}'.format(wordval))
 
     # replace byte or word value based on X Flag
     if disinst.find('.X12') >= 0:
         if x_flag:
             # X=1 => 8-bit access
             byteval = icd.read_byte_as_cpu(CBA, mahd, CA+1)
-            disinst = disinst.replace('.X12', '${:x}'.format(byteval))
+            disinst = disinst.replace('.X12', '${:02x}'.format(byteval))
         else:
             # X=0 => 16-bit access
             wordval = icd.read_byte_as_cpu(CBA, mahd, CA+1) + icd.read_byte_as_cpu(CBA, mahd, CA+2)*256
-            disinst = disinst.replace('.X12', '${:x}'.format(wordval))
+            disinst = disinst.replace('.X12', '${:04x}'.format(wordval))
 
     # replace byte value displacement
     if disinst.find(':1') >= 0:
@@ -147,7 +147,7 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
     # replace word value
     if disinst.find('.2') >= 0:
         wordval = icd.read_byte_as_cpu(CBA, mahd, CA+1) + icd.read_byte_as_cpu(CBA, mahd, CA+2)*256
-        disinst = disinst.replace('.2', '${:x}'.format(wordval))
+        disinst = disinst.replace('.2', '${:04x}'.format(wordval))
 
     # replace word value displacement
     if disinst.find(':2') >= 0:
@@ -160,6 +160,6 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
     # replace 3-byte value
     if disinst.find('.3') >= 0:
         wordval = icd.read_byte_as_cpu(CBA, mahd, CA+1) + icd.read_byte_as_cpu(CBA, mahd, CA+2)*256 + icd.read_byte_as_cpu(CBA, mahd, CA+3)*65536
-        disinst = disinst.replace('.3', '${:x}'.format(wordval))
+        disinst = disinst.replace('.3', 'f:${:06x}'.format(wordval))
 
     return disinst
