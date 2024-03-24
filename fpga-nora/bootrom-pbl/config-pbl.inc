@@ -21,9 +21,13 @@ config_load_ramblock        = 191           ; RAMBLOCK 191 (07E000) ==> just bel
 ; config_with_trampoline      = 1             ; 1 = yes, 0 = no
 config_with_trampoline      = 0             ; 1 = yes, 0 = no
 
+config_preloading_cb       = $A080         ; entry address for preloading   
+
 ; The address where we should jump to after the Secondary Bootloader has been loaded.
 ; This is used just in case the trampoline mechanism is NOT enabled.
 ; This should correspond to the loaded RAMBLOCK and the start address of the Secondary Bootloader.
 ; config_jump_address         = $0000         ; not used
-config_jump_address         = $A028         ; entry address for loading_done
+config_jump_address         = $A084         ; entry address for loading_done
+
+config_abrt02_address       = $07E088       ; entry address for abrt02 handler / isafix
 

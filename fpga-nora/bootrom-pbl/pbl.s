@@ -1,10 +1,35 @@
-; ** Primary Bootloader for x65
-; * Copyright (c) 2023 Jaroslav Sykora.
+; ** Primary Bootloader (PBL) for x65
+; * Copyright (c) 2023-2024 Jaroslav Sykora.
 ; * Terms and conditions of the MIT License apply; see the file LICENSE in top-level directory.
 ; 
 ; This code is stored inside of NORA FPGA BlockRAM, see the file bootrom.v, size=512Bytes,
-; and mapped to the 65C02 address space at the last top CPU address space: $FE00 ... $FFFF.
+; and mapped to the 65C02/65C816 address space as the BOOTROM at the top addresses: $00_FE00 ... $00_FFFF.
+;
 ; Assemble & link with ca65 + ld65.
+;
+; The BOOTROM is displayed in the 8kB range $00_E000 ... $00_FFFF in the memory map as soon as the bit [7] MAP_BOOTROM
+; in the register  NORA_RMBCTRL_REG ($9F53) is set. The BOOTROM is just 512B long, so it is mirrored 16x in the 8kB range.
+; Only the last 512B from $00_FE00 ... $00_FFFF are the "true" copy.
+;
+; The BOOTROM is executed after the FPGA is powered up or after the CPU is reset.
+; The BOOTROM is responsible for the initial setup of the system, and then it loads the Secondary Bootloader (SBL).
+; The initial setup includes:
+;   * turn both CPU LEDs ON (CPULED0 = ON, CPULED1 = ON).
+;   * wait for the DIP switch 0 to be OFF (DIPLED0 = OFF). This allows convenient catch on debugger.
+;       If the DIP switch 0 is OFF, then the BOOTROM continues with the loading of the SBL from the SPI Flash.
+;
+; The SBL is loaded from the NORA's SPI Flash memory, which is also used for the NORA bitstream.
+; The expected structure of the SPI Flash for the PBL is:
+;       1. The first 256kB contains NORA FPGA bitstream.
+;       2. The 8kB block at offset 256kB ($04_0000) contains the SBL Header Block.
+;       3. Following the header block, there are the SBL payload blocks. 
+;          The number of payload blocks is specified in the header, see below.
+;
+; The SBL Header Block is  8kB long and it is loaded by the PBL to the RAM-block frame at CPU address $A000.
+; This RAM-block frame points to the SRAM block number specified in the configuration parameter `config_load_ramblock`.
+; The configuration parameters are stored in the file `config-pbl.inc`.
+; The parameter `config_load_ramblock` is currently set to 191, which is the SRAM address 0x07_E000 
+; ==> just 8kB below the ROMBLOCK 0.
 ;
 
 .include "nora.inc"
@@ -138,7 +163,7 @@ stop_not_x:
     ; ok
 
     ; Run the SBL's pre_loading_callback
-    JSR  $A020
+    JSR  config_preloading_cb
 
     ; Get index of block where we should load the rest of the SPI data
     LDA $A010
@@ -310,7 +335,7 @@ EMUABORT:
     CLC
     XCE
     ; jump to handler in CBA=07, last 8kB in the bank = this is just below ROM-Block 0
-    JSL $07E030
+    JSL     f:config_abrt02_address
     ; switch back to Emu mode
     SEC
     XCE
