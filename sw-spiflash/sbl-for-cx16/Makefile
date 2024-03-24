@@ -5,14 +5,14 @@ INCLUDES = -I../../include
 
 
 # All the targets for the complete build
-all: sbl.bin sbl.lst trampoline.lst img.bin
+all: sbl.bin sbl.lst isafix.lst trampoline.lst img.bin
 
 # Complete image file is composed from the SBL and the CX16ROM as the payload
 img.bin: sbl.bin $(CX16ROM)
 	cat sbl.bin $(CX16ROM) >img.bin
 
 # Secondary Boot Loader = SBL
-sbl.bin: sbl.o
+sbl.bin: sbl.o isafix.o
 	ld65 -C sbl.ld $^ -o $@
 
 
@@ -40,4 +40,4 @@ prog_img: img.bin
 	../../x65prog/x65prog -N -o 256k $<
 
 clean:
-	rm -f *.o sbl.bin *.lst
+	rm -f *.o sbl.bin *.lst img.bin
