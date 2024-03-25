@@ -13,7 +13,7 @@ img.bin: sbl.bin rombios.bin $(OF816ROM)
 rombios.bin : vt.o font8x8.o romstru.o
 	ld65 -C rombios.ld $^ -o $@
 
-sbl.bin: ../common/sbl.o ../common/isafix.o 
+sbl.bin: ../common/sbl.o ../common/isafix.o ../common/vidtext.o ../common/font8x8.o
 	ld65 -C ../common/sbl.ld $^ -o $@
 
 sbl.lst: vt.s

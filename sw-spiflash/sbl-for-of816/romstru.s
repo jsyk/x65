@@ -27,16 +27,18 @@ hello_str:
     ; go to the 16-bit mode; A and X/Y are still in 8-bit mode
     clc
     xce
+    .a8
+    .i8
 
-    jsr     vera_init
+    ; jsr     vera_init
 
     rep     #SHORT_A
     .a16
 
-    lda     #hello_str
-    ldx     #0
-    ldy     #0
-    jsl     vt_printstr_at_a16i8far
+    ; lda     #hello_str
+    ; ldx     #0
+    ; ldy     #0
+    ; jsl     vt_printstr_at_a16i8far
 
 
     ; OF816 assumes full native mode

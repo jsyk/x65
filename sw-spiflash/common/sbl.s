@@ -3,6 +3,7 @@
 .include "config-sbl.inc"
 
 .import abrt02
+.import vera_init, vera_load_font, vera_clear_screen, vera_printbanner
 
 .Pc02
 
@@ -27,7 +28,7 @@ loading_count:      ; offset 17 ($11) - Parameter for PBL:
 pre_loading_callback:   ; offset 128 ($80) - Callback for PBL to call before loading the rest of application.
                         ; We arrive here after the PBL has loaded this 8kB SBL and is about to load the rest of the application.
                         ; We arrive here via the JSR instruction.
-    rts
+    jmp     pre_loading
 
     .align 4
 loading_done:       ; offset 132 ($84) - Jump address from PBL after loading the whole application
@@ -114,3 +115,13 @@ abrt02_callback:        ; offset 136 ($88) - Callback for PBL to call when illeg
     jmp     $0080
 .endproc
 
+
+; ---------------------------------------------------------------------------
+; This is called by the PBL before loading the rest of the application.
+.proc pre_loading
+    jsr     vera_init
+    jsr     vera_clear_screen
+    jsr     vera_load_font
+    jsr     vera_printbanner
+    rts
+.endproc

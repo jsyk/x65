@@ -12,7 +12,7 @@ img.bin: sbl.bin $(CX16ROM)
 	cat sbl.bin $(CX16ROM) >img.bin
 
 # Secondary Boot Loader = SBL
-sbl.bin: ../common/sbl.o ../common/isafix.o
+sbl.bin: ../common/sbl.o ../common/isafix.o ../common/vidtext.o ../common/font8x8.o
 	ld65 -C ../common/sbl.ld $^ -o $@
 
 
@@ -40,4 +40,4 @@ prog_img: img.bin
 	../../x65prog/x65prog -N -o 256k $<
 
 clean:
-	rm -f *.o sbl.bin *.lst img.bin
+	rm -f *.o sbl.bin *.lst img.bin ../common/*.o ../common/*.lst
