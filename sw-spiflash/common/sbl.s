@@ -1,5 +1,6 @@
 .include "common.inc"
 .include "nora.inc"
+.include "config-sbl.inc"
 
 .import abrt02
 
@@ -16,9 +17,9 @@
 
     .align 16
 loading_block:      ; offset 16 ($10) - Parameter for PBL:
-    .byte   192         ; To which 8k block to load the rest of application (payload); 192 == ROMBLOCK 0
+    .byte   config_payload_block         ; To which 8k block to load the rest of application (payload); 192 == ROMBLOCK 0
 loading_count:      ; offset 17 ($11) - Parameter for PBL:
-    .byte   32          ; how many 8k blocks of the payload (not counting this 8k SBL); 32 == 256k
+    .byte   config_payload_bcount          ; how many 8k blocks of the payload (not counting this 8k SBL); 32 == 256k
     ; the rest is filled by 0.
 
     ; at the offset 128 ($80) we have jumping table
@@ -44,32 +45,6 @@ abrt02_callback:        ; offset 136 ($88) - Callback for PBL to call when illeg
 
 
 ; ===========================================================================
-; Code block for ISAFIX handler
-; Loaded at the address $00_A100, but runs at the address $07_E100 !!
-;
-
-; .align 256
-; .segment "ISAFIX"
-
-; .proc abrt02
-; .P816
-;     ; .asciiz "ABRT02"
-;     ; DEBUG: stop the CPU
-;     LDA  #$80
-;     STA  NORA_SYSCTRL_REG            ; unlock
-;     LDA  NORA_SYSCTRL_REG
-;     ORA  #$02
-;     STA  NORA_SYSCTRL_REG
-;     ;
-;     lda     NORA_RMBCTRL_REG
-;     ora     #NORA_RMBCTRL__MAP_BOOTROM|NORA_RMBCTRL__AUTO_UNMAP_BOOTROM
-;     sta     NORA_RMBCTRL_REG
-;     ;
-;     rtl
-; .Pc02
-; .endproc
-
-; ===========================================================================
 ; Main code block
 ;
 .align 256
@@ -82,15 +57,16 @@ abrt02_callback:        ; offset 136 ($88) - Callback for PBL to call when illeg
 ;
 .proc start_the_rom
     ; .asciiz "start_the_rom"
-    ; Prepare NORA_RMBCTRL_REG config. to enable MIRROR_ZP, ENABLE_ROM_CDEF, RDONLY_EF, RDONLY_CD;
-    ;   Clear NORA_RMBCTRL__MAP_BOOTROM so that the PBL ROM is not mapped anymore.
-    lda     #NORA_RMBCTRL__MIRROR_ZP | NORA_RMBCTRL__ENABLE_ROM_CDEF | NORA_RMBCTRL__RDONLY_EF | NORA_RMBCTRL__RDONLY_CD
+
+    ; Configure the RMCTRL register (controls the RAMBLOCKs and the ROMBLOCKs in the NORA memory map).
+    lda     #config_rmbctrl
     sta    NORA_RMBCTRL_REG
 
-    ; Set ROMBLOCK to 0
-    lda     #0
+    ; Set ROMBLOCK to initial configured value
+    lda     #config_initial_romblock
     sta     NORA_ROMBLOCK_REG           ; use the address in 9F50 area
 
+.if config_abrt02_enable
     ; Enable ABRT02 in the emulation mode - detection of wrong opcodes,
     ; by setting the bit [6] ABRT02 in the NORA_SYSCTRL_REG register.
     ; But first we must unlock the register by writing $80 to it.
@@ -100,7 +76,8 @@ abrt02_callback:        ; offset 136 ($88) - Callback for PBL to call when illeg
     lda     NORA_SYSCTRL_REG
     ora     #NORA_SYSCTRL__ABRT02
     sta     NORA_SYSCTRL_REG        ; enable ABRT02 feature
-    
+.endif
+
     ; At this point the memory map is:
     ;   $0000-$0001: RAMBLOCK, ROMBLOCK registers (due to MIRROR_ZP)
     ;   $A000-$BFFF: RAMBLOCK_FRAME pointed to the Block 191 <- here we are execting!
@@ -131,7 +108,7 @@ abrt02_callback:        ; offset 136 ($88) - Callback for PBL to call when illeg
     ;done
 
     ; set the value for the RAMBMASK_REG in the trampoline code
-    lda     #$7F
+    lda     #config_rambmask
 
     ; Jump to the trampoline code
     jmp     $0080

@@ -1,7 +1,7 @@
 # the rom.bin is found in x16-rom/build/x16/
 # and shall be copied here.
 CX16ROM=rom.bin
-INCLUDES = -I../../include
+INCLUDES = -I../../include -I.
 
 
 # All the targets for the complete build
@@ -12,17 +12,17 @@ img.bin: sbl.bin $(CX16ROM)
 	cat sbl.bin $(CX16ROM) >img.bin
 
 # Secondary Boot Loader = SBL
-sbl.bin: sbl.o isafix.o
-	ld65 -C sbl.ld $^ -o $@
+sbl.bin: ../common/sbl.o ../common/isafix.o
+	ld65 -C ../common/sbl.ld $^ -o $@
 
 
 # %.bin: %.o
 # 	ld65 -C romboot.ld $< -o $@
 
-%.o: %.s
+%.o: ../common/%.s
 	ca65 $(INCLUDES) --cpu 65c02  $<
 
-%.lst: %.s
+%.lst: ../common/%.s
 	ca65 $(INCLUDES) --cpu 65c02 $< -l $@
 
 # load_sbl: sbl.bin
