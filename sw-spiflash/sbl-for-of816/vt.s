@@ -3,6 +3,7 @@
 .include "common.inc"
 .include "nora.inc"
 .include "vera.inc"
+.include "vt.inc"
 
 .import _font8x8
 
@@ -234,3 +235,81 @@ loop_printstr_end:
 
     rtl         ; far return
 .endproc
+
+
+.i16
+.a16
+
+;-------------------------------------------------------------------------------
+.proc vt_xy2cursor
+; Convert X (column), Y (row) coordinates to a screen cursor.
+; Inputs:
+;   X: column (0-79)
+;   Y: row (0-59)
+; Outputs:
+;   BA:u16   screen cursor: hi: row (0-59), lo: column (0-79)*2
+/*
+    // calculate VRAM address from x/y coordinates
+    uint16_t ci = 2*x + 2*128*y;
+*/
+    ; switch A to 8-bit
+    sep  #SHORT_A          ; 8-bit memory and accu
+    .a8
+    txa     ; A = x
+    asl   A     ; A =  2*x
+    xba     ; B = 2*x, A = undefined
+    tya     ; A = y
+    xba     ; BA = (y << 8) | (2*x)
+    ; switch A to 16-bit
+    rep  #SHORT_A          ; 16-bit index regs X, Y
+    .a16
+    rtl
+.endproc
+
+;-------------------------------------------------------------------------------
+.proc vt_printchar_at
+; Print a character given in A at the screen cursor given in X.
+; Inputs:
+;   A       character to print (B is ignored)
+;   X:u16   screen cursor where to print: hi: row (0-59), lo: column (0-79)*2
+; Outputs:
+;   none
+; Clobers:
+;   X
+
+    ; switch A to 8-bit
+    sep  #SHORT_A           ; 8-bit accu, mem
+    .a8
+    pha                     ; save character to print
+    ; // setup for the VRAM address, autoincrement
+    ; VERA.address = ci & 0xFFFF;
+    ; VERA.address_hi = 0 | (1 << 4);
+    stx     VERA_ADDRESS_REG       ; 16-bit store
+    lda     #0 | (1 << 4)
+    sta     VERA_ADDRESS_HI_REG
+
+    pla                 ; restore character
+    ; // print the character
+    sta     VERA_DATA0_REG
+    ; colot attribute
+    lda     #(COLOR_GRAY1 << 4) | (COLOR_LIGHTGREEN)         ; backround and foreground color
+    sta     VERA_DATA0_REG
+
+    ; switch A to 16-bit
+    rep     #SHORT_A
+    .a16
+
+    rtl
+.endproc
+
+
+;-------------------------------------------------------------------------------
+.proc vt_printchar
+; Print a character given in A at the current screen cursor.
+; Inputs:
+;   A       character to print (B is ignored)
+
+.endproc
+
+
+

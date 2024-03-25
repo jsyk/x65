@@ -4,6 +4,9 @@
 .import vera_init
 .import vt_printstr_at_a16i8far
 
+; assume OF816 starts at $01_0000, i.e. the beginning of the BANK = $01
+OF816_START  = $010000
+
 ; ========================================================================
 .segment "RODATA"
 hello_str:
@@ -35,12 +38,21 @@ hello_str:
     ldy     #0
     jsl     vt_printstr_at_a16i8far
 
+
+    ; OF816 assumes full native mode
+    rep     #SHORT_A|SHORT_I
+    .a16
+    .i16
+    ; jump to OF816 start
+    jmp     f:OF816_START
+
 fin_loop:
     BRA     fin_loop
 .endproc
 
 
 ; ========================================================================
+; this is placed at the last 32 bytes of CPU BANK = $00
 .segment "NATVECTORS"
     ; FFE0,1 = reserved
     .WORD 0
