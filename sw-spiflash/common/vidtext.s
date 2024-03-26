@@ -1,4 +1,4 @@
-.Pc02
+.Pc02       ; this is so much easier in the 816 assembly :-(
 
 .include "common.inc"
 .include "nora.inc"
@@ -258,33 +258,70 @@ loop_font_cp_inner:
 
 ;-------------------------------------------------------------------------------
 .proc vera_printbanner
-    ; setup target address in VERA
-    stz     VERA_ADDRESS_REG
-    stz     VERA_ADDRESS_M_REG
+    ; Print our banner at the center screen position.
+    ; Load Banner address to PTR
+    lda     #<banner
+    sta     PTR
+    lda     #>banner
+    sta     PTR+1
+
+next_line:
+    ; PTR now points to the beginning of the banner row, which starts with the address of the character in VERA VRAM
+    ; setup target address in VERA: it is the word (16b) at the PTR address
+    lda     (PTR)
+    ; if 0, then we are done!
+    beq     done_printbanner
+    sta     VERA_ADDRESS_REG
+    ldy     #1
+    lda     (PTR),y
+    sta     VERA_ADDRESS_M_REG
     lda     #0 | (1 << 4)
     sta     VERA_ADDRESS_HI_REG
-
-    ldx     #0
+    ; now go over the string line till null character; start at the offset 2 because of the initial address
+    iny
 loop_printbanner:
-    lda     banner,x
-    beq     done_printbanner
-    jsr     vera_printchar
-    inx
+    lda     (PTR),y
+    ; null character loaded?
+    beq     line_done
+    ; print each character
+    sta     VERA_DATA0_REG
+    ; write the color attribute
+    lda     #(COLOR_GRAY1 << 4) | (COLOR_LIGHTRED)         ; backround and foreground color
+    sta     VERA_DATA0_REG
+    iny                         ; next character
     bra     loop_printbanner
+line_done:
+    iny                         ; skip past the null character of the last line
+    ; increase PTR to the next line: add X to PTR
+    clc
+    tya
+    adc     PTR
+    sta     PTR
+    lda     #0
+    adc     PTR+1
+    sta     PTR+1
+    ; PTR now points to the beginning of the next line
+    bra next_line
 
 done_printbanner:
-
     rts
 
 banner:
-    .asciiz "X65-SBC !"
-    .asciiz "__   __  ____  _____        ___________  _____ "
-    .asciiz "\ \ / / / ___||  ___|      /  ___| ___ \/  __ \ "
-    .asciiz "\ V / / /___ |___ \ ______\ `--.| |_/ /| /  \/  "
-    .asciiz "/   \ | ___ \    \ \______|`--. \ ___ \| |      "
-    .asciiz "/ /^\ \| \_/ |/\__/ /      /\__/ / |_/ /| \__/\ "
-    .asciiz "\/   \/\_____/\____/       \____/\____/  \____/ "
-
+    ; .asciiz "X65-SBC !"
+    ; The ascii art generated atpatorjk.com/ Star Wors font
+    .word  2*(27*128 + (40-24))
+    .asciiz "___   ___    __    _____      _______  __    __  "
+    .word  2*(28*128 + (40-24))
+    .asciiz "\  \ /  /   / /   | ____|    |   ____||  |  |  | "
+    .word  2*(29*128 + (40-24))
+    .asciiz " \  V  /   / /_   | |__      |  |__   |  |  |  | "
+    .word  2*(30*128 + (40-24))
+    .asciiz "  >   <   | '_ \  |___ \     |   __|  |  |  |  | "
+    .word  2*(31*128 + (40-24))
+    .asciiz " /  .  \  | (_) |  ___) |  __|  |____ |  `--'  | "
+    .word  2*(32*128 + (40-24))
+    .asciiz "/__/ \__\  \___/  |____/  (__)_______| \______/  "
+    .word 0
 .endproc
 
 ; patorjk Epic
@@ -306,5 +343,11 @@ banner:
 ; / /^\ \| \_/ |/\__/ /      /\__/ / |_/ /| \__/\
 ; \/   \/\_____/\____/       \____/\____/  \____/
                                                
-                                               
 
+; Star Wars                                             
+; ___   ___    __    _____      _______  __    __  
+; \  \ /  /   / /   | ____|    |   ____||  |  |  | 
+;  \  V  /   / /_   | |__      |  |__   |  |  |  | 
+;   >   <   | '_ \  |___ \     |   __|  |  |  |  | 
+;  /  .  \  | (_) |  ___) |  __|  |____ |  `--'  | 
+; /__/ \__\  \___/  |____/  (__)_______| \______/ 

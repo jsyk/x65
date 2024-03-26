@@ -19,7 +19,7 @@ sbl.bin: ../common/sbl.o ../common/isafix.o ../common/vidtext.o ../common/font8x
 # %.bin: %.o
 # 	ld65 -C romboot.ld $< -o $@
 
-%.o: ../common/%.s
+%.o: ../common/%.s config-sbl.inc
 	ca65 $(INCLUDES) --cpu 65c02  $<
 
 %.lst: ../common/%.s

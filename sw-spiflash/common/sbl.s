@@ -1,5 +1,6 @@
 .include "common.inc"
 .include "nora.inc"
+.include "vera.inc"
 .include "config-sbl.inc"
 
 .import abrt02
@@ -58,6 +59,12 @@ abrt02_callback:        ; offset 136 ($88) - Callback for PBL to call when illeg
 ;
 .proc start_the_rom
     ; .asciiz "start_the_rom"
+
+    ; Before continuing, we delay a bit to let the screen come up so the user could see the banner.
+    ; We do this by waiting for approx 2 second.
+    ; We use the VERA_IRQ_LINE_REG register to count the VERA LINEs. The VERA IRQs are generated every 16.67ms (60Hz).
+    ldx     #120            ; 120 frames = 2 seconds
+    jsr     delay
 
     ; Configure the RMCTRL register (controls the RAMBLOCKs and the ROMBLOCKs in the NORA memory map).
     lda     #config_rmbctrl
@@ -123,5 +130,23 @@ abrt02_callback:        ; offset 136 ($88) - Callback for PBL to call when illeg
     jsr     vera_clear_screen
     jsr     vera_load_font
     jsr     vera_printbanner
+    rts
+.endproc
+
+; ---------------------------------------------------------------------------
+.proc delay
+; Input: X = number of frames to wait. One frame is 16.67ms (at 60Hz)
+; Output: none
+; Clobbers: A, X
+wait_1_frame:
+    lda     VERA_IRQ_LINE_REG
+    clc
+    sbc     #1
+waiting:
+    cmp     VERA_IRQ_LINE_REG
+    bne     waiting
+    dex
+    bne     wait_1_frame
+    ; done
     rts
 .endproc

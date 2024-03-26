@@ -1,5 +1,8 @@
 .feature c_comments
 
+.pushseg
+.segment "IOREGS"
+
 ;==============================================================================
 /* A structure with the Video Enhanced Retro Adapter's external registers */
 /* VERA registers */
@@ -13,7 +16,7 @@ VERA_CONTROL_REG            = $9F25         ; Control register
 
 VERA_IRQ_ENABLE_REG         = $9F26         ; IEN (Interrupt enable bits)
 VERA_IRQ_FLAGS_REG          = $9F27         ; ISR (Interrupt flags)
-VERA_IRQ_RASTER_REG         = $9F28         ; IRQ raster line
+VERA_IRQ_LINE_REG           = $9F28         ; IRQ raster line
 
 ; Visible when DCSEL flag = 0
 VERA_VIDEO_REG              = $9F29         ; Video flags
@@ -108,6 +111,9 @@ VERA_SPI_CONTROL_REG        = $9F3F         ; SPI control
 #define COLOR_LIGHTBLUE         0x0E
 #define COLOR_GRAY3             0x0F
 */
+
+.popseg
+
 COLOR_BLACK             = $00
 COLOR_WHITE             = $01
 COLOR_RED               = $02
@@ -125,6 +131,3 @@ COLOR_GRAY2             = $0C
 COLOR_LIGHTGREEN        = $0D
 COLOR_LIGHTBLUE         = $0E
 COLOR_GRAY3             = $0F
-
-
-
