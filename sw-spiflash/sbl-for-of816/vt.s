@@ -9,6 +9,7 @@
 
 ; .export vera_init
 .export vt_printstr_at_a16i8far
+.export vt_putchar
 
 ; TV_VGA = $01
 ; LAYER0_ENABLE = $10
@@ -240,35 +241,75 @@ loop_printstr_end:
 .i16
 .a16
 
+.macro ACCU_8_BIT
+    sep  #SHORT_A
+    .a8
+.endmacro
+
+.macro INDEX_8_BIT
+    sep  #SHORT_I
+    .i8
+.endmacro
+
+.macro ACCU_INDEX_8_BIT
+    sep  #SHORT_A|SHORT_I
+    .a8
+    .i8
+.endmacro
+
+.macro ACCU_16_BIT
+    rep  #SHORT_A
+    .a16
+.endmacro
+
+.macro INDEX_16_BIT
+    rep  #SHORT_I
+    .i16
+.endmacro
+
+.macro ACCU_INDEX_16_BIT
+    rep  #SHORT_A|SHORT_I
+    .a16
+    .i16
+.endmacro
+
 ;-------------------------------------------------------------------------------
 .proc vt_xy2cursor
 ; Convert X (column), Y (row) coordinates to a screen cursor.
+; Assuming full-native mode (a16, i16) upon entry and exit.
 ; Inputs:
 ;   X: column (0-79)
 ;   Y: row (0-59)
 ; Outputs:
 ;   BA:u16   screen cursor: hi: row (0-59), lo: column (0-79)*2
+    .a16
+    .i16
 /*
     // calculate VRAM address from x/y coordinates
     uint16_t ci = 2*x + 2*128*y;
 */
     ; switch A to 8-bit
-    sep  #SHORT_A          ; 8-bit memory and accu
-    .a8
+    ;sep  #SHORT_A          ; 8-bit memory and accu
+    ;.a8
+    ACCU_8_BIT
+    
     txa     ; A = x
     asl   A     ; A =  2*x
     xba     ; B = 2*x, A = undefined
     tya     ; A = y
     xba     ; BA = (y << 8) | (2*x)
     ; switch A to 16-bit
-    rep  #SHORT_A          ; 16-bit index regs X, Y
-    .a16
+    ;rep  #SHORT_A          ; 16-bit index regs A
+    ;.a16
+    ACCU_16_BIT
+
     rtl
 .endproc
 
 ;-------------------------------------------------------------------------------
 .proc vt_printchar_at
 ; Print a character given in A at the screen cursor given in X.
+; Assuming full-native mode (a16, i16) upon entry and exit.
 ; Inputs:
 ;   A       character to print (B is ignored)
 ;   X:u16   screen cursor where to print: hi: row (0-59), lo: column (0-79)*2
@@ -276,40 +317,112 @@ loop_printstr_end:
 ;   none
 ; Clobers:
 ;   X
+    .a16
+    .i16
 
     ; switch A to 8-bit
-    sep  #SHORT_A           ; 8-bit accu, mem
-    .a8
+    ;sep  #SHORT_A           ; 8-bit accu, mem
+    ;.a8
+    INDEX_16_BIT
+    ACCU_8_BIT
     pha                     ; save character to print
+    ; switch A to 16-bit
+    ;rep  #SHORT_A           ; 16-bit accu
+    ;.a16
+    ACCU_16_BIT
     ; // setup for the VRAM address, autoincrement
     ; VERA.address = ci & 0xFFFF;
     ; VERA.address_hi = 0 | (1 << 4);
-    stx     VERA_ADDRESS_REG       ; 16-bit store
-    lda     #0 | (1 << 4)
-    sta     VERA_ADDRESS_HI_REG
+    txa
+    sta     f:VERA_ADDRESS_REG       ; 16-bit store
+    ; ACCU_8_BIT
+    lda     #0 | (1 << 4)           ; 17-th bit is 0, autoincrement
+    sta     f:VERA_ADDRESS_HI_REG       ; 8-bit store
 
+    ; switch A to 8-bit
+    ;sep  #SHORT_A           ; 8-bit accu, mem
+    ;.a8
+    ACCU_8_BIT
     pla                 ; restore character
     ; // print the character
-    sta     VERA_DATA0_REG
-    ; colot attribute
+    sta     f:VERA_DATA0_REG
+    ; color attribute
     lda     #(COLOR_GRAY1 << 4) | (COLOR_LIGHTGREEN)         ; backround and foreground color
-    sta     VERA_DATA0_REG
+    sta     f:VERA_DATA0_REG
 
     ; switch A to 16-bit
-    rep     #SHORT_A
-    .a16
+    ;rep     #SHORT_A
+    ;.a16
+    ACCU_16_BIT
 
     rtl
 .endproc
 
 
 ;-------------------------------------------------------------------------------
-.proc vt_printchar
+.proc vt_putchar
 ; Print a character given in A at the current screen cursor.
+; Move the screen cursor accordingly.
 ; Inputs:
 ;   A       character to print (B is ignored)
 
+    ; rtl
+
+    .a16
+    .i16
+    ; switch A, X, Y to 8-bit
+    ;sep  #SHORT_A|SHORT_I           ; 8-bit accu, mem
+    ;.a8
+    ;.i8
+    ACCU_INDEX_8_BIT
+    pha
+    ; get current cursor from bVT_CURSOR_X/Y and convert to screen cursor
+    ldx    z:bVT_CURSOR_X
+    ldy    z:bVT_CURSOR_Y
+    jsl    vt_xy2cursor
+    ;.a16
+    ; now AB contains the screen cursor; move to X (16b)
+    ;rep     #SHORT_I
+    ;.i16
+    ACCU_INDEX_16_BIT
+    tax
+    ; print the character at the cursor
+    ;sep     #SHORT_A
+    ;.a8
+    ACCU_8_BIT
+    pla
+    jsl     vt_printchar_at
+    .a16
+    .i16
+    ;sep     #SHORT_A
+    ;.a8
+    ACCU_8_BIT
+    ; move cursor to the next position
+    inc     z:bVT_CURSOR_X
+    lda     z:bVT_CURSOR_X
+    cmp     #80
+    bne     cursor_done
+
+cursor_newline:
+    ; reset X to the beginning of the line
+    lda     #0
+    sta     z:bVT_CURSOR_X
+    ; move cursor down in the Y direction
+    inc     z:bVT_CURSOR_Y
+    lda     z:bVT_CURSOR_Y
+    cmp     #60
+    bne     cursor_done
+    ; reset Y to the beginning of the screen
+    lda     #0
+    sta     z:bVT_CURSOR_Y
+
+cursor_done:
+
+    ;rep     #SHORT_I
+    ;.i16
+    INDEX_16_BIT
+    ; ACCU_INDEX_16_BIT
+
+    rtl
 .endproc
-
-
 
