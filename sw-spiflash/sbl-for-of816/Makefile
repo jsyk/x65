@@ -34,10 +34,12 @@ sbl.lst: vt.s
 %.lst: ../common/%.s
 	ca65 $(INCLUDES) --cpu 65c02 $< -l $@
 
-load_sbl: sbl.bin
-	echo "Loading sbl.bin to 0x080000 (ROMBANK 0)"
-	../../x65pyhost/do-loadbin.py sbl.bin sram 0x080000
-	# ./do-cpureset.py -r 0
+load: sbl.bin
+	../../x65pyhost/do-cpureset.py -r 0
+	echo "Loading bios.bin to SRAM 0x00C000"
+	../../x65pyhost/do-loadbin.py bios.bin sram 0x0C000
+	echo "Loading of816rom to SRAM 0x010000"
+	../../x65pyhost/do-loadbin.py $(OF816ROM) sram 0x10000
 
 
 # program the complete binary image into SPI-Flash as the SBL

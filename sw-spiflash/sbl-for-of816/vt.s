@@ -335,7 +335,7 @@ loop_printstr_end:
     ; VERA.address_hi = 0 | (1 << 4);
     txa
     sta     f:VERA_ADDRESS_REG       ; 16-bit store
-    ; ACCU_8_BIT
+    ACCU_8_BIT
     lda     #0 | (1 << 4)           ; 17-th bit is 0, autoincrement
     sta     f:VERA_ADDRESS_HI_REG       ; 8-bit store
 
@@ -380,11 +380,13 @@ loop_printstr_end:
     ldx    z:bVT_CURSOR_X
     ldy    z:bVT_CURSOR_Y
     jsl    vt_xy2cursor
-    ;.a16
+    .a16
     ; now AB contains the screen cursor; move to X (16b)
     ;rep     #SHORT_I
     ;.i16
     ACCU_INDEX_16_BIT
+    ; debug: save the screen cursor to wVT_CURSOR_SCR
+    sta    z:wVT_CURSOR_SCR
     tax
     ; print the character at the cursor
     ;sep     #SHORT_A
@@ -421,7 +423,7 @@ cursor_done:
     ;rep     #SHORT_I
     ;.i16
     INDEX_16_BIT
-    ; ACCU_INDEX_16_BIT
+    ACCU_8_BIT          ; see platform-libs.inc
 
     rtl
 .endproc
