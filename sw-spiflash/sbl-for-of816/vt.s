@@ -334,7 +334,14 @@ loop_printstr_end:
     ; VERA.address = ci & 0xFFFF;
     ; VERA.address_hi = 0 | (1 << 4);
     txa
-    sta     f:VERA_ADDRESS_REG       ; 16-bit store
+    ACCU_8_BIT
+    ; NOTE: a 16-bit store to VERA_ADDRESS_REG does not work correctly with VERA!! We must use 2x 8-bit stores!!
+    sta     f:VERA_ADDRESS_REG       ; 8-bit store
+    ; sta     f:$009F20
+    xba
+    ; lda     #$10
+    sta     f:VERA_ADDRESS_M_REG       ; 8-bit store
+    ; sta     f:$009F21
     ACCU_8_BIT
     lda     #0 | (1 << 4)           ; 17-th bit is 0, autoincrement
     sta     f:VERA_ADDRESS_HI_REG       ; 8-bit store
