@@ -382,6 +382,10 @@ loop_printstr_end:
     ;.a8
     ;.i8
     ACCU_INDEX_8_BIT
+    ; is this newline?
+    cmp     #13
+    beq     cursor_newline
+
     pha
     ; get current cursor from bVT_CURSOR_X/Y and convert to screen cursor
     ldx    z:bVT_CURSOR_X
