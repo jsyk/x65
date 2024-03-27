@@ -86,6 +86,7 @@ PTR     = $10
     stz   VERA_CONTROL_REG
 
     ; characters are 8x8, visible screen 80 columns, 60 rows.
+    ; Complete screen is 128x128 characters, 8x8 font
     ; # Layer0 setup: Tile mode 1bpp, Map Width = 128 tiles, Map Height = 128 tiles ==> 16384 tiles, each 2B => 32768 B
     lda   #MAP_WH_128T << 6 | MAP_WH_128T << 4 | BPP_1
     sta   VERA_LAYER0_CONFIG_REG

@@ -1,8 +1,11 @@
 .p816
 .include "common.inc"
-; .autoimport	on
+.include "vt.inc"
+
+
 .import vera_init
 .import vt_printstr_at_a16i8far
+.import vt_putchar
 
 ; assume OF816 starts at $01_0000, i.e. the beginning of the BANK = $01
 OF816_START  = $010000
@@ -13,7 +16,7 @@ hello_str:
     .asciiz "Hello, world!\n"
 
 ; ========================================================================
-.segment "LAST256"
+.code
 
 .proc start
 .i8
@@ -30,7 +33,7 @@ hello_str:
     .a8
     .i8
 
-    ; jsr     vera_init
+    ; jsr     vera_init     ; initialize the VERA - already done in SBL!!
 
     rep     #SHORT_A
     .a16
@@ -39,6 +42,11 @@ hello_str:
     ; ldx     #0
     ; ldy     #0
     ; jsl     vt_printstr_at_a16i8far
+
+    ; reset screen cursor position
+    lda     #0
+    sta     bVT_CURSOR_X
+    sta     bVT_CURSOR_Y
 
 
     ; OF816 assumes full native mode
@@ -52,6 +60,10 @@ fin_loop:
     BRA     fin_loop
 .endproc
 
+; ========================================================================
+.segment "LAST256"          ; $00_FF00-$00_FFFF
+    jmp     f:vt_putchar          ; @ $00_FF00
+    
 
 ; ========================================================================
 ; this is placed at the last 32 bytes of CPU BANK = $00

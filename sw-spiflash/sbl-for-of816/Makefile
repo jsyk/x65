@@ -7,11 +7,11 @@ INCLUDES = -I../../include -I.
 all: sbl.bin sbl.lst isafix.lst trampoline.lst img.bin
 
 # Complete image file is composed from the SBL and the OF816ROM as the payload
-img.bin: sbl.bin rombios.bin $(OF816ROM)
-	cat sbl.bin rombios.bin $(OF816ROM) >img.bin
+img.bin: sbl.bin bios.bin $(OF816ROM)
+	cat sbl.bin bios.bin $(OF816ROM) >img.bin
 
-rombios.bin : vt.o font8x8.o romstru.o
-	ld65 -C rombios.ld $^ -o $@
+bios.bin : vt.o bios.o
+	ld65 -C bios.ld $^ -o $@
 
 sbl.bin: ../common/sbl.o ../common/isafix.o ../common/vidtext.o ../common/font8x8.o
 	ld65 -C ../common/sbl.ld $^ -o $@
@@ -45,4 +45,4 @@ prog_img: img.bin
 	../../x65prog/x65prog -N -o 256k $<
 
 clean:
-	rm -f *.o sbl.bin *.lst img.bin ../common/*.o ../common/*.lst rombios.bin
+	rm -f *.o sbl.bin *.lst img.bin ../common/*.o ../common/*.lst bios.bin
