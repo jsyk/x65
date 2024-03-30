@@ -7,6 +7,7 @@ module sysregs (
     // Global signals
     input           clk,                    // 48MHz
     input           resetn,                 // sync reset
+    input           cresn_i,                // CPU Reset, active low
     // NORA SLAVE Interface
     input [4:0]     slv_addr_i,
     input [7:0]     slv_datawr_i,     // write data = available just at the end of cycle!!
@@ -310,6 +311,15 @@ module sysregs (
                     // lock the register again
                     sysctrl_unlocked_r <= 0;
                 end
+            end
+
+            if (!cresn_i)
+            begin
+                // CPU reset is active!
+                // Disable ABRT02 handler
+                abrt02_en_o <= 0;
+                // lock SYSCTRL
+                sysctrl_unlocked_r <= 0;
             end
         end
     end

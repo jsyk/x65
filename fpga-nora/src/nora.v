@@ -864,8 +864,9 @@ module top (
     // common system registers
     sysregs scrb (
         // Global signals
-        .clk (clk6x),                    // 48MHz
-        .resetn (resetn),                 // sync reset
+        .clk        (clk6x),                    // 48MHz
+        .resetn     (resetn),                 // sync reset
+        .cresn_i    (CRESn),                    // CPU reset
         // NORA SLAVE Interface
         .slv_addr_i     (nora_slv_addr[4:0]),
         .slv_datawr_i   (nora_slv_datawr),     // write data = available just at the end of cycle!!
