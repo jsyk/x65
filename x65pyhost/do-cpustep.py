@@ -165,6 +165,7 @@ print("CPU Step:\n")
 
 cycle_i = 0
 step_i = 0
+cycles_without_step = 0
 cpust_ini = CpuRegs()
 
 # for i in range(0, step_count+1):
@@ -231,6 +232,7 @@ while step_i <= step_count:
         # is_sync = (tbuf[0] & ISYNC) == ISYNC
         if tbuf.is_sync:
             step_i += 1
+            cycles_without_step = 0
         # decode and print cycle line
         print_traceline(tbuf)
     else:
@@ -247,6 +249,11 @@ while step_i <= step_count:
     #     print(cpust_ini)
 
     cycle_i += 1
+    cycles_without_step += 1
+
+    if cycles_without_step > 32:
+        print("ERROR: {} CPU cycles without a new instruction! Is CPU stopped?".format(cycles_without_step))
+        break
 
     # read_print_trace(banks)
 
