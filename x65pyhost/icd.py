@@ -249,9 +249,12 @@ class ICD:
         # This __init__ method is private and should not be called directly.
         # Use from_trace() or from_hw() instead.
         def __init__(self):
-            self.romblock = None
-            self.ramblock_raw = None
-            self.is_bootrom = None
+            # self.romblock = None
+            # self.ramblock_raw = None
+            self.sram_block_raw = None
+            # FIXME: we should somehow indicate if the xxBLOCKREGS are present in the zero page!
+            # self.has_blockregs = None       # None because we don't know!
+            self.has_bootrom = None         # None because we don't know!
         
         @classmethod
         def from_trace(cls, MAH, CBA, CA):
@@ -263,31 +266,36 @@ class ICD:
                 # bank zero -> must decode carefuly
                 if 0 <= CA < 2:
                     # bank regs
-                    self.romblock = None
-                    self.ramblock_raw = None
+                    # self.romblock = None
+                    # self.ramblock_raw = None
+                    pass        # TBD: what here? Nora should give us a hint if these are BLOCKREGS !!!
                 elif CA < 0x9F00:
                     # CPU low memory starts at sram fix 0x000000
-                    self.romblock = None
-                    self.ramblock_raw = None
+                    # self.romblock = None
+                    # self.ramblock_raw = None
+                    self.sram_block_raw = 0x00      # low-memory starts in SRAM block 0
                 elif 0xA000 <= CA < 0xC000:
                     # CPU RAM Bank starts at sram fix 0x000
-                    self.romblock = None
-                    self.ramblock_raw = MAH
+                    # self.romblock = None
+                    # self.ramblock_raw = MAH
+                    self.sram_block_raw = MAH
                 elif 0xC000 <= CA:
                     # CPU ROM bank
-                    self.romblock = (MAH >> 1) & 0x1F
-                    self.ramblock_raw = None
-                    self.is_bootrom = (MAH & 0x80) != 0
+                    # self.romblock = (MAH >> 1) & 0x1F
+                    # self.ramblock_raw = None
+                    self.sram_block_raw = MAH & 0x7F            # ROM-Block could not located in upper half of SRAM, by design!
+                    self.has_bootrom = (MAH & 0x80) != 0        # True or False
             else:
                 # CPU Bank non-zero -> linear address into SRAM, we could not extract the bloc
                 # numbers from the given trace data!
-                self.romblock = None
-                self.ramblock_raw = MAH
-                self.is_bootrom = None
+                # self.romblock = None
+                # self.ramblock_raw = MAH
+                self.sram_block_raw = MAH
+                self.has_bootrom = None         # None because we don't know!
             return self
 
         @classmethod
-        def from_hw(cls, icd):
+        def from_hw(cls, icd, CBA, CA):
             # create MAHDecoded object
             self = cls()
             # read current ROMBLOCK and RAMBLOCK registers from the hw via the icd link
@@ -295,12 +303,39 @@ class ICD:
             # bregs = icd.bankregs_read(0, 2)
             # Extract the bank regs from the buffer; keep in mind that logical RAMBLOCK_REG 
             # is mapped to physical 8kB SRAM block with inverted MSB (see doc/mem-map.md).
-            self.ramblock_raw = bregs[0] ^ 0x80
-            self.romblock = bregs[1] 
+            # self.ramblock_raw = bregs[0] ^ 0x80
+            # self.romblock = bregs[1] 
             # read RMBCTRL reg at 0x9F53
             rmbctrl = icd.iopeek(0x53)
             # self.is_bootrom = (self.romblock & 0x80) != 0
-            self.is_bootrom = (rmbctrl & 0x80) != 0
+            self.has_bootrom = (rmbctrl & 0x80) != 0
+            ENABLE_ROM_CDEF = (rmbctrl & 0x10) != 0
+
+            if CBA == 0:
+                if CA < 0x9F00:
+                    # CPU low memory starts at sram fix 0x000000
+                    # self.romblock = None
+                    # self.ramblock_raw = None
+                    self.sram_block_raw = 0x00      # low-memory starts in SRAM block 0
+                elif 0xA000 <= CA < 0xC000:
+                    # CPU RAM Bank starts at sram fix 0x000
+                    # self.romblock = None
+                    # self.ramblock_raw = MAH
+                    ramblock_raw = bregs[0] ^ 0x80
+                    self.sram_block_raw = ramblock_raw
+                elif 0xC000 <= CA:
+                    # CPU ROM bank, maybe.
+                    # FIXME: split in two 8kB blocks!!
+                    # self.romblock = (MAH >> 1) & 0x1F
+                    # self.ramblock_raw = None
+                    if ENABLE_ROM_CDEF:
+                        romblock = bregs[1] 
+                        self.sram_block_raw = (0x080000 + romblock*2*ICD.BLOCKSIZE) >> 13
+                    else:
+                        self.sram_block_raw = 6
+                    
+            else:
+                self.sram_block_raw = (CBA << 3) + ((CA >> 13) & 0x07)
             return self
         
     # Read a byte via ICD memory access from the target, the way a CPU would do.
@@ -322,9 +357,10 @@ class ICD:
             elif 0xA000 <= CA < 0xC000:
                 # CPU RAM Bank starts at sram fix 0x000
                 #rambank = MAH
-                rambank = mahd.ramblock_raw
+                # rambank = mahd.ramblock_raw
                 offs = (CA - 0xA000)
-                rdata = self.sram_blockread(offs + rambank*ICD.BLOCKSIZE, 1)
+                # rdata = self.sram_blockread(offs + rambank*ICD.BLOCKSIZE, 1)
+                rdata = self.sram_blockread(offs + mahd.sram_block_raw*ICD.BLOCKSIZE, 1)
             elif 0xC000 <= CA:
                 # CPU ROM bank
                 offs = (CA - 0xC000)
@@ -333,16 +369,18 @@ class ICD:
                 # MAH is the top 8 bits from SRAM addressing. 
                 # If MAH[7] is set while CBA=0 and CA is in ROMBLOCK, then this flags access to the bootrom.
                 # if (MAH & 0x80) == 0:
-                if not mahd.is_bootrom:
+                if not mahd.has_bootrom:
                     # MAH[0] is part of the offset within a 16kB ROMBLOCK. So we must shift right by 1 to skip it.
                     # There are just 32 ROMBLOCKs, but the higher bits of MAH are offset within SRAM, which must be cleared out here.
                     # rombank = (MAH >> 1) & 0x1F
-                    rombank = mahd.romblock
+                    # rombank = mahd.romblock
                     # CPU ROM bank starts at sram fix 0x080000
-                    rdata = self.sram_blockread(offs + 0x080000 + rombank*2*ICD.BLOCKSIZE, 1)
+                    # rdata = self.sram_blockread(offs + 0x080000 + rombank*2*ICD.BLOCKSIZE, 1)
+                    rdata = self.sram_blockread(offs + mahd.sram_block_raw*ICD.BLOCKSIZE, 1)
                 else:
                     # bootrom inside of NORA
                     # print("[bootrom_blockread({})]".format(offs))
+                    # FIXME: this is faulty becasue bootrom is just in the LAST 8KB !! NOT 16KB!!!
                     rdata = self.bootrom_blockread(offs, 1)
         else:
             # CPU Bank non-zero -> linear address into SRAM

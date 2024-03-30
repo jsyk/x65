@@ -81,7 +81,7 @@ def decode_traced_instr(icd: ICD, tbuf: ICD.TraceReg, is_upcoming=False) -> str:
         # The MAH we have is just stale from the previous cycle, which could be a data cycle.
         # Since the processor is stopped at the moment, we read the contents of the RAMBLOCK
         # and ROMBLOCK registers from the hardware now.
-        mahd = ICD.MAHDecoded.from_hw(icd)
+        mahd = ICD.MAHDecoded.from_hw(icd, CBA, CA)
         CD = icd.read_byte_as_cpu(CBA, mahd, CA)
         tbuf.CD = CD
     else:
