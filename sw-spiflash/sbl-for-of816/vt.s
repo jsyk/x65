@@ -456,6 +456,8 @@ wrloop:
     bit     #1
     bne     done        ; no => done
     ; yes => VSYNC
+handle_vsync:
+    inc     z:bVT_VSYNC_NR
 done:
     rtl
 .endproc
