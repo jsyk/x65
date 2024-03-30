@@ -10,6 +10,7 @@
 ; .export vera_init
 .export vt_printstr_at_a16i8far
 .export vt_putchar
+.export _vidmove, _vidtxtclear
 
 ; TV_VGA = $01
 ; LAYER0_ENABLE = $10
@@ -288,6 +289,10 @@ loop_printstr_end:
     INDEX_16_BIT
     ACCU_8_BIT
     pha                     ; save character to print
+    ; Setup VERA's DATA0 for output:
+    ;   ADDRSEL = 0
+    lda     #0
+    sta     f:VERA_CONTROL_REG
     ; switch A to 16-bit
     ACCU_16_BIT
     ; // setup for the VRAM address, autoincrement
@@ -341,6 +346,99 @@ loop_printstr_end:
     jsl     vt_printchar_at
     .a16
     .i16
+    rtl
+.endproc
+
+
+;-------------------------------------------------------------------------------
+.proc _vidmove
+; Move bytes in the video frame buffer.
+; Inputs:
+;   A:u16   number of bytes to move
+;   X:u16   source ptr in VERA (limited to the first 64kB)
+;   Y:u16   dest ptr in VERA
+;
+    ACCU_INDEX_16_BIT
+    ; save all to the stack
+    pha
+    phy
+    phx
+    ; switch to 8-bits
+    ACCU_8_BIT
+    ; Setup VERA's DATA0 for source:
+    ;   ADDRSEL = 0
+    lda     #0
+    sta     f:VERA_CONTROL_REG
+    ;   VRAM Address lo, mid, hi
+    pla     ; X_lo = source_lo
+    sta     f:VERA_ADDRESS_REG
+    pla     ; X_hi = source_hi
+    sta     f:VERA_ADDRESS_M_REG
+    lda     #(1 << 4)           ; Increment=1
+    sta     f:VERA_ADDRESS_HI_REG
+    ; Setup VERA's DATA1 for source:
+    ;   ADDRSEL = 1
+    lda     #1
+    sta     f:VERA_CONTROL_REG
+    ;   VRAM Address lo, mid, hi
+    pla     ; Y_lo = dest_lo
+    sta     f:VERA_ADDRESS_REG
+    pla     ; Y_hi = dest_hi
+    sta     f:VERA_ADDRESS_M_REG
+    lda     #(1 << 4)           ; Increment=1
+    sta     f:VERA_ADDRESS_HI_REG
+    ; VRAM address setup done!
+    ; X/Y is in 16-bit mode.
+    ; Pull the iteration count (number of bytes) in X
+    plx
+    ; loop X-times and copy from VERA's DATA0 (source) to DATA1 (dest)
+    beq     done
+cploop:
+    lda     f:VERA_DATA0_REG
+    sta     f:VERA_DATA1_REG
+    dex
+    bne     cploop
+
+ done:
+    rtl
+.endproc
+
+;-------------------------------------------------------------------------------
+.proc _vidtxtclear
+; Clear bytes in the video frame buffer.
+; Inputs:
+;   A:u16   character+attr to write
+;   X:u16   dst ptr in VERA (limited to the first 64kB)
+;   Y:u16   number of words to write
+;
+    ACCU_INDEX_16_BIT
+    pha
+    phx
+    ACCU_8_BIT
+    ; Setup VERA's DATA0 for writing:
+    ;   ADDRSEL = 0
+    lda     #0
+    sta     f:VERA_CONTROL_REG
+    ;   VRAM Address lo, mid, hi
+    pla     ; X_lo = dst_lo
+    sta     f:VERA_ADDRESS_REG
+    pla     ; X_hi = dst__hi
+    sta     f:VERA_ADDRESS_M_REG
+    lda     #(1 << 4)           ; Increment=1
+    sta     f:VERA_ADDRESS_HI_REG
+    ;
+    ACCU_16_BIT
+    pla         ; A = lo:character+hi:attr
+    ACCU_8_BIT
+    ; loop Y-times and write the word in A
+wrloop:
+    sta     f:VERA_DATA0_REG        ; store character
+    xba
+    sta     f:VERA_DATA0_REG        ; store attr
+    xba
+    dey
+    bne     wrloop
+
     rtl
 .endproc
 
@@ -403,11 +501,27 @@ cursor_newline:
     ; move cursor down in the Y direction
     inc     z:bVT_CURSOR_Y
     lda     z:bVT_CURSOR_Y
+    ; got beyond the bottom of the screen?
     cmp     #60
-    bne     cursor_done
-    ; reset Y to the beginning of the screen; FIXME we should scroll!!
-    lda     #0
-    sta     z:bVT_CURSOR_Y
+    bne     cursor_done     ; not yet => done.
+    ; yes => the cursor goes back to the last line
+    dec     z:bVT_CURSOR_Y
+    ; scroll down the screen by 1 line
+    ACCU_INDEX_16_BIT
+    lda     #(256*59)           ; A = number of bytes: one line is 128 chars+attr = 256 bytes, and we scroll 59 lines
+    ldx     #(256*1)            ; X = source: beginning of line #1
+    ldy     #0                  ; Y = destination: beginning of line #0
+    jsl     _vidmove
+    ; clear the last line
+    ACCU_INDEX_16_BIT
+    lda     #(((COLOR_GRAY1 << 4) | (COLOR_LIGHTGREEN)) << 8) | ' '
+    ldx     #(256*59)           ; X = the last line ptr
+    ldy     #128                ; number of char+attr
+    jsl     _vidtxtclear
+
+    ;   reset Y to the beginning of the screen; FIXME we should scroll!!
+    ; lda     #0
+    ; sta     z:bVT_CURSOR_Y
 
 cursor_done:
 

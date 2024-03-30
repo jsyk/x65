@@ -6,6 +6,7 @@
 .import vera_init
 .import vt_printstr_at_a16i8far
 .import vt_putchar
+.import _vidmove
 
 ; assume OF816 starts at $01_0000, i.e. the beginning of the BANK = $01
 OF816_START  = $010000
@@ -34,25 +35,34 @@ hello_str:
     .i8
 
     ; jsr     vera_init     ; initialize the VERA - already done in SBL!!
+    ; Now we are in text mode 80 x 60 characters visible, and 128 x 128 chars allocated.
 
-    rep     #SHORT_A
-    .a16
+    ; The SBL has printed a logo in the middle of the screen.
+    ; The logo is 6 lines high; it begins at the line #27 and ends at the line #33.
+    ;
+    ; Scroll down by 25 lines so that we put the logo at the top of the screen.
+    ACCU_INDEX_16_BIT
+    lda     #(256*35)           ; A = number of bytes: one line is 128 chars+attr = 256 bytes, and we scroll (60-25)=35 lines
+    ldx     #(256*25)            ; X = source: beginning of line #25
+    ldy     #0                  ; Y = destination: beginning of line #0
+    jsl     _vidmove
+
+    ACCU_8_BIT
 
     ; lda     #hello_str
     ; ldx     #0
     ; ldy     #0
     ; jsl     vt_printstr_at_a16i8far
 
-    ; reset screen cursor position
+    ; reset screen cursor position: X=0, Y=10
     lda     #0
-    sta     bVT_CURSOR_X
-    sta     bVT_CURSOR_Y
+    sta     z:bVT_CURSOR_X
+    lda     #10
+    sta     z:bVT_CURSOR_Y
 
 
     ; OF816 assumes full native mode
-    rep     #SHORT_A|SHORT_I
-    .a16
-    .i16
+    ACCU_INDEX_16_BIT
     ; jump to OF816 start
     jmp     f:OF816_START
 
