@@ -1,12 +1,13 @@
 .p816
 .include "common.inc"
+.include "vera.inc"
 .include "vt.inc"
 
 
 .import vera_init
 .import vt_printstr_at_a16i8far
 .import vt_putchar
-.import _vidmove
+.import _vidmove, _vt_handle_irq
 
 ; assume OF816 starts at $01_0000, i.e. the beginning of the BANK = $01
 OF816_START  = $010000
@@ -60,6 +61,11 @@ hello_str:
     lda     #10
     sta     z:bVT_CURSOR_Y
 
+    ; enable VERA VSYNC interrupts in bit [0]
+    lda     #1
+    sta     f:VERA_IRQ_ENABLE_REG
+    ; enable CPU irq handling
+    cli
 
     ; OF816 assumes full native mode
     ACCU_INDEX_16_BIT
@@ -68,6 +74,23 @@ hello_str:
 
 fin_loop:
     BRA     fin_loop
+.endproc
+
+;-------------------------------------------------------------------------------
+.proc bios_irq_handler
+    ; save all registers
+    ACCU_INDEX_16_BIT
+    pha
+    phx
+    phy
+    ; trigger VT irq handling
+    jsl     _vt_handle_irq
+    ; restore all registers
+    ACCU_INDEX_16_BIT
+    ply
+    plx
+    pla
+    rti
 .endproc
 
 ; ========================================================================
@@ -93,7 +116,7 @@ fin_loop:
     ; FFEC,D = reserved
     .WORD 0
     ; FFEE,F = IRQ (hw)
-    .WORD start
+    .WORD bios_irq_handler
 
 .segment "EMUVECTORS"
     ; FFF0,1 = reserved

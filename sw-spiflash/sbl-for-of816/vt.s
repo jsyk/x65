@@ -11,6 +11,7 @@
 .export vt_printstr_at_a16i8far
 .export vt_putchar
 .export _vidmove, _vidtxtclear
+.export _vt_handle_irq
 
 ; TV_VGA = $01
 ; LAYER0_ENABLE = $10
@@ -439,6 +440,23 @@ wrloop:
     dey
     bne     wrloop
 
+    rtl
+.endproc
+
+
+;-------------------------------------------------------------------------------
+.proc _vt_handle_irq
+; Check and handle VERA IRQ.
+    ACCU_8_BIT
+    ; read VERA IRQ status
+    lda     f:VERA_IRQ_FLAGS_REG
+    ; and acknowledge it
+    sta     f:VERA_IRQ_FLAGS_REG
+    ; Now check: was there VSYNC [0] ?
+    bit     #1
+    bne     done        ; no => done
+    ; yes => VSYNC
+done:
     rtl
 .endproc
 
