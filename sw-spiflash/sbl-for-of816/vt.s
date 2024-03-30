@@ -241,38 +241,6 @@ loop_printstr_end:
 .i16
 .a16
 
-.macro ACCU_8_BIT
-    sep  #SHORT_A
-    .a8
-.endmacro
-
-.macro INDEX_8_BIT
-    sep  #SHORT_I
-    .i8
-.endmacro
-
-.macro ACCU_INDEX_8_BIT
-    sep  #SHORT_A|SHORT_I
-    .a8
-    .i8
-.endmacro
-
-.macro ACCU_16_BIT
-    rep  #SHORT_A
-    .a16
-.endmacro
-
-.macro INDEX_16_BIT
-    rep  #SHORT_I
-    .i16
-.endmacro
-
-.macro ACCU_INDEX_16_BIT
-    rep  #SHORT_A|SHORT_I
-    .a16
-    .i16
-.endmacro
-
 ;-------------------------------------------------------------------------------
 .proc vt_xy2cursor
 ; Convert X (column), Y (row) coordinates to a screen cursor.
@@ -289,8 +257,6 @@ loop_printstr_end:
     uint16_t ci = 2*x + 2*128*y;
 */
     ; switch A to 8-bit
-    ;sep  #SHORT_A          ; 8-bit memory and accu
-    ;.a8
     ACCU_8_BIT
     
     txa     ; A = x
@@ -299,8 +265,6 @@ loop_printstr_end:
     tya     ; A = y
     xba     ; BA = (y << 8) | (2*x)
     ; switch A to 16-bit
-    ;rep  #SHORT_A          ; 16-bit index regs A
-    ;.a16
     ACCU_16_BIT
 
     rtl
@@ -320,15 +284,11 @@ loop_printstr_end:
     .a16
     .i16
 
-    ; switch A to 8-bit
-    ;sep  #SHORT_A           ; 8-bit accu, mem
-    ;.a8
+    ; switch A to 8-bit, X/Y to 16-bit
     INDEX_16_BIT
     ACCU_8_BIT
     pha                     ; save character to print
     ; switch A to 16-bit
-    ;rep  #SHORT_A           ; 16-bit accu
-    ;.a16
     ACCU_16_BIT
     ; // setup for the VRAM address, autoincrement
     ; VERA.address = ci & 0xFFFF;
@@ -337,18 +297,12 @@ loop_printstr_end:
     ACCU_8_BIT
     ; NOTE: a 16-bit store to VERA_ADDRESS_REG does not work correctly with VERA!! We must use 2x 8-bit stores!!
     sta     f:VERA_ADDRESS_REG       ; 8-bit store
-    ; sta     f:$009F20
     xba
-    ; lda     #$10
     sta     f:VERA_ADDRESS_M_REG       ; 8-bit store
-    ; sta     f:$009F21
-    ACCU_8_BIT
     lda     #0 | (1 << 4)           ; 17-th bit is 0, autoincrement
     sta     f:VERA_ADDRESS_HI_REG       ; 8-bit store
 
     ; switch A to 8-bit
-    ;sep  #SHORT_A           ; 8-bit accu, mem
-    ;.a8
     ACCU_8_BIT
     pla                 ; restore character
     ; // print the character
@@ -357,35 +311,19 @@ loop_printstr_end:
     lda     #(COLOR_GRAY1 << 4) | (COLOR_LIGHTGREEN)         ; backround and foreground color
     sta     f:VERA_DATA0_REG
 
-    ; switch A to 16-bit
-    ;rep     #SHORT_A
-    ;.a16
-    ACCU_16_BIT
-
     rtl
 .endproc
 
 
 ;-------------------------------------------------------------------------------
-.proc vt_putchar
+.proc vt_printchar
 ; Print a character given in A at the current screen cursor.
-; Move the screen cursor accordingly.
+; (Don't move the screen cursor!)
 ; Inputs:
 ;   A       character to print (B is ignored)
-
-    ; rtl
-
-    .a16
-    .i16
+;
     ; switch A, X, Y to 8-bit
-    ;sep  #SHORT_A|SHORT_I           ; 8-bit accu, mem
-    ;.a8
-    ;.i8
     ACCU_INDEX_8_BIT
-    ; is this newline?
-    cmp     #13
-    beq     cursor_newline
-
     pha
     ; get current cursor from bVT_CURSOR_X/Y and convert to screen cursor
     ldx    z:bVT_CURSOR_X
@@ -393,23 +331,65 @@ loop_printstr_end:
     jsl    vt_xy2cursor
     .a16
     ; now AB contains the screen cursor; move to X (16b)
-    ;rep     #SHORT_I
-    ;.i16
     ACCU_INDEX_16_BIT
     ; debug: save the screen cursor to wVT_CURSOR_SCR
     sta    z:wVT_CURSOR_SCR
     tax
     ; print the character at the cursor
-    ;sep     #SHORT_A
-    ;.a8
     ACCU_8_BIT
     pla
     jsl     vt_printchar_at
     .a16
     .i16
-    ;sep     #SHORT_A
-    ;.a8
+    rtl
+.endproc
+
+;-------------------------------------------------------------------------------
+.proc vt_putchar
+; Print a character given in A at the current screen cursor.
+; Move the screen cursor accordingly.
+; Inputs:
+;   A       character to print (B is ignored)
+;
+    ; rtl
+    ; switch A, X, Y to 8-bit
+    ACCU_INDEX_8_BIT
+
+    ; Decode special (non-print) characters:
+    ; is this CR=13 carriage return?
+    cmp     #13
+    bne     check_lf
+    ; yes, it is CR => move cursor to the beginning of the current line (Y is kept)
+    stz     z:bVT_CURSOR_X
+    bra     cursor_done
+
+check_lf:
+    ; is this LF=10 line feed?
+    cmp     #10
+    beq     cursor_newline       ; yes => newline (including CR, this is easification)
+
+    ; is this BS=08 backspace?
+    cmp     #08
+    bne     do_print_glyph
+    ; yes, this is backspace
+    ; move cursor LEFT
+    dec     z:bVT_CURSOR_X
+    ; Xpos still positive?
+    bpl     cursor_done     ; positive=yes => done
+    ; Xpos is negative => line up
+    dec     z:bVT_CURSOR_Y
+    ; Ypos still positive?
+    bpl     cursor_done     ; positive=yes => done
+    ; keep at the beginnign of the screen! FIXME: scroll down??
+    stz     z:bVT_CURSOR_Y
+    bra     cursor_done
+
+do_print_glyph:
+    ; print character in A at the current screen cursor position
+    jsl     vt_printchar
     ACCU_8_BIT
+
+cursor_right:
     ; move cursor to the next position
     inc     z:bVT_CURSOR_X
     lda     z:bVT_CURSOR_X
@@ -425,14 +405,12 @@ cursor_newline:
     lda     z:bVT_CURSOR_Y
     cmp     #60
     bne     cursor_done
-    ; reset Y to the beginning of the screen
+    ; reset Y to the beginning of the screen; FIXME we should scroll!!
     lda     #0
     sta     z:bVT_CURSOR_Y
 
 cursor_done:
 
-    ;rep     #SHORT_I
-    ;.i16
     INDEX_16_BIT
     ACCU_8_BIT          ; see platform-libs.inc
 
