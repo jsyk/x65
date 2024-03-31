@@ -9,7 +9,7 @@
 
 ; .export vera_init
 .export vt_printstr_at_a16i8far
-.export vt_putchar
+.export vt_putchar, vt_keyq
 .export _vidmove, _vidtxtclear
 .export _vt_handle_irq
 
@@ -454,7 +454,7 @@ wrloop:
     sta     f:VERA_IRQ_FLAGS_REG
     ; Now check: was there VSYNC [0] ?
     bit     #1
-    bne     done        ; no => done
+    beq     done        ; 0 => no => done
     ; yes => VSYNC
 handle_vsync:
     inc     z:bVT_VSYNC_NR
@@ -551,3 +551,87 @@ cursor_done:
     rtl
 .endproc
 
+
+;-------------------------------------------------------------------------------
+.proc vt_keyq
+    ACCU_8_BIT
+
+    ; is on-screen cursor enabled?
+    lda     z:bVT_CURSOR_VISIBLE
+    beq     done            ; 0 => not visible -> end
+
+    ; how long ago did we toggle on-screen cursor?
+    lda     z:bVT_VSYNC_NR
+    sec
+    sbc     z:bVT_CURSOR_LAST_VSYNC
+    ; this is not correct, but for a first try...
+    and     #$E0
+    beq     done        ; not long ago -> exit
+
+    ; cursor enabled and with a timeout -> toggle
+    lda     z:bVT_CURSOR_VISIBLE
+    eor     #$03        ; toggle bits [0] and [1], so 1 becomes 2 and vice-versa.
+    sta     z:bVT_CURSOR_VISIBLE
+
+    ; update the time
+    lda     z:bVT_VSYNC_NR
+    sta     z:bVT_CURSOR_LAST_VSYNC
+
+    ; switch A, X, Y to 8-bit
+    ACCU_INDEX_8_BIT
+    ; get current cursor from bVT_CURSOR_X/Y and convert to screen cursor
+    ldx    z:bVT_CURSOR_X
+    ldy    z:bVT_CURSOR_Y
+    jsl    vt_xy2cursor
+    ; now AB contains the screen cursor; move to X (16b)
+    ACCU_INDEX_16_BIT
+    ; debug: save the screen cursor to wVT_CURSOR_SCR
+    sta    z:wVT_CURSOR_SCR
+    tax
+
+    ; switch A to 8-bit, X/Y to 16-bit
+    INDEX_16_BIT
+    ACCU_8_BIT
+    ; Setup VERA's DATA0 for output:
+    ;   ADDRSEL = 0
+    lda     #0
+    sta     f:VERA_CONTROL_REG
+    ; switch A to 16-bit
+    ACCU_16_BIT
+    ; // setup for the VRAM address, autoincrement
+    ; VERA.address = ci & 0xFFFF;
+    ; VERA.address_hi = 0 | (1 << 4);
+    txa
+    inc     A
+    ACCU_8_BIT
+    ; NOTE: a 16-bit store to VERA_ADDRESS_REG does not work correctly with VERA!! We must use 2x 8-bit stores!!
+    sta     f:VERA_ADDRESS_REG       ; 8-bit store
+    xba
+    sta     f:VERA_ADDRESS_M_REG       ; 8-bit store
+    lda     #0 | (0 << 4)           ; 17-th bit is 0, NO autoincrement
+    sta     f:VERA_ADDRESS_HI_REG       ; 8-bit store
+
+    ; switch A to 8-bit
+    ACCU_8_BIT
+    ; Now VERA's DATA0 reg points to the attribute byte of the char under cursor
+
+    lda     f:VERA_DATA0_REG        ; attr
+    ; Switch upper and lower nibble in A
+    ACCU_16_BIT
+    rol     A
+    rol     A
+    rol     A
+    rol     A
+    and     #$0FF0
+    sta     z:wTMP
+    ACCU_8_BIT
+    ora     z:wTMP+1
+    ; write back the attribute byte
+    sta     f:VERA_DATA0_REG
+
+
+done:
+    INDEX_16_BIT
+    ACCU_8_BIT          ; see platform-libs.inc
+    rtl
+.endproc

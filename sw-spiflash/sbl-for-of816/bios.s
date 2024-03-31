@@ -6,7 +6,7 @@
 
 .import vera_init
 .import vt_printstr_at_a16i8far
-.import vt_putchar
+.import vt_putchar, vt_keyq
 .import _vidmove, _vt_handle_irq
 
 ; assume OF816 starts at $01_0000, i.e. the beginning of the BANK = $01
@@ -61,6 +61,9 @@ hello_str:
     lda     #10
     sta     z:bVT_CURSOR_Y
 
+    lda     #1
+    sta     z:bVT_CURSOR_VISIBLE
+
     ; enable VERA VSYNC interrupts in bit [0]
     lda     #1
     sta     f:VERA_IRQ_ENABLE_REG
@@ -95,7 +98,10 @@ fin_loop:
 
 ; ========================================================================
 .segment "LAST256"          ; $00_FF00-$00_FFFF
+    ; $00FF00 = vt_putchar
     jmp     f:vt_putchar          ; @ $00_FF00
+    ; $00FF04 = vt_keyq
+    jmp     f:vt_keyq          ; @ $00_FF00
     
 
 ; ========================================================================
