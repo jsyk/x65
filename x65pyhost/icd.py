@@ -264,27 +264,34 @@ class ICD:
             # For CBA == 0, the CA is in the ROM, RAM, or IO area.
             if CBA == 0:
                 # bank zero -> must decode carefuly
-                if 0 <= CA < 2:
-                    # bank regs
-                    # self.romblock = None
-                    # self.ramblock_raw = None
-                    pass        # TBD: what here? Nora should give us a hint if these are BLOCKREGS !!!
-                elif CA < 0x9F00:
+                # if 0 <= CA < 2:
+                #     # bank regs
+                #     # self.romblock = None
+                #     # self.ramblock_raw = None
+                #     pass        # TBD: what here? Nora should give us a hint if these are BLOCKREGS !!!
+                # el
+                if CA < 0x9F00:
                     # CPU low memory starts at sram fix 0x000000
                     # self.romblock = None
                     # self.ramblock_raw = None
                     self.sram_block_raw = 0x00      # low-memory starts in SRAM block 0
                 elif 0xA000 <= CA < 0xC000:
-                    # CPU RAM Bank starts at sram fix 0x000
+                    # CPU RAM-Block from $A000 to $BFFF
                     # self.romblock = None
                     # self.ramblock_raw = MAH
                     self.sram_block_raw = MAH
-                elif 0xC000 <= CA:
-                    # CPU ROM bank
-                    # self.romblock = (MAH >> 1) & 0x1F
-                    # self.ramblock_raw = None
+                elif 0xC000 <= CA < 0xE000:
+                    # CPU second RAM-Block from $C000 to $DFFF,
+                    # or ROM-Block
+                    # or direct mapped memory.
+                    # -> In any case, the decoded SRAM Block is in MAH already.
+                    self.sram_block_raw = MAH
+                elif 0xE000 <= CA:
+                    # CPU ROM bank,
+                    # or direct mapped memory.
+                    # -> In any case, the decoded SRAM Block is in MAH already.
                     self.sram_block_raw = MAH & 0x7F            # ROM-Block could not located in upper half of SRAM, by design!
-                    self.has_bootrom = (MAH & 0x80) != 0        # True or False
+                    self.has_bootrom = (MAH & 0x80) != 0        # MAH msb indicates if it is bootroom; True or False
             else:
                 # CPU Bank non-zero -> linear address into SRAM, we could not extract the bloc
                 # numbers from the given trace data!
@@ -310,31 +317,43 @@ class ICD:
             # self.is_bootrom = (self.romblock & 0x80) != 0
             self.has_bootrom = (rmbctrl & 0x80) != 0
             ENABLE_ROM_CDEF = (rmbctrl & 0x10) != 0
+            ENABLE_RAM_CD = (rmbctrl & 0x08) != 0
 
             if CBA == 0:
                 if CA < 0x9F00:
                     # CPU low memory starts at sram fix 0x000000
-                    # self.romblock = None
-                    # self.ramblock_raw = None
                     self.sram_block_raw = 0x00      # low-memory starts in SRAM block 0
                 elif 0xA000 <= CA < 0xC000:
-                    # CPU RAM Bank starts at sram fix 0x000
-                    # self.romblock = None
-                    # self.ramblock_raw = MAH
+                    # CPU RAM-Block from $A000 to $BFFF
                     ramblock_raw = bregs[0] ^ 0x80
                     self.sram_block_raw = ramblock_raw
-                elif 0xC000 <= CA:
-                    # CPU ROM bank, maybe.
-                    # FIXME: split in two 8kB blocks!!
-                    # self.romblock = (MAH >> 1) & 0x1F
-                    # self.ramblock_raw = None
+                elif 0xC000 <= CA < 0xE000:
+                    # CPU second RAM-Block from $C000 to $DFFF,
+                    # or ROM-Block (lower 8kB)
+                    # or direct mapped memory.
                     if ENABLE_ROM_CDEF:
+                        # ROM-Block
                         romblock = bregs[1] 
                         self.sram_block_raw = (0x080000 + romblock*2*ICD.BLOCKSIZE) >> 13
+                    elif ENABLE_RAM_CD:
+                        # the second RAM-Block
+                        ramblock2_raw = bregs[1] ^ 0x80
+                        self.sram_block_raw = ramblock2_raw
                     else:
-                        self.sram_block_raw = 6
-                    
+                        # nothing of that -> direct underlaying memory
+                        self.sram_block_raw = (0xc000 // 8192)       # = 6
+                elif 0xE000 <= CA:
+                    # CPU ROM bank (upper 8kB),
+                    # or direct mapped memory.
+                    if ENABLE_ROM_CDEF:
+                        # CPU ROM bank (upper 8kB),
+                        romblock = bregs[1] 
+                        self.sram_block_raw = (0x080000 + (romblock*2 + 1)*ICD.BLOCKSIZE) >> 13
+                    else:
+                        # direct underlaying memory
+                        self.sram_block_raw = (0xe000 // 8192)       # = 7
             else:
+                # CBA > 0 ==> no decode:
                 self.sram_block_raw = (CBA << 3) + ((CA >> 13) & 0x07)
             return self
         
@@ -347,23 +366,33 @@ class ICD:
         # In case of CBA = 0, we must decode the address carefully, because it could be in the ROM, RAM, or IO area.
         # In case of CBA != 0, the address is linear into the SRAM and can be read directly.
         if CBA == 0:
-            # bank zero -> must decode carefuly
-            if 0 <= CA < 2:
-                # bank regs: TBD must check the MIRROR bit!!!
-                rdata = self.bankregs_read(CA, 1)
+            # bank zero -> must decode carefuly!
+            bregs = self.ioregs_read(0x50, 2)
+            rmbctrl = self.iopeek(0x53)
+            MIRROR_ZP = (rmbctrl & 0x20) != 0
+            ENABLE_ROM_CDEF = (rmbctrl & 0x10) != 0
+            ENABLE_RAM_CD = (rmbctrl & 0x08) != 0
+
+            if (0 <= CA < 2) and MIRROR_ZP:
+                # bank regs (mirror to zero page is enabled)
+                rdata = bregs[CA]
             elif CA < 0x9F00:
                 # CPU low memory starts at sram fix 0x000000
                 rdata = self.sram_blockread(CA + 0x000000, 1)
             elif 0xA000 <= CA < 0xC000:
-                # CPU RAM Bank starts at sram fix 0x000
-                #rambank = MAH
-                # rambank = mahd.ramblock_raw
+                # CPU RAM Bank between $A000 to $BFFF
                 offs = (CA - 0xA000)
-                # rdata = self.sram_blockread(offs + rambank*ICD.BLOCKSIZE, 1)
                 rdata = self.sram_blockread(offs + mahd.sram_block_raw*ICD.BLOCKSIZE, 1)
-            elif 0xC000 <= CA:
-                # CPU ROM bank
+            elif 0xC000 <= CA < 0xE000:
+                # CPU second RAM-Block from $C000 to $DFFF,
+                # or ROM-Block (lower 8kB)
+                # or direct mapped memory.
                 offs = (CA - 0xC000)
+                rdata = self.sram_blockread(offs + mahd.sram_block_raw*ICD.BLOCKSIZE, 1)
+            elif 0xE000 <= CA:
+                # CPU ROM bank (upper 8kB),
+                # or direct mapped memory.
+                offs = (CA - 0xE000)
                 # rombank = (MAH >> 1)
                 # print("read_by_as_cpu: cpu-rom-bank; rombank={}".format(rombank))
                 # MAH is the top 8 bits from SRAM addressing. 
