@@ -12,6 +12,7 @@
 .export vt_putchar, vt_keyq
 .export _vidmove, _vidtxtclear
 .export _vt_handle_irq
+.export vt_scr_cursor_disable, vt_scr_cursor_enable
 
 ; TV_VGA = $01
 ; LAYER0_ENABLE = $10
@@ -469,6 +470,12 @@ done:
 ; Inputs:
 ;   A       character to print (B is ignored)
 ;
+
+    ACCU_8_BIT
+    pha
+    jsl     vt_scr_cursor_disable
+    pla
+
     ; rtl
     ; switch A, X, Y to 8-bit
     ACCU_INDEX_8_BIT
@@ -544,6 +551,7 @@ cursor_newline:
     ; sta     z:bVT_CURSOR_Y
 
 cursor_done:
+    jsl     vt_scr_cursor_enable
 
     INDEX_16_BIT
     ACCU_8_BIT          ; see platform-libs.inc
@@ -551,32 +559,11 @@ cursor_done:
     rtl
 .endproc
 
-
 ;-------------------------------------------------------------------------------
-.proc vt_keyq
-    ACCU_8_BIT
-
-    ; is on-screen cursor enabled?
-    lda     z:bVT_CURSOR_VISIBLE
-    beq     done            ; 0 => not visible -> end
-
-    ; how long ago did we toggle on-screen cursor?
-    lda     z:bVT_VSYNC_NR
-    sec
-    sbc     z:bVT_CURSOR_LAST_VSYNC
-    ; this is not correct, but for a first try...
-    and     #$E0
-    beq     done        ; not long ago -> exit
-
-    ; cursor enabled and with a timeout -> toggle
-    lda     z:bVT_CURSOR_VISIBLE
-    eor     #$03        ; toggle bits [0] and [1], so 1 becomes 2 and vice-versa.
-    sta     z:bVT_CURSOR_VISIBLE
-
-    ; update the time
-    lda     z:bVT_VSYNC_NR
-    sta     z:bVT_CURSOR_LAST_VSYNC
-
+.proc _toggle_screen_cursor
+; Toggles the screen cursor - blinking box - at the current screen cursor position.
+; Makes all necessary calculations and video memory access.
+;
     ; switch A, X, Y to 8-bit
     ACCU_INDEX_8_BIT
     ; get current cursor from bVT_CURSOR_X/Y and convert to screen cursor
@@ -629,9 +616,86 @@ cursor_done:
     ; write back the attribute byte
     sta     f:VERA_DATA0_REG
 
+    rtl
+.endproc
+
+;-------------------------------------------------------------------------------
+.proc vt_keyq
+    ACCU_8_BIT
+
+    ; is on-screen cursor enabled?
+    lda     z:bVT_CURSOR_VISIBLE
+    beq     done            ; 0 => not visible -> end
+
+    ; how long ago did we toggle on-screen cursor?
+    lda     z:bVT_VSYNC_NR
+    sec
+    sbc     z:bVT_CURSOR_LAST_VSYNC
+    ; this is not correct, but for a first try...
+    and     #$E0
+    beq     done        ; not long ago -> exit
+
+    ; cursor enabled and with a timeout -> toggle
+    lda     z:bVT_CURSOR_VISIBLE
+    eor     #$03        ; toggle bits [0] and [1], so 1 becomes 2 and vice-versa.
+    sta     z:bVT_CURSOR_VISIBLE
+
+    ; update the time
+    lda     z:bVT_VSYNC_NR
+    sta     z:bVT_CURSOR_LAST_VSYNC
+
+    ; do the heavy video buffer work...
+    jsl     _toggle_screen_cursor
 
 done:
     INDEX_16_BIT
     ACCU_8_BIT          ; see platform-libs.inc
+    rtl
+.endproc
+
+;-------------------------------------------------------------------------------
+.proc vt_scr_cursor_disable
+; Turn OFF the screen cursor.
+    ACCU_8_BIT
+    ; is on-screen cursor enabled?
+    lda     z:bVT_CURSOR_VISIBLE
+    beq     done            ; 0 => not visible -> end
+
+    ; it is enabled...
+    ; what is the current blink period state ? is it visible or off?
+    bit     #2
+    beq     disable            ; => bit [1] is zero -> not visible -> just disable
+    ; it is currently in the visible period; we must remove it from the screen!
+    ; do the heavy video buffer work...
+    jsl     _toggle_screen_cursor
+    ; now it is no longer visible
+disable:
+    lda     #0
+    sta     z:bVT_CURSOR_VISIBLE
+done:
+    rtl
+.endproc
+
+;-------------------------------------------------------------------------------
+.proc vt_scr_cursor_enable
+; Turn ON the screen cursor.
+    ACCU_8_BIT
+    ; is on-screen cursor enabled?
+    lda     z:bVT_CURSOR_VISIBLE
+    bne     done            ; 1 or 2 => already enabled -> done
+
+    ; it is disabled...
+    ; put it into the enabled + visible state
+    lda     #2
+    sta     z:bVT_CURSOR_VISIBLE
+    
+    ; update the time
+    lda     z:bVT_VSYNC_NR
+    sta     z:bVT_CURSOR_LAST_VSYNC
+
+    ; do the heavy video buffer work...
+    jsl     _toggle_screen_cursor
+
+done:
     rtl
 .endproc
