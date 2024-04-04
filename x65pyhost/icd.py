@@ -251,11 +251,14 @@ class ICD:
         def __init__(self):
             self.sram_block_raw = None
             self.has_bootrom = None         # None because we don't know!
+            self.area_name = None
         
         @classmethod
         def from_trace(cls, MAH, CBA, CA):
             # create MAHDecoded object
             self = cls()
+            # default area name is some ram-block
+            self.area_name = "RAMB:{:3}".format(MAH ^ 0x80)
             # For CBA == 0, the CA is in the ROM, RAM, or IO area.
             if CBA == 0:
                 # bank zero -> must decode carefuly
@@ -268,6 +271,7 @@ class ICD:
                 if CA < 0x9F00:
                     # CPU low memory starts at sram fix 0x000000
                     self.sram_block_raw = 0x00      # low-memory starts in SRAM block 0
+                    self.area_name = "low :{:3}".format(MAH)
                 elif 0xA000 <= CA < 0xC000:
                     # CPU RAM-Block from $A000 to $BFFF
                     self.sram_block_raw = MAH
@@ -283,6 +287,11 @@ class ICD:
                     # -> In any case, the decoded SRAM Block is in MAH already.
                     self.sram_block_raw = MAH & 0x7F            # ROM-Block could not located in upper half of SRAM, by design!
                     self.has_bootrom = (MAH & 0x80) != 0        # MAH msb indicates if it is bootroom; True or False
+                    if self.has_bootrom:
+                        self.area_name = "PBL     "
+                    else:
+                        self.area_name = "RomB:{:3}".format((MAH - 64)//2)
+
             else:
                 # CPU Bank non-zero -> linear address into SRAM
                 self.sram_block_raw = MAH
