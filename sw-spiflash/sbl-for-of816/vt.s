@@ -8,7 +8,7 @@
 ; .import _font8x8
 
 ; .export vera_init
-.export vt_printstr_at_a16i8far
+.export vt_printstr_at
 .export vt_putchar, vt_keyq
 .export _vidmove, _vidtxtclear
 .export _vt_handle_irq
@@ -165,7 +165,7 @@
 
 
 ;-------------------------------------------------------------------------------
-.proc vt_printstr_at_a16i8far
+.proc vt_printstr_at
 ; Print a string at a given position on the screen, without proper wrapping!
 ;
 ; Inputs:
@@ -174,39 +174,48 @@
 ;   A: pointer to the string to print
 ; Outputs: none
 ; Clobbers: X, Y, A
-    .i8
-    .a16
+    ACCU_16_BIT
+    INDEX_8_BIT
 /*
     // calculate VRAM address from x/y coordinates
     uint16_t ci = 2*x + 2*128*y;
 */
-    ; calculate VRAM address from x/y coordinates
-    ; uint16_t ci = 2*x + 2*128*y;
     pha         ; save ptr to string
     ; switch A to 8-bit
-    sep   #SHORT_A          ; 8-bit memory and accu
-    .a8
+    ACCU_8_BIT
+
+    ; Setup VERA's DATA0 for output:
+    ;   ADDRSEL = 0
+    lda     #0
+    sta     f:VERA_CONTROL_REG
+
+    ; calculate VRAM address from x/y coordinates
+    ; uint16_t ci = 2*x + 2*128*y;
     txa
     asl   A
     ; A =  2*x
     xba     ; B = 2*x
     tya     ; A = y
     xba     ; BA = (y << 8) | (2*x)
+
+
+    sta     f:VERA_ADDRESS_REG
+    xba
+    sta     f:VERA_ADDRESS_M_REG
+
     ; switch A, I to 16-bit
-    rep   #SHORT_A|SHORT_I          ; 16-bit index regs X, Y
-    .i16
-    .a16
-    tax         ; X16 = (y << 8) | (2*x) = ci
+    ; ACCU_INDEX_16_BIT
+    ; tax         ; X16 = (y << 8) | (2*x) = ci
     ; switch A to 8-bit
-    sep   #SHORT_A          ; 8-bit memory and accu
-    .a8
+    ; ACCU_8_BIT
     ; // setup for the VRAM address, autoincrement
     ; VERA.address = ci & 0xFFFF;
     ; VERA.address_hi = 0 | (1 << 4);
-    stx     VERA_ADDRESS_REG       ; 16-bit store
+    ; stx     VERA_ADDRESS_REG       ; 16-bit store
     lda     #0 | (1 << 4)
-    sta     VERA_ADDRESS_HI_REG
+    sta     f:VERA_ADDRESS_HI_REG
     
+    INDEX_16_BIT
     plx         ; X = ptr to string
 /*
     while (*str)
@@ -223,19 +232,19 @@
 loop_printstr:
     lda     0,x         ; char c = *str
     beq     loop_printstr_end
-    sta     VERA_DATA0_REG         ; character
+    sta     f:VERA_DATA0_REG         ; character
     lda     #(COLOR_GRAY1 << 4) | (COLOR_LIGHTGREEN)         ; backround and foreground color
-    sta     VERA_DATA0_REG
+    sta     f:VERA_DATA0_REG
     inx
     bra     loop_printstr
 loop_printstr_end:
 
     ; restore 8-bit index regs X, Y
-    sep   #SHORT_I          ; 8-bit memory and accu
-    .i8
+    ; sep   #SHORT_I          ; 8-bit memory and accu
+    ; .i8
     ; restore 16-bit accu
-    rep   #SHORT_A          ; 8-bit memory and accu
-    .a16
+    ; rep   #SHORT_A          ; 8-bit memory and accu
+    ; .a16
 
     rtl         ; far return
 .endproc

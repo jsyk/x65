@@ -322,6 +322,14 @@ banner:
     .asciiz " /  .  \  | (_) |  ___) |  __|  |____ |  `--'  | "
     .word  2*(32*128 + (40-24))
     .asciiz "/__/ \__\  \___/  |____/  (__)_______| \______/  "
+    .word  2*(33*128 + (40-24))
+    .asciiz "                                                 "
+    .word  2*(34*128 + (40-24))
+    .asciiz "   HARDWARE DESIGN BY JSYKORA.INFO AND X65.EU    "
+    .word  2*(35*128 + (40-24))
+    .asciiz "                                                 "
+    .word  2*(36*128 + (40-24))
+    .asciiz "                   Have fun!                     "
     .word 0
 .endproc
 

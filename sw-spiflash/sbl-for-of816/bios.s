@@ -5,7 +5,7 @@
 
 
 .import vera_init
-.import vt_printstr_at_a16i8far
+.import vt_printstr_at
 .import vt_putchar, vt_keyq
 .import _vidmove, _vt_handle_irq
 
@@ -15,7 +15,7 @@ OF816_START  = $010000
 ; ========================================================================
 .segment "RODATA"
 hello_str:
-    .asciiz "Hello, world!\n"
+    .asciiz "OF816 port for X65-SBC, see https://github.com/jsyk/of816"
 
 ; ========================================================================
 .code
@@ -40,27 +40,31 @@ hello_str:
 
     ; The SBL has printed a logo in the middle of the screen.
     ; The logo is 6 lines high; it begins at the line #27 and ends at the line #33.
+    ; The logo is 10 lines high; it begins at the line #25 and ends at the line #35.
     ;
-    ; Scroll down by 25 lines so that we put the logo at the top of the screen.
+    ; Scroll down by 23 lines so that we put the logo at the top of the screen.
     ACCU_INDEX_16_BIT
-    lda     #(256*35)           ; A = number of bytes: one line is 128 chars+attr = 256 bytes, and we scroll (60-25)=35 lines
-    ldx     #(256*25)            ; X = source: beginning of line #25
+    lda     #(256*37)           ; A = number of bytes: one line is 128 chars+attr = 256 bytes, and we scroll (60-23)=37 lines
+    ldx     #(256*23)            ; X = source: beginning of line #23
     ldy     #0                  ; Y = destination: beginning of line #0
     jsl     _vidmove
 
+    ; print info message
+    ACCU_16_BIT
+    INDEX_8_BIT
+    lda     #hello_str
+    ldx     #0
+    ldy     #13
+    jsl     vt_printstr_at
+
+    ; reset screen cursor position: X=0, Y=15
     ACCU_8_BIT
-
-    ; lda     #hello_str
-    ; ldx     #0
-    ; ldy     #0
-    ; jsl     vt_printstr_at_a16i8far
-
-    ; reset screen cursor position: X=0, Y=10
     lda     #0
     sta     z:bVT_CURSOR_X
-    lda     #10
+    lda     #15
     sta     z:bVT_CURSOR_Y
 
+    ; enable screen cursor
     lda     #1
     sta     z:bVT_CURSOR_VISIBLE
 
