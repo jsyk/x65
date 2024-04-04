@@ -61,9 +61,9 @@ abrt02_callback:        ; offset 136 ($88) - Callback for PBL to call when illeg
     ; .asciiz "start_the_rom"
 
     ; Before continuing, we delay a bit to let the screen come up so the user could see the banner.
-    ; We do this by waiting for approx 2 second.
+    ; We do this by waiting for approx 3 second.
     ; We use the VERA_IRQ_LINE_REG register to count the VERA LINEs. The VERA IRQs are generated every 16.67ms (60Hz).
-    ldx     #120            ; 120 frames = 2 seconds
+    ldx     #180            ; 160 frames = 3 seconds
     jsr     delay
 
     ; Configure the RMCTRL register (controls the RAMBLOCKs and the ROMBLOCKs in the NORA memory map).
