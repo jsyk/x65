@@ -125,37 +125,32 @@ module bus_controller (
     // master request state machine
     reg [2:0]       mst_state;
 
-
     // CPU address bus -virtual internal `input' signal
     // create the 16-bit CPU bus address by concatenating the two bus signals
     wire [15:0]     cpu_ab_i = { cpu_abh_i, memcpu_abl_i };
 
     reg [7:0]       cba_r;          // CPU Bank Address (65C816)
 
+    // mem write-signal advanced by 1T
     reg             mem_wrn_adv1_r;      // 1T-advanced memory write (mem_wrn_o)
     // reg             mem_wrn_adv2_r;      // 2T-advanced memory write (mem_wrn_o)
 
     // aggregated master request
     wire nora_mst_req = nora_mst_req_OTHER_i | nora_mst_req_SRAM_i;
 
+    // Master requests from ICD to "other devices" are decoded based on the high-order address bits.
+    // This saves the need for a separate request signal for each target.
     wire nora_mst_req_OTHER_BOOTROM_i = nora_mst_req_OTHER_i && nora_mst_addr_i[20];
     wire nora_mst_req_OTHER_BANKREG_i = nora_mst_req_OTHER_i && nora_mst_addr_i[19];
     wire nora_mst_req_OTHER_IOREGS = nora_mst_req_OTHER_i && nora_mst_addr_i[18];
-    // wire nora_mst_req_OTHER_SCRB_i = nora_mst_req_OTHER_i && nora_mst_addr_i[18];
-    // wire nora_mst_req_OTHER_VERA_i = nora_mst_req_OTHER_i && nora_mst_addr_i[17];
-    // wire nora_mst_req_OTHER_VIA_i = nora_mst_req_OTHER_i && nora_mst_addr_i[16];
 
-
-    // Current Banks - remap
-    // reg   [7:0]   rambank_nr;
-    // reg   [7:0]   rambank_masked_nr;
-    // reg   [7:0]   romblock_nr;
-
-    // BANKREGs are handled directly in this module
-    // reg         nora_slv_req_BANKREG;
-
+    // This flag is set when internal NORA master (ICD) is driving the memory data bus,
+    // as opposed when it is driven from the CPU.
     reg         nora_mst_driving_memdb;
 
+    // Hold a valid CPU Data Bus value from the CPHI2=Hi state in this reg,
+    // this is pushed to the memory bus during CPHI2=Low to provide additional hold time on writes
+    // (The CPU 85C816 provides just about 10ns of hold time on data bus after CPHI2 falling).
     reg  [7:0]      cpu_db_hold_r;
 
     // set the memory data bus output signals:
@@ -172,7 +167,7 @@ module bus_controller (
     assign nora_slv_datawr_o = (nora_mst_driving_memdb) ? nora_mst_data_i : cpu_db_i;                // pass CPU data write-through
     assign nora_slv_datawr_valid = release_wr || (mst_state == MST_DATA_ACC);
 
-
+    // The main FSM:
     always @( posedge clk6x )
     begin
         // trace_en_o <= 0;
@@ -186,7 +181,6 @@ module bus_controller (
             mem_wrn_adv1_r <= HIGH_INACTIVE;
             // mem_wrn_adv2_r <= HIGH_INACTIVE;
             sram_csn_o <= HIGH_INACTIVE;
-            // via_csn_o <= HIGH_INACTIVE;
             vera_csn_o <= HIGH_INACTIVE;
             aio_csn_o <= HIGH_INACTIVE;
             enet_csn_o <= HIGH_INACTIVE;
@@ -199,10 +193,6 @@ module bus_controller (
             nora_slv_req_VIA2_o <= 0;
             nora_slv_req_OPM_o <= 0;
             cba_r <= 8'h00;
-            // rambank_nr <= 8'h00;
-            // romblock_nr <= 8'b1000_0000;        // rombank 128 - starts in BOOTROM
-            // romblock_nr <= 6'b000000;        // rombank 0 - starts at 0x18_0000
-            // nora_slv_req_BANKREG <= 0;
             mst_state <= MST_IDLE;
             nora_mst_driving_memdb <= 0;
             s4_ext_o <= 2'b00;
@@ -211,6 +201,19 @@ module bus_controller (
             // unless wrn should be disabled (HIGH_INACTIVE) - then both regs are written immediately.
             mem_wrn_o <= mem_wrn_adv1_r;
             // mem_wrn_adv1_r <= mem_wrn_adv2_r;
+
+            /* This is phasing state machine for the CPU clock, as implemented in phaser.v:
+            * clk - 48MHz (1T = 20ns):
+            *     ____      ____      ____      ____      ____      ____      ____
+            * ___|    |____|    |____|    |____|    |____|    |____|    |____|
+            *      S0L       S1L       S2L       S3H       S4H       S5H
+            *    .release_cs.        .setup_cs .                   .release_wr.
+            *               (stopped)
+            *
+            * cphi2 - 8MHz (125ns period) for the 65CPU:
+            * ___                               _____________________________
+            *    |_____________________________|                             |__________
+            */
 
             if (setup_cs)
             begin
@@ -406,15 +409,6 @@ module bus_controller (
                 end
             end
             
-            // if (release_cs)
-            // begin
-            //     // end of a CPU cycle -> catch trace
-            //     trace_catch_o <= 1;
-            //     cpubus_trace_o <= { cpu_ab_i /*16b*/ , cpu_db_i /*8b*/, 
-            //                         cpu_sync_vpa_i, cpu_vpu_i,
-            //                         cpu_vda_i, cpu_cef_i, cpu_rw_i
-            //                       };
-            // end
 
             if (release_wr || (mst_state == MST_DATA_ACC))
             begin
@@ -423,25 +417,6 @@ module bus_controller (
                 mem_wrn_o <= HIGH_INACTIVE;
                 mem_wrn_adv1_r <= HIGH_INACTIVE;
                 // mem_wrn_adv2_r <= HIGH_INACTIVE;
-
-                // perform the internal BANKREG slave operation
-                // if (nora_slv_req_BANKREG)
-                // begin
-                //     // request for BANKREGs access from the CPU - finishing;
-                //     // handle write data
-                //     if (!nora_slv_rwn_o)
-                //     begin
-                //         // writing
-                //         if (!nora_slv_addr_o[0])
-                //         begin
-                //             // 0x00 = RAMBLOCK
-                //             rambank_nr <= nora_slv_datawr_o; // & rambank_mask_i;
-                //         end else begin
-                //             // 0x01 = ROMBLOCK
-                //             romblock_nr <= nora_slv_datawr_o[7:0];
-                //         end
-                //     end
-                // end
             end
 
             if (release_cs || (mst_state == MST_FIN_ACC))
@@ -455,12 +430,10 @@ module bus_controller (
                 // mem_wrn_adv2_r <= HIGH_INACTIVE;
                     // disable all CS
                 sram_csn_o <= HIGH_INACTIVE;
-                // via_csn_o <= HIGH_INACTIVE;
                 vera_csn_o <= HIGH_INACTIVE;
                 aio_csn_o <= HIGH_INACTIVE;
                 enet_csn_o <= HIGH_INACTIVE;
                 nora_slv_req_BOOTROM_o <= 0;
-                // nora_slv_req_BANKREG <= 0;
                 nora_slv_req_SCRB_o <= 0;
                 nora_slv_req_BREGS_o <= 0;
                 nora_slv_req_VIA1_o <= 0;
@@ -468,8 +441,12 @@ module bus_controller (
                 nora_slv_req_OPM_o <= 0;
             end
 
+            // Separate FSM to handle internal NORA master accesses (ICD).
+            // This has nominally a higher priority than the CPU bus access,
+            // but in the beginning takes care to stop the CPU for the momemnt,
+            // so that there is no bus contention.
             case (mst_state)
-                MST_IDLE:
+                MST_IDLE:       // waiting state for a request
                 begin
                     nora_mst_driving_memdb <= 0;
                     nora_mst_ack_o <= 0;
@@ -485,7 +462,7 @@ module bus_controller (
                     end
                 end
 
-                MST_WAIT_CPU_STOP:
+                MST_WAIT_CPU_STOP:      // waiting for a CPU to finish cycle and stop (we have a request to service ourselves)
                 begin
                     if (stopped_cpu)
                     begin
@@ -523,16 +500,6 @@ module bus_controller (
                         mem_wrn_adv1_r <= nora_mst_rwn_i;
                     end
 
-                    // if (nora_mst_req_OTHER_VIA_i)
-                    // begin
-                    //     via_csn_o <= LOW_ACTIVE;
-                    // end
-
-                    // if (nora_mst_req_OTHER_VERA_i)
-                    // begin
-                    //     vera_csn_o <= LOW_ACTIVE;
-                    // end
-
                     if (nora_mst_req_OTHER_BOOTROM_i)
                     begin
                         nora_slv_req_BOOTROM_o <= 1;
@@ -542,11 +509,6 @@ module bus_controller (
                     begin
                         nora_slv_req_BREGS_o <= 1;
                     end
-
-                    // if (nora_mst_req_OTHER_SCRB_i)
-                    // begin
-                    //     nora_slv_req_SCRB_o <= 1;
-                    // end
 
                     if (nora_mst_req_OTHER_IOREGS)
                     begin
@@ -630,17 +592,7 @@ module bus_controller (
                 begin
                     // Perform data i/o operation
                     // This is performed in addition to release_wr block above;
-                    // if (nora_slv_req_BANKREG)
-                    // begin
-                    //     if (!nora_mst_addr_i[0])
-                    //     begin
-                    //         nora_mst_datard_o <= 8'h12; //rambank_nr;
-                    //     end else begin
-                    //         nora_mst_datard_o <= 8'h34; //{ 3'b000, romblock_nr };
-                    //     end
-                    // end else begin
                     nora_mst_datard_o <= cpu_db_o;          // read data is valid now!
-                    // end
                     mst_state <= MST_FIN_ACC;
                 end
 
@@ -654,21 +606,7 @@ module bus_controller (
                     // enable CPU bus
                     cpu_be_o <= HIGH_ACTIVE;
                 end
-
-
             endcase
-
-            // if (force_pblrom_i)
-            // begin
-            //     // set bit 7 to 1 to force the PBL ROM
-            //     romblock_nr <= { 1'b1, romblock_nr[6:0] };
-            // end
-
-            // if (clear_pblrom_i)
-            // begin
-            //     // clear bit 7 & 6 to 0 to clear us out of the PBL ROM
-            //     romblock_nr <= { 2'b00, romblock_nr[5:0] };
-            // end
 
             // DEBUG
             // enet_csn_o <= nora_slv_req_BANKREG;
@@ -688,18 +626,6 @@ module bus_controller (
             // ext Memory/Device reading
             cpu_db_o <= mem_db_i;
         end
-        // else if (nora_slv_req_BANKREG)
-        // begin
-        //     // reading one of the bank registers
-        //     if (!nora_slv_addr_o[0])
-        //     begin
-        //         // 0x00 = RAMBANK
-        //         cpu_db_o <= rambank_nr;
-        //     end else begin
-        //         // 0x01 = ROMBANK
-        //         cpu_db_o <= romblock_nr;
-        //     end
-        // end
         else if (nora_slv_req_SCRB_o || nora_slv_req_BREGS_o || nora_slv_req_VIA1_o || nora_slv_req_VIA2_o || nora_slv_req_BOOTROM_o || nora_slv_req_OPM_o)
         begin
             // internal slave reading
@@ -710,9 +636,6 @@ module bus_controller (
             cpu_db_o <= 8'hFF;
         end
 
-        // pre-compute the masked rambank
-        // rambank_masked_nr <= rambank_nr & rambank_mask_i;
-
         // Hold a valid CPU Data Bus value from the CPHI2=Hi state in a reg,
         // this is pushed to the memory bus during CPHI2=Low to provide additional hold time on writes
         // (The CPU 85C816 provides just about 10ns of hold time on data bus after CPHI2 falling).
@@ -722,7 +645,5 @@ module bus_controller (
         end
     end
 
-    // assign romblock_o = romblock_nr;
-   
 
 endmodule
