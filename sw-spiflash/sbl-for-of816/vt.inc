@@ -9,6 +9,8 @@ bVT_VSYNC_NR = $84
 bVT_CURSOR_VISIBLE = $85            ; 0 = disabled+off, 1 = not visible, but enabled; 2 = yes, enabled.
 bVT_CURSOR_LAST_VSYNC = $86
 
+bKBD_NEXT_ASCII = $87
+
 wTMP = $A0
 
 .popseg

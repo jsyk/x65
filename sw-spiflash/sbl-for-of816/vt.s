@@ -13,6 +13,7 @@
 .export _vidmove, _vidtxtclear
 .export _vt_handle_irq
 .export vt_scr_cursor_disable, vt_scr_cursor_enable
+.import kbd_process
 
 ; TV_VGA = $01
 ; LAYER0_ENABLE = $10
@@ -629,12 +630,17 @@ cursor_done:
 .endproc
 
 ;-------------------------------------------------------------------------------
+; Screen cursor management.
+; Check Keyboard buffer; return A = 0 if no key, A = key code if key pressed.
+; Inputs:
+;   A       If 0, then keep keyboard character in buffer, otherwise pull it.
 .proc vt_keyq
     ACCU_8_BIT
+    pha             ; save the flag whether to pull the key or not out of the buffer
 
     ; is on-screen cursor enabled?
     lda     z:bVT_CURSOR_VISIBLE
-    beq     done            ; 0 => not visible -> end
+    beq     cursor_done            ; 0 => not visible -> end
 
     ; how long ago did we toggle on-screen cursor?
     lda     z:bVT_VSYNC_NR
@@ -642,7 +648,7 @@ cursor_done:
     sbc     z:bVT_CURSOR_LAST_VSYNC
     ; this is not correct, but for a first try...
     and     #$E0
-    beq     done        ; not long ago -> exit
+    beq     cursor_done        ; not long ago -> exit
 
     ; cursor enabled and with a timeout -> toggle
     lda     z:bVT_CURSOR_VISIBLE
@@ -656,6 +662,19 @@ cursor_done:
     ; do the heavy video buffer work...
     jsl     _toggle_screen_cursor
 
+cursor_done:
+    ; check the keyboard buffer, possibly extracting next character
+    jsl     kbd_process
+    ACCU_INDEX_8_BIT
+    ; load the character, or zero if no key.
+    ACCU_8_BIT
+    lda    z:bKBD_NEXT_ASCII
+    ; pull the key out of the buffer?
+    plx             ; restore the flag whether to pull (1) the key or not (0) out of the buffer
+    beq     done
+    ; remove the key from the buffer
+    ldx     #$0
+    stx     z:bKBD_NEXT_ASCII
 done:
     INDEX_16_BIT
     ACCU_8_BIT          ; see platform-libs.inc

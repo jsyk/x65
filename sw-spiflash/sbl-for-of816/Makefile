@@ -10,7 +10,7 @@ all: sbl.bin sbl.lst isafix.lst trampoline.lst img.bin
 img.bin: sbl.bin bios.bin $(OF816ROM)
 	cat sbl.bin bios.bin $(OF816ROM) >img.bin
 
-bios.bin : vt.o bios.o
+bios.bin : vt.o bios.o kbd_table.o kbd.o
 	ld65 -C bios.ld $^ -o $@ --mapfile bios.map
 
 sbl.bin: ../common/sbl.o ../common/isafix.o ../common/vidtext.o ../common/font8x8.o
