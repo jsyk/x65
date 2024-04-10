@@ -68,6 +68,12 @@ hello_str:
     lda     #1
     sta     z:bVT_CURSOR_VISIBLE
 
+    ; reset the keyboard buffer and flags
+    lda     #0
+    sta     z:bKBD_NEXT_ASCII
+    sta     z:bKBD_FLAGS
+    sta     z:bKBD_LAST_KEYCODE
+
     ; enable VERA VSYNC interrupts in bit [0]
     lda     #1
     sta     f:VERA_IRQ_ENABLE_REG

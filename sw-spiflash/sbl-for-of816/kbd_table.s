@@ -2,7 +2,7 @@
 
 .include "common.inc"
 
-.import _kbd_put_char, _kbd_put_shift, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special
+.import _kbd_put_char, _kbd_put_shift, _kbd_put_capslock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_unused
 .export kbd_map
 
 .rodata
@@ -10,7 +10,7 @@
 .proc kbd_map
 ; IBM Key No.	Set 1 Make/Break	Set 2 Make/Break	Set 3 Make/Break	Base Case	 Upper Case
 ; 0 no key
-    .word _kbd_put_char
+    .word _kbd_put_unused
     .byte 0, 0
 ; 1	 29/A9	 0E/F0 0E	 0E/F0 0E	 `	 ~
     .word _kbd_put_char
@@ -52,7 +52,7 @@
     .word _kbd_put_char
     .byte '=', '+'
 ; 14	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 15	 0E/8E	 66/F0 66	 66/F0 66	 Backspace	
     .word _kbd_put_char
@@ -97,10 +97,10 @@
     .word _kbd_put_char
     .byte ']', '}'
 ; 29	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 30	 3A/BA	 58/F0 58	 58/F0 58	 Caps Lock	 
-    .word _kbd_put_shift
+    .word _kbd_put_capslock
     .byte 0, 0
 ; 31	 1E/9E	 1C/F0 1C	 1C/F0 1C	 a	 A
     .word _kbd_put_char
@@ -136,7 +136,7 @@
     .word _kbd_put_char
     .byte '\', '"'
 ; 42	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 43	 1C/9C	 5A/F0 5A	 5A/F0 5A	 Enter	 Enter
     .word _kbd_put_char
@@ -145,7 +145,7 @@
     .word _kbd_put_shift
     .byte 0, 0
 ; 45	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 46	 2C/AC	 1A/F0 1A	 1A/F0 1A	 z	 Z
     .word _kbd_put_char
@@ -178,7 +178,7 @@
     .word _kbd_put_char
     .byte '/', '?'
 ; 56	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 57	 36/B6	 59/F0 59	 59/F0 59	 Right Shift	 
     .word _kbd_put_shift
@@ -187,7 +187,7 @@
     .word _kbd_put_ctrl
     .byte 0, 0
 ; 59	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 60	 38/B8	 11/F0 11	 19/F0 19	 Left Alt	 
     .word _kbd_put_alt
@@ -199,40 +199,40 @@
     .word _kbd_put_alt
     .byte 0, 0
 ; 63	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 64	 E0 1D/E0 9D	 E0 14/E0 F0 14	 58/F0 58	 Right Ctrl	 
     .word _kbd_put_ctrl
     .byte 0, 0
 ; 65	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 66	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 67	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 68	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 69	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 70	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 71	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 72	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 73	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 74	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 75	 E0 52/E0 D2 (base)	 E0 70/E0 F0 70 (base)	 67/F0 67	 Insert	 
     .word _kbd_put_special
@@ -241,10 +241,10 @@
     .word _kbd_put_special
     .byte 0, 0
 ; 77	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 78	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 79	 E0 4B/E0 CB (base)	 E0 6B/E0 F0 6B (base)	 61/F0 61	 Left Arrow	 
     .word _kbd_put_special
@@ -256,7 +256,7 @@
     .word _kbd_put_special
     .byte 0, 0
 ; 82	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 83	 E0 48/E0 C8 (base)	 E0 75/E0 F0 75 (base)	 63/F0 63	 Up Arrow	 
     .word _kbd_put_special
@@ -271,10 +271,10 @@
     .word _kbd_put_special
     .byte 0, 0
 ; 87	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 88	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 89	 E0 4D/E0 CD (base)	 E0 74/E0 F0 74 (base)	 6A/F0 6A	 Right Arrow	 
     .word _kbd_put_special
@@ -292,7 +292,7 @@
     .word _kbd_put_char
     .byte '1', '1'
 ; 94	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 95	 E0 35/E0 B5 (base)	 E0 4A/E0 F0 4A (base)	 77/F0 77	 Keypad /	 
     .word _kbd_put_char
@@ -331,19 +331,19 @@
     .word _kbd_put_char
     .byte '+', '+'
 ; 107	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 108	 E0 1C/E0 9C	 E0 5A/E0 F0 5A	 79/F0 79	 Keypad Enter	 
     .word _kbd_put_char
     .byte 10, 10
 ; 109	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 110	 01/81	 76/F0 76	 08/F0 08	 Esc	 
     .word _kbd_put_special
     .byte 0, 0
 ; 111	 not used
-    .word _kbd_put_special
+    .word _kbd_put_unused
     .byte 0, 0
 ; 112	 3B/BB	 05/F0 05	 07/F0 07	 F1	 
     .word _kbd_put_special
