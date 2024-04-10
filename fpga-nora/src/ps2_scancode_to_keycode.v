@@ -8,7 +8,7 @@ module ps2_scancode_to_keycode (
     // PS2 scancode from the keyboard ps2_port
     input [7:0]     ps2k_scancode_i,        // received byte from PS2 port
     input           ps2k_scodevalid_i,   // validity flag of the PS2 port received byte
-    // PS2 key code
+    // IBM key number (https://www.vetra.com/scancodes.html)
     output reg [7:0]  ps2k_keycode_o,       // translated keycode
     output reg      ps2k_kcvalid_o          // validity flag of keycode
 );
@@ -21,153 +21,153 @@ module ps2_scancode_to_keycode (
     begin
         basic_keycode <= 8'd0;
         case (ps2k_scancode_i)
-            8'h01: basic_keycode <= 8'd120;
+            8'h01: basic_keycode <= 8'd120;     // F9 pressed  
             8'h02: basic_keycode <= 8'd0;
-            8'h03: basic_keycode <= 8'd116;
-            8'h04: basic_keycode <= 8'd114; 
-            8'h05: basic_keycode <= 8'd112; 
-            8'h06: basic_keycode <= 8'd113; 
-            8'h07: basic_keycode <= 8'd123; 
+            8'h03: basic_keycode <= 8'd116;     // F5 pressed 
+            8'h04: basic_keycode <= 8'd114;     // F3 pressed  
+            8'h05: basic_keycode <= 8'd112;     // F1 pressed  
+            8'h06: basic_keycode <= 8'd113;     // F2 pressed  
+            8'h07: basic_keycode <= 8'd123;     // F12 pressed 
             8'h08: basic_keycode <= 8'd0;
 
-            8'h09: basic_keycode <= 8'd121;
-            8'h0A: basic_keycode <= 8'd119; 
-            8'h0B: basic_keycode <= 8'd117; 
-            8'h0C: basic_keycode <= 8'd115; 
-            8'h0D: basic_keycode <= 8'd16;
-            8'h0E: basic_keycode <= 8'd1;
+            8'h09: basic_keycode <= 8'd121;     // F10 pressed  
+            8'h0A: basic_keycode <= 8'd119;     // F8 pressed  
+            8'h0B: basic_keycode <= 8'd117;     // F6 pressed  
+            8'h0C: basic_keycode <= 8'd115;     // F4 pressed  
+            8'h0D: basic_keycode <= 8'd16;      // Tab pressed  
+            8'h0E: basic_keycode <= 8'd1;       // ` (back tick) pressed  
             8'h0F: basic_keycode <= 8'd0; 
             8'h10: basic_keycode <= 8'd0;
 
-            8'h11: basic_keycode <= 8'd60;
-            8'h12: basic_keycode <= 8'd44;
+            8'h11: basic_keycode <= 8'd60;      // Left Alt pressed  
+            8'h12: basic_keycode <= 8'd44;      // Left Shift pressed  
             8'h13: basic_keycode <= 8'd0;
-            8'h14: basic_keycode <= 8'd58;
-            8'h15: basic_keycode <= 8'd17;
-            8'h16: basic_keycode <= 8'd2;
+            8'h14: basic_keycode <= 8'd58;      // Left Control pressed  
+            8'h15: basic_keycode <= 8'd17;      // Q pressed  
+            8'h16: basic_keycode <= 8'd2;       // 1 pressed  
             8'h17: basic_keycode <= 8'd0; 
             8'h18: basic_keycode <= 8'd0;
 
             8'h19: basic_keycode <= 8'd0;
-            8'h1A: basic_keycode <= 8'd46; 
-            8'h1B: basic_keycode <= 8'd32; 
-            8'h1C: basic_keycode <= 8'd31; 
-            8'h1D: basic_keycode <= 8'd18; 
-            8'h1E: basic_keycode <= 8'd3;
+            8'h1A: basic_keycode <= 8'd46;      // Z pressed  
+            8'h1B: basic_keycode <= 8'd32;      // S pressed  
+            8'h1C: basic_keycode <= 8'd31;      // A pressed  
+            8'h1D: basic_keycode <= 8'd18;      // W pressed  
+            8'h1E: basic_keycode <= 8'd3;       // 2 pressed  
             8'h1F: basic_keycode <= 8'd0; 
             8'h20: basic_keycode <= 8'd0;
 
-            8'h21: basic_keycode <= 8'd48;
-            8'h22: basic_keycode <= 8'd47; 
-            8'h23: basic_keycode <= 8'd33; 
-            8'h24: basic_keycode <= 8'd19; 
-            8'h25: basic_keycode <= 8'd5; 
-            8'h26: basic_keycode <= 8'd4;  
+            8'h21: basic_keycode <= 8'd48;      // C pressed  
+            8'h22: basic_keycode <= 8'd47;      // X pressed   
+            8'h23: basic_keycode <= 8'd33;      // D pressed   
+            8'h24: basic_keycode <= 8'd19;      // E pressed   
+            8'h25: basic_keycode <= 8'd5;       // 4 pressed  
+            8'h26: basic_keycode <= 8'd4;       // 3 pressed   
             8'h27: basic_keycode <= 8'd0; 
             8'h28: basic_keycode <= 8'd0;
 
-            8'h29: basic_keycode <= 8'd61;
-            8'h2A: basic_keycode <= 8'd49; 
-            8'h2B: basic_keycode <= 8'd34;
-            8'h2C: basic_keycode <= 8'd21; 
-            8'h2D: basic_keycode <= 8'd20; 
-            8'h2E: basic_keycode <= 8'd6; 
+            8'h29: basic_keycode <= 8'd61;      // Space  
+            8'h2A: basic_keycode <= 8'd49;      // V   
+            8'h2B: basic_keycode <= 8'd34;      // F  
+            8'h2C: basic_keycode <= 8'd21;      // T   
+            8'h2D: basic_keycode <= 8'd20;      // R   
+            8'h2E: basic_keycode <= 8'd6;       // 5  
             8'h2F: basic_keycode <= 8'd0; 
             8'h30: basic_keycode <= 8'd0;
 
-            8'h31: basic_keycode <= 8'd51;
-            8'h32: basic_keycode <= 8'd50;
-            8'h33: basic_keycode <= 8'd36; 
-            8'h34: basic_keycode <= 8'd35; 
-            8'h35: basic_keycode <= 8'd22; 
-            8'h36: basic_keycode <= 8'd7; 
+            8'h31: basic_keycode <= 8'd51;      // N  
+            8'h32: basic_keycode <= 8'd50;      // B  
+            8'h33: basic_keycode <= 8'd36;      // H  
+            8'h34: basic_keycode <= 8'd35;      // G  
+            8'h35: basic_keycode <= 8'd22;      // Y  
+            8'h36: basic_keycode <= 8'd7;       // 6  
             8'h37: basic_keycode <= 8'd0; 
             8'h38: basic_keycode <= 8'd0;
 
             8'h39: basic_keycode <= 8'd0;
-            8'h3A: basic_keycode <= 8'd52; 
-            8'h3B: basic_keycode <= 8'd37; 
-            8'h3C: basic_keycode <= 8'd23; 
-            8'h3D: basic_keycode <= 8'd8; 
-            8'h3E: basic_keycode <= 8'd9; 
+            8'h3A: basic_keycode <= 8'd52;      // M  
+            8'h3B: basic_keycode <= 8'd37;      // J  
+            8'h3C: basic_keycode <= 8'd23;      // U  
+            8'h3D: basic_keycode <= 8'd8;       // 7  
+            8'h3E: basic_keycode <= 8'd9;       // 8  
             8'h3F: basic_keycode <= 8'd0; 
             8'h40: basic_keycode <= 8'd0;
 
-            8'h41: basic_keycode <= 8'd53; 
-            8'h42: basic_keycode <= 8'd38; 
-            8'h43: basic_keycode <= 8'd24; 
-            8'h44: basic_keycode <= 8'd25; 
-            8'h45: basic_keycode <= 8'd11; 
-            8'h46: basic_keycode <= 8'd10; 
+            8'h41: basic_keycode <= 8'd53;      // ,  
+            8'h42: basic_keycode <= 8'd38;      // K  
+            8'h43: basic_keycode <= 8'd24;      // I  
+            8'h44: basic_keycode <= 8'd25;      // O  
+            8'h45: basic_keycode <= 8'd11;      // 0 (zero)  
+            8'h46: basic_keycode <= 8'd10;      // 9  
             8'h47: basic_keycode <= 8'd0; 
             8'h48: basic_keycode <= 8'd0;
 
-            8'h49: basic_keycode <= 8'd54;
-            8'h4A: basic_keycode <= 8'd55; 
-            8'h4B: basic_keycode <= 8'd39; 
-            8'h4C: basic_keycode <= 8'd40; 
-            8'h4D: basic_keycode <= 8'd26; 
-            8'h4E: basic_keycode <= 8'd12; 
+            8'h49: basic_keycode <= 8'd54;      // . (period)  
+            8'h4A: basic_keycode <= 8'd55;      // / (slash)   
+            8'h4B: basic_keycode <= 8'd39;      // L   
+            8'h4C: basic_keycode <= 8'd40;      // P   
+            8'h4D: basic_keycode <= 8'd26;      // ;   
+            8'h4E: basic_keycode <= 8'd12;      // -   
             8'h4F: basic_keycode <= 8'd0; 
             8'h50: basic_keycode <= 8'd0;
 
             8'h51: basic_keycode <= 8'd0;
-            8'h52: basic_keycode <= 8'd41; 
-            8'h53: basic_keycode <= 8'd0; 
-            8'h54: basic_keycode <= 8'd27; 
-            8'h55: basic_keycode <= 8'd13; 
-            8'h56: basic_keycode <= 8'd0; 
-            8'h57: basic_keycode <= 8'd0; 
-            8'h58: basic_keycode <= 8'd30;
+            8'h52: basic_keycode <= 8'd41;      // '   
+            8'h53: basic_keycode <= 8'd0;       // 
+            8'h54: basic_keycode <= 8'd27;      // [   
+            8'h55: basic_keycode <= 8'd13;      // Enter   
+            8'h56: basic_keycode <= 8'd0;       //   
+            8'h57: basic_keycode <= 8'd0;       //   
+            8'h58: basic_keycode <= 8'd30;      // Caps Lock  
 
-            8'h59: basic_keycode <= 8'd57; 
-            8'h5A: basic_keycode <= 8'd43; 
-            8'h5B: basic_keycode <= 8'd28; 
-            8'h5C: basic_keycode <= 8'd0; 
-            8'h5D: basic_keycode <= 8'd29;
+            8'h59: basic_keycode <= 8'd57;      // ,  
+            8'h5A: basic_keycode <= 8'd43;      // X  
+            8'h5B: basic_keycode <= 8'd28;      // ]  
+            8'h5C: basic_keycode <= 8'd0;       // 
+            8'h5D: basic_keycode <= 8'd29;      // \  
             8'h5E: basic_keycode <= 8'd0;
             8'h5F: basic_keycode <= 8'd0; 
             8'h60: basic_keycode <= 8'd0;
 
-            8'h61: basic_keycode <= 8'd45; 
+            8'h61: basic_keycode <= 8'd45;      // Backspace  
             8'h62: basic_keycode <= 8'd0;
             8'h63: basic_keycode <= 8'd0; 
             8'h64: basic_keycode <= 8'd0; 
             8'h65: basic_keycode <= 8'd0; 
-            8'h66: basic_keycode <= 8'd15; 
+            8'h66: basic_keycode <= 8'd15;      // Tab  
             8'h67: basic_keycode <= 8'd0; 
             8'h68: basic_keycode <= 8'd0;
 
-            8'h69: basic_keycode <= 8'd93; 
-            8'h6A: basic_keycode <= 8'd0; 
-            8'h6B: basic_keycode <= 8'd92; 
-            8'h6C: basic_keycode <= 8'd91;
-            8'h6D: basic_keycode <= 8'd0; 
-            8'h6E: basic_keycode <= 8'd0; 
-            8'h6F: basic_keycode <= 8'd0; 
-            8'h70: basic_keycode <= 8'd99;
+            8'h69: basic_keycode <= 8'd93;      // End  
+            8'h6A: basic_keycode <= 8'd0;       // 
+            8'h6B: basic_keycode <= 8'd92;      // Cursor Left  
+            8'h6C: basic_keycode <= 8'd91;      // Home  
+            8'h6D: basic_keycode <= 8'd0;       //   
+            8'h6E: basic_keycode <= 8'd0;       //   
+            8'h6F: basic_keycode <= 8'd0;       //   
+            8'h70: basic_keycode <= 8'd99;      // Keypad 1  
 
-            8'h71: basic_keycode <= 8'd104; 
-            8'h72: basic_keycode <= 8'd98; 
-            8'h73: basic_keycode <= 8'd97; 
-            8'h74: basic_keycode <= 8'd102; 
-            8'h75: basic_keycode <= 8'd96; 
-            8'h76: basic_keycode <= 8'd110; 
-            8'h77: basic_keycode <= 8'd90; 
-            8'h78: basic_keycode <= 8'd122;
+            8'h71: basic_keycode <= 8'd104;     // Keypad 4  
+            8'h72: basic_keycode <= 8'd98;      // Keypad 7  
+            8'h73: basic_keycode <= 8'd97;      // Keypad 0  
+            8'h74: basic_keycode <= 8'd102;     // Keypad .  
+            8'h75: basic_keycode <= 8'd96;      // Keypad 2  
+            8'h76: basic_keycode <= 8'd110;     // Keypad 5  
+            8'h77: basic_keycode <= 8'd90;      // Escape  
+            8'h78: basic_keycode <= 8'd122;     // Num Lock  
 
-            8'h79: basic_keycode <= 8'd106; 
-            8'h7A: basic_keycode <= 8'd103; 
-            8'h7B: basic_keycode <= 8'd105; 
-            8'h7C: basic_keycode <= 8'd100; 
-            8'h7D: basic_keycode <= 8'd101; 
-            8'h7E: basic_keycode <= 8'd125; 
+            8'h79: basic_keycode <= 8'd106;     // Keypad /  
+            8'h7A: basic_keycode <= 8'd103;     // Keypad 8  
+            8'h7B: basic_keycode <= 8'd105;     // Keypad 3  
+            8'h7C: basic_keycode <= 8'd100;     // Keypad -  
+            8'h7D: basic_keycode <= 8'd101;     // Keypad 6  
+            8'h7E: basic_keycode <= 8'd125;     // Scroll Lock  
             8'h7F: basic_keycode <= 8'd0; 
             8'h80: basic_keycode <= 8'd0;
 
             8'h81: basic_keycode <= 8'd0; 
             8'h82: basic_keycode <= 8'd0; 
-            8'h83: basic_keycode <= 8'd118;
+            8'h83: basic_keycode <= 8'd118;     // F7  
 
             default: basic_keycode <= 8'd0;
         endcase
