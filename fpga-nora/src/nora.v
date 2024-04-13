@@ -627,7 +627,7 @@ module top (
     assign via2_gpio_ira = 8'hFF;
     assign via2_gpio_irb = { ERSTn, 3'b000, DIPLED1, DIPLED0, CPULED1, CPULED0 };
 
-    assign CPULED0 = (via2_gpio_ddrb[0]) ? via2_gpio_orb[0] : blinkerled;
+    assign CPULED0 = (via2_gpio_ddrb[0]) ? via2_gpio_orb[0] : 1'bZ;
     assign CPULED1 = (via2_gpio_ddrb[1]) ? via2_gpio_orb[1] : 1'bZ;
 
     assign DIPLED0 = (via2_gpio_ddrb[2]) ? via2_gpio_orb[2] : 1'bZ;
