@@ -167,6 +167,8 @@ module bus_controller (
     assign nora_slv_datawr_o = (nora_mst_driving_memdb) ? nora_mst_data_i : cpu_db_i;                // pass CPU data write-through
     assign nora_slv_datawr_valid = release_wr || (mst_state == MST_DATA_ACC);
 
+    // reg    vera_csn_adv_r;
+
     // The main FSM:
     always @( posedge clk6x )
     begin
@@ -182,6 +184,7 @@ module bus_controller (
             // mem_wrn_adv2_r <= HIGH_INACTIVE;
             sram_csn_o <= HIGH_INACTIVE;
             vera_csn_o <= HIGH_INACTIVE;
+            // vera_csn_adv_r <= HIGH_INACTIVE;
             aio_csn_o <= HIGH_INACTIVE;
             enet_csn_o <= HIGH_INACTIVE;
             run_cpu <= 0;
@@ -201,6 +204,7 @@ module bus_controller (
             // unless wrn should be disabled (HIGH_INACTIVE) - then both regs are written immediately.
             mem_wrn_o <= mem_wrn_adv1_r;
             // mem_wrn_adv1_r <= mem_wrn_adv2_r;
+            // vera_csn_o <= vera_csn_adv_r;
 
             /* This is phasing state machine for the CPU clock, as implemented in phaser.v:
             * clk - 48MHz (1T = 20ns):
@@ -336,9 +340,10 @@ module bus_controller (
                         begin
                             // 0x9F20, 0x9F30 VERA video controller
                             vera_csn_o <= LOW_ACTIVE;
+                            // vera_csn_adv_r <= LOW_ACTIVE;
                             mem_rdn_o <= ~cpu_rw_i;
                             // MEM-WRITE: writing WITH a delay of 1cc (20ns): mem_wrn_o get written at the next cycle from mem_wrn_adv1_r.
-                            // mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i;
+                            // mem_wrn_o <= cpu_rw_i | ignore_cpu_writes_i;        // XXXX!!!
                             mem_wrn_adv1_r <= cpu_rw_i | ignore_cpu_writes_i;         // advanced by 1T
                             s4_ext_o <= 2'b01;              // extend S4H by 1cc (add 20ns of access time)
                         end
@@ -431,6 +436,7 @@ module bus_controller (
                     // disable all CS
                 sram_csn_o <= HIGH_INACTIVE;
                 vera_csn_o <= HIGH_INACTIVE;
+                // vera_csn_adv_r <= HIGH_INACTIVE;
                 aio_csn_o <= HIGH_INACTIVE;
                 enet_csn_o <= HIGH_INACTIVE;
                 nora_slv_req_BOOTROM_o <= 0;
@@ -529,6 +535,7 @@ module bus_controller (
                         begin
                             // 0x9F20, 0x9F30 VERA video controller
                             vera_csn_o <= LOW_ACTIVE;
+                            // vera_csn_adv_r <= LOW_ACTIVE;
                             mem_rdn_o <= ~nora_mst_rwn_i;
                             // MEM-WRITE: writing WITH a delay of 1cc (20ns): mem_wrn_o get written at the next cycle from mem_wrn_adv1_r.
                             // mem_wrn_o <= nora_mst_rwn_i;
