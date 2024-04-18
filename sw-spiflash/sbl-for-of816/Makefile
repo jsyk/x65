@@ -41,6 +41,8 @@ load: sbl.bin
 	echo "Loading of816rom to SRAM 0x010000"
 	../../x65pyhost/do-loadbin.py $(OF816ROM) sram 0x10000
 
+run:
+	../../x65pyhost/do-cpurun.py
 
 # program the complete binary image into SPI-Flash as the SBL
 prog_img: img.bin

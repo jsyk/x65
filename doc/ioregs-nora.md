@@ -203,7 +203,9 @@ The next five registers control the dual-PS/2 periphery through the SMC:
     $9F5E           PS2_CTRL                        PS2 Control register
                                         [7:2] = reserved, 0
                                         [1] = Enable IRQ when kbd buffer has a byte, or mouse buffer has >= 3 bytes
-                                        [0] = Disable scancode-to-keycode translation in HW. Default is 0 = translation enabled.
+                                        [0] = Disable scancode-to-keycode translation in HW. 
+                                              Default is 0 = translation enabled = PS2K_BUF reads IBM key-codes.
+                                              If 1 = translation disabled = PS2K_BUF reads PS/2 scan-codes.
 
     $9F5F           PS2_STAT                        PS2 Status Register
                                         [7] = KBD Buffer FIFO is non-empty
@@ -215,6 +217,7 @@ The next five registers control the dual-PS/2 periphery through the SMC:
                                                     Reading gets the next keycode (scancode) received from the keyboard,
                                                     or 0x00 if the buffer was empty.
                                                     Writing will enqueue a 1-byte command for the keyboard.
+                                                    See https://wiki.osdev.org/PS/2_Keyboard#Scan_Code_Sets for the hints.
 
     $9F61           PS2K_RSTAT          [7:0]       Reply status from keyboard (in response from a command).
                                                     Possible values:

@@ -30,8 +30,8 @@ Provides basic GPIO and Timer service.
 ------------------------------
 
     Port B: PRB @ 0x9F10, DDRB @ 0x9F12
-        PB0 = CPULED0, green, front
-        PB1 = CPULED1, orange, front
+        PB0 = out:CPULED0 (green, front), in:/SD_CD
+        PB1 = out:CPULED1 (orange, front), in:SD_WP
         PB2 = DIPLED0, yellow, internal
         PB3 = DIPLED1, yellow, internal
         PB4 = unused

@@ -666,8 +666,8 @@ cursor_done:
     ; check the keyboard buffer, possibly extracting next character
     jsl     kbd_process
     ACCU_INDEX_8_BIT
-    ; load the character, or zero if no key.
-    ACCU_8_BIT
+    ; load the character (in A) + flags (in B), or zero if no key.
+    ACCU_16_BIT
     lda    z:bKBD_NEXT_ASCII
     ; pull the key out of the buffer?
     plx             ; restore the flag whether to pull (1) the key or not (0) out of the buffer

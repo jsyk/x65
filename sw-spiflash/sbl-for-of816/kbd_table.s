@@ -2,7 +2,7 @@
 
 .include "common.inc"
 
-.import _kbd_put_char, _kbd_put_shift, _kbd_put_capslock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_unused
+.import _kbd_put_char, _kbd_put_shift, _kbd_put_capslock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_numlock, _kbd_put_unused
 .export kbd_map
 
 .rodata
@@ -140,7 +140,7 @@
     .byte 0, 0
 ; 43	 1C/9C	 5A/F0 5A	 5A/F0 5A	 Enter	 Enter
     .word _kbd_put_char
-    .byte 10, 10
+    .byte 13, 10
 ; 44	 2A/AA	 12/F0 12	 12/F0 12	 Left Shift	 
     .word _kbd_put_shift
     .byte 0, 0
@@ -280,7 +280,7 @@
     .word _kbd_put_special
     .byte 0, 0
 ; 90	 45/C5	 77/F0 77	 76/F0 76	 Num Lock	 
-    .word _kbd_put_special
+    .word _kbd_put_numlock
     .byte 0, 0
 ; 91	 47/C7	 6C/F0 6C	 6C/F0 6C	 Keypad 7	 
     .word _kbd_put_char

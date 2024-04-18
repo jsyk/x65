@@ -5,7 +5,7 @@
 .include "vera.inc"
 .include "vt.inc"
 
-.export _kbd_put_char, _kbd_put_shift, _kbd_put_capslock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_unused
+.export _kbd_put_char, _kbd_put_shift, _kbd_put_capslock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_numlock, _kbd_put_unused
 .import kbd_map
 .export kbd_process
 
@@ -61,7 +61,8 @@ done:
 .endproc
 
 
-; Normal character from key-code to ascii
+; ------------------------------------------------------------------------------
+; Table Handler: Normal character from key-code to ascii
 .proc _kbd_put_char
     .a16 
     .i16
@@ -97,7 +98,8 @@ done:
     rts
 .endproc
 
-; Shift-key is pressed or released
+; ------------------------------------------------------------------------------
+; Table Handler: Shift-key is pressed or released
 .proc _kbd_put_shift
     .a16 
     .i16
@@ -106,13 +108,13 @@ done:
     lda     z:bKBD_LAST_KEYCODE
     ; if the 8th bit is set, the key is released
     bpl     shift_pressed
-    ; => the key is released, clear the shift flag
+    ; => the key is released, clear the shift flag!
     lda     z:bKBD_FLAGS
     and     #(~KBG_FLAG__SHIFT) & $ff
     sta     z:bKBD_FLAGS
     bra     done
 
-shift_pressed:      ; => the key is pressed, set the shift flag
+shift_pressed:      ; => the key is pressed, set the shift flag!
     lda     z:bKBD_FLAGS
     ora     #KBG_FLAG__SHIFT
     sta     z:bKBD_FLAGS
@@ -124,30 +126,106 @@ done:
     rts
 .endproc
 
+; ------------------------------------------------------------------------------
+; Send a command or data byte to the PS2 keyboard
+; The command is sent to the PS2K_BUF register, and the ACK is waited from the PS2K_RSTAT register.
+.proc _ps2_send_cmdata
+    ACCU_8_BIT
+    pha
+resend:
+    pla
+    pha
+    ; send the command to the keyboard
+    sta     f:NORA_PS2K_BUF_REG
+    ; wait for the ACK
+wait_ps2k_ack:
+    lda     f:NORA_PS2K_RSTAT_REG
+    cmp     #$FA            ; ACK?
+    beq     done
+    cmp     #$FE            ; RESEND?
+    beq     resend
+    bra     wait_ps2k_ack
+
+done:
+    pla
+    rts
+.endproc
+
+; ------------------------------------------------------------------------------
+; Table Handler: CapsLock key is pressed or released
 .proc _kbd_put_capslock
+    .a16 
+    .i16
+    ACCU_8_BIT
+    ; get the original key-code
+    lda     z:bKBD_LAST_KEYCODE
+    ; if the 8th bit is set, the key is released (up) -> no action!
+    bmi     done          ; key-up => no action -> return 0, exit.
+    ; key-down => we continue!
+
+    ; Read in the current state of the flags
+    lda     z:bKBD_FLAGS
+    ; Invert the CAPSLOCK flag
+    eor     #KBG_FLAG__CAPSL
+    ; Store the new state of the flags
+    sta     z:bKBD_FLAGS
+
+    ; update keyboard LEDs:
+    ; 1. send the command 0xED to the keyboard
+    ; 2. send the data-value with new state of the LEDs to the keyboard, where 
+    ;       bit 0 = ScrollLock
+    ;       bit 1 = NumLock
+    ;       bit 2 = CapsLock
+    ;       bit 3 = Compose
+    ;       bit 4 = Kana
+    ;       bit 5 = reserved
+    ;       bit 6 = reserved
+    ;       bit 7 = reserved
+    ; 3. the keyboard will send back the ACK 0xFA
+; resend:
+    lda     #$ED
+    jsr     _ps2_send_cmdata
+    ; sta     f:NORA_PS2K_BUF_REG
+    lda     z:bKBD_FLAGS
+    and     #KBG_FLAG__CAPSL|KBG_FLAG__NUML|KBG_FLAG__SCROLL
+    ; sta     f:NORA_PS2K_BUF_REG
+    jsr     _ps2_send_cmdata
+    
+done:
+    ACCU_16_BIT
+    rts
+.endproc
+
+; ------------------------------------------------------------------------------
+; Table Handler: NumLock key is pressed or released
+.proc _kbd_put_numlock
     .a16 
     .i16
     rts
 .endproc
 
+; ------------------------------------------------------------------------------
 .proc _kbd_put_ctrl
     .a16 
     .i16
     rts
 .endproc
 
+; ------------------------------------------------------------------------------
 .proc _kbd_put_alt
     .a16 
     .i16
     rts
 .endproc
 
+; ------------------------------------------------------------------------------
 .proc _kbd_put_special
     .a16 
     .i16
     rts
 .endproc
 
+; ------------------------------------------------------------------------------
 .proc _kbd_put_unused
     .a16 
     .i16
