@@ -48,6 +48,8 @@ tb_uart.vp: ../src/uart_tx.v ../src/uart_rx.v ../src/tb_uart.v
 
 tb_uart_host.vp: ../src/uart_tx.v ../src/uart_rx.v ../src/uart_host.v ../src/tb_uart_host.v ../src/fifo.v
 
+tb_i2c_master.vp: ../src/tb_i2c_master.v ../src/i2c_master.v
+
 show_phaser: tb_phaser.vcd
 	gtkwave $^
 
@@ -76,6 +78,9 @@ show_uart: tb_uart.vcd
 	gtkwave $^
 
 show_uart_host: tb_uart_host.vcd
+	gtkwave $^
+
+show_i2c_master: tb_i2c_master.vcd
 	gtkwave $^
 
 clean:
