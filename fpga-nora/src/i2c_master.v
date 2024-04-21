@@ -118,8 +118,15 @@ module i2c_master #(
             case (state_r)
                 IDLE:       // no action ongoing, can accept a new command
                 begin
-                    // indicate we are  busy
+                    // indicate we are busy - by default; it is cleared in the NOOP command.
                     busy_r <= 1;
+                    // sanity: if there is timeout error, stop driving the bus!
+                    // (this is a safety measure to avoid hanging the bus)
+                    if (timeout_flag_r)
+                    begin
+                        I2C_SDADR0_o <= 0;
+                        I2C_SCLDR0_o <= 0;
+                    end
                     // check if new command?
                     case (cmd_i)
                         CMD_NOOP:       // no command->stay in idle

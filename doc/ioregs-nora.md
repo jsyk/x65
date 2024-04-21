@@ -185,14 +185,18 @@ The next three registers control the *I2C Master* periphery:
                                                         then read the ACK bit, which gets written into the DATA register.
                                                 010 = SEND_DATA_READ_ACK: send data to I2C from the DATA reg., read ACK bit and write it to the DATA reg.
                                                 011 = RECV_DATA: receive data from the I2C bus into DATA reg
-                                                100 = WRITE_ACK: write ACK/NACK which was previously prepared in the DATA reg.
-                                                101 = STOP: generate stop condition
+                                                100 = WRITE_ACK
+                                                101 = WRITE_NACK
+                                                111 = STOP: generate stop condition
                                         
-                                        [3] = Frequency: 0=100kHz, 1=400kHz.
-                                        [6:4] = reserved, 0
+                                        [6:3] = reserved, 0
                                         [7] = Enable IRQ when not(BUSY)
 
-    $9F5C           I2C_STAT            [6:0] = reserved, 0
+    $9F5C           I2C_STAT            [3:0] = view of internal FSM state; see verilog
+                                        [4] = SCL link state (high/low)
+                                        [5] = SDA link state (high/low)
+                                        [6] = TIMEOUT flag: reads 1 if last operation had to be cancelled due to I2C bus timeout.
+                                              The flag is automatically cleared when a new operation is started.
                                         [7] = BUSY flag: reads 1 if operation in progress, otherwise 0.
 
     $9F5D           I2C_DATA            [7:0]       Reads/writes the DATA register.
