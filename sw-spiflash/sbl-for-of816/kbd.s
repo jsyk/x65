@@ -172,23 +172,22 @@ done:
 
     ; update keyboard LEDs:
     ; 1. send the command 0xED to the keyboard
-    ; 2. send the data-value with new state of the LEDs to the keyboard, where 
-    ;       bit 0 = ScrollLock
-    ;       bit 1 = NumLock
-    ;       bit 2 = CapsLock
+    ; 2. the keyboard will send back the ACK 0xFA - wait for it.
+    ; 3. send the data-value with new state of the LEDs to the keyboard, where 
+    ;       bit 0 = ScrollLock (KBG_FLAG__SCROLL)
+    ;       bit 1 = NumLock (KBG_FLAG__NUML)
+    ;       bit 2 = CapsLock (KBG_FLAG__CAPSL)
     ;       bit 3 = Compose
     ;       bit 4 = Kana
     ;       bit 5 = reserved
     ;       bit 6 = reserved
     ;       bit 7 = reserved
-    ; 3. the keyboard will send back the ACK 0xFA
-; resend:
+    ; 4. the keyboard will send back the ACK 0xFA - wait for it.
+    ; note: in case the keyboard sends RESEND (0xFE), we must resend the last command/data byte.
     lda     #$ED
     jsr     _ps2_send_cmdata
-    ; sta     f:NORA_PS2K_BUF_REG
     lda     z:bKBD_FLAGS
     and     #KBG_FLAG__CAPSL|KBG_FLAG__NUML|KBG_FLAG__SCROLL
-    ; sta     f:NORA_PS2K_BUF_REG
     jsr     _ps2_send_cmdata
     
 done:
