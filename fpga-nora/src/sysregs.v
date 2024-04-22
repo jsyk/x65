@@ -50,6 +50,11 @@ module sysregs (
     output reg      usbuart_cs_ctrl_o,           // target register select: CTRL REG
     output reg      usbuart_cs_stat_o,            // target register select: STAT REG
     output reg      usbuart_cs_data_o,            // target register select: DATA REG (FIFO)
+    // I2C MASTER
+    output reg [2:0]  i2cm_cmd_o,      // command
+    input [7:0]     i2cm_status_i,     // bus operation in progress
+    output reg [7:0]  i2cm_data_wr_o,     // data for transmitt
+    input [7:0]     i2cm_data_rd_i,      // data received
     // PS2 KBD and MOUSE
     input [7:0]     ps2_d_i,            // read data output from the core (from the CONTROL or DATA REG)
     output [7:0]    ps2_d_o,            // write data input to the core (to the CONTROL or DATA REG)
@@ -69,6 +74,8 @@ module sysregs (
     reg     ramblock_mask_cs;           // $9F52
     reg     rmbctrl_cs;                 // $9F53
     reg     sysctrl_cs;                 // $9F54
+    reg     i2cm_ctrl_cs;               // $9F5B
+    reg     i2cm_data_cs;               // $9F5D
 
     // The register slice indicates if the sysctrl register is unlocked for a write.
     // The sysctrl reg is unlocked by first writing the value 0x80.
@@ -79,6 +86,9 @@ module sysregs (
     reg [7:0] ram_romblock_cf_r;            // $9F51, mirrored to $01; alias ramblock_cd_r
     reg [7:0] ramblock_mask_r;           // $9F52
     reg [7:0] rmbctrl_r;                // $9F53
+
+    // I2C regs
+    reg       i2c_ctrl_irqen_r;         // I2C_CTRL register, IRQ enable bit
 
 
     // calculate the slave data read output
@@ -102,6 +112,8 @@ module sysregs (
         spireg_cs_ctrl_o = 0;
         spireg_cs_stat_o = 0;
         spireg_cs_data_o = 0;
+        i2cm_ctrl_cs = 0;
+        i2cm_data_cs = 0;
 
         if (slv_req_bregs_i)
         begin
@@ -152,7 +164,19 @@ module sysregs (
                     usbuart_cs_data_o = slv_req_i;
                 end
                 // 08, 09, 0A => UEXT_UART
+                // TBD....
                 // 0B, 0C, 0D => I2C MASTER
+                5'h0B: begin        // $9F5B           I2C_CTRL
+                    slv_datard_o = { i2c_ctrl_irqen_r, 4'b0000, 3'b000 };
+                    i2cm_ctrl_cs = slv_req_i;
+                end
+                5'h0C: begin        // $9F5C           I2C_STAT
+                    slv_datard_o = i2cm_status_i;
+                end
+                5'h0D: begin        // $9F5D           I2C_DATA
+                    slv_datard_o = i2cm_data_rd_i;
+                    i2cm_data_cs = slv_req_i;
+                end
                 5'h0E: begin        // $9F5E           PS2_CTRL                        PS2 Control register
                     slv_datard_o = ps2_d_i;
                     ps2_cs_ctrl_o = slv_req_i;
@@ -217,6 +241,37 @@ module sysregs (
 	    .S0 (1'b0)
     );
 `endif
+
+    // I2C Master register
+    always @(posedge clk)
+    begin
+        if (!resetn)
+        begin
+            // in reset
+            i2c_ctrl_irqen_r <= 0;
+            i2cm_data_wr_o <= 8'h00;
+            i2cm_cmd_o <= 3'b000;
+        end else begin
+            // The reg i2c_cmd_o is one-tick register, so it is reset now.
+            // Software must take care that the I2C_CMD register is not written during the I2C operation,
+            // i.e. when the core is not BUSY (I2C_STAT[7] == 0),
+            // otherwise the operation will not be performed.
+            i2cm_cmd_o <= 3'b000;
+
+            // handle write to the I2C_CTRL register
+            if (i2cm_ctrl_cs && !slv_rwn_i && slv_datawr_valid)
+            begin
+                i2c_ctrl_irqen_r <= slv_datawr_i[7];
+                i2cm_cmd_o <= slv_datawr_i[2:0];
+            end
+
+            // handle write to the I2C_DATA register
+            if (i2cm_data_cs && !slv_rwn_i && slv_datawr_valid)
+            begin
+                i2cm_data_wr_o <= slv_datawr_i;
+            end
+        end
+    end
 
     // programmer-visible registers
     always @(posedge clk)

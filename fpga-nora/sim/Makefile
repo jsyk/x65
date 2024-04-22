@@ -10,7 +10,7 @@ SYNSRC = ../src/phaser.v ../src/blinker.v ../src/resetgen.v ../src/fifo.v \
 	../src/icd_controller.v ../src/tracebuf.v ../src/bus_controller.v ../src/cpu_observer.v \
 	../src/smc.v ../src/ps2_scancode_to_keycode.v ../src/spi_master.v ../src/spi_host.v ../src/spi_master_hostctrl.v \
 	../src/bootrom.v ../src/sysregs.v ../src/filter.v ../src/attenbtn.v \
-	../src/uart_tx.v ../src/uart_rx.v ../src/uart_host.v \
+	../src/uart_tx.v ../src/uart_rx.v ../src/uart_host.v ../src/i2c_master.v \
 	../src/nora.v
 
 # NORA-internal IKAOPM is disabled:

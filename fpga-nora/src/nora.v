@@ -560,13 +560,21 @@ module top (
         .phi2 (CPHI2)
     );
 
-    wire smc_i2csda_dr0;
-    wire i2csda_dr0 = ((via1_gpio_ddra[0]) ? ~via1_gpio_ora[0] : 1'b0) | smc_i2csda_dr0;
     assign via1_gpio_ira = { NESDATA0, NESDATA1, 1'b1, 1'b1, NESCLOCK, NESLATCH, I2C_SCL, I2C_SDA };
     assign via1_gpio_irb = { 7'b1100000, cputype02_r };
     assign NESCLOCK = ((via1_gpio_ddra[3]) ? via1_gpio_ora[3] : 1'b1);
     assign NESLATCH = ((via1_gpio_ddra[2]) ? via1_gpio_ora[2] : 1'b1);
-    assign I2C_SCL = (via1_gpio_ddra[1]) ? via1_gpio_ora[1] : 1'bZ;
+
+    // I2C BUS I/O signals
+    wire  i2cm_sdadr0;      // from I2C master
+    wire  i2cm_scldr0;      // from I2C master
+    wire smc_i2csda_dr0;    // from SMC I2C slave
+
+    wire i2csda_dr0 = ((via1_gpio_ddra[0]) ? ~via1_gpio_ora[0] : 1'b0) | smc_i2csda_dr0 | i2cm_sdadr0;
+    wire i2cscl_dr0 = ((via1_gpio_ddra[1]) ? ~via1_gpio_ora[1] : 1'b0) | i2cm_scldr0;
+
+    // assign I2C_SCL = (via1_gpio_ddra[1]) ? via1_gpio_ora[1] : 1'bZ;
+    assign I2C_SCL = (i2cscl_dr0) ? 1'b0 : 1'bZ;
     assign I2C_SDA = (i2csda_dr0) ? 1'b0 : 1'bZ;
 
     // signals for VIA2
@@ -707,7 +715,7 @@ module top (
         // Global signals
         .clk6x (clk6x),      // 48MHz
         .resetn (resetn),     // sync reset
-        // I2C bus
+        // I2C bus (slave device in SMC)
         .I2C_SDA_i (I2C_SDA),
         .I2C_SDADR0_o (smc_i2csda_dr0),
         .I2C_SCL_i (I2C_SCL),
@@ -857,6 +865,32 @@ module top (
     );
 
 
+    // I2C MASTER CONTROLLER signals: Host interface
+    wire [2:0] i2cm_cmd;
+    wire [7:0] i2cm_status;
+    wire [7:0] i2cm_wdata;
+    wire [7:0] i2cm_rdata;
+
+    // I2C MASTER CONTROLLER
+    i2c_master #(
+        .SCLPREDIV (480)
+    ) i2cmst (
+        // Global signals
+        .clk        (clk6x),        // 48MHz
+        .resetn     (resetn),     // sync reset
+        // I2C bus (master)
+        .I2C_SDA_i  (I2C_SDA),
+        .I2C_SDADR0_o (i2cm_sdadr0),       // 1 will drive SDA low
+        .I2C_SCL_i  (I2C_SCL),
+        .I2C_SCLDR0_o (i2cm_scldr0),       // 1 will drive SCL low
+        // Host interface
+        .cmd_i      (i2cm_cmd),      // command
+        .status_o   (i2cm_status),     // bus operation in progress
+        .data_wr_i  (i2cm_wdata),       // data for transmitt
+        .data_rd_o  (i2cm_rdata)      // data received
+    );
+
+
 
     // SCRB output data
     wire [7:0] SCRB_slv_datard;
@@ -909,6 +943,11 @@ module top (
         .usbuart_cs_ctrl_o (usbuart_cs_ctrl),           // target register select: CTRL REG
         .usbuart_cs_stat_o (usbuart_cs_stat),            // target register select: STAT REG
         .usbuart_cs_data_o (usbuart_cs_data),            // target register select: DATA REG (FIFO)
+        // I2C MASTER
+        .i2cm_cmd_o     (i2cm_cmd),      // command
+        .i2cm_status_i  (i2cm_status),     // bus operation in progress
+        .i2cm_data_wr_o (i2cm_wdata),     // data for transmitt
+        .i2cm_data_rd_i (i2cm_rdata),      // data received
         // PS2 KBD and MOUSE
         .ps2_d_i (ps2_dr),            // read data output from the core (from the CONTROL or DATA REG)
         .ps2_d_o (ps2_dw),            // write data input to the core (to the CONTROL or DATA REG)
