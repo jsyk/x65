@@ -1,8 +1,9 @@
 .P816
 
 .include "common.inc"
+.include "vt.inc"
 
-.import _kbd_put_char, _kbd_put_shift, _kbd_put_capslock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_numlock, _kbd_put_unused
+.import _kbd_put_char, _kbd_put_shift, _kbd_switch_xlock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_unused
 .export kbd_map
 
 .rodata
@@ -100,8 +101,8 @@
     .word _kbd_put_unused
     .byte 0, 0
 ; 30	 3A/BA	 58/F0 58	 58/F0 58	 Caps Lock	 
-    .word _kbd_put_capslock
-    .byte 0, 0
+    .word _kbd_switch_xlock
+    .byte KBG_FLAG__CAPSL, 0
 ; 31	 1E/9E	 1C/F0 1C	 1C/F0 1C	 a	 A
     .word _kbd_put_char
     .byte 'a', 'A'
@@ -280,8 +281,8 @@
     .word _kbd_put_special
     .byte 0, 0
 ; 90	 45/C5	 77/F0 77	 76/F0 76	 Num Lock	 
-    .word _kbd_put_numlock
-    .byte 0, 0
+    .word _kbd_switch_xlock
+    .byte KBG_FLAG__NUML, 0
 ; 91	 47/C7	 6C/F0 6C	 6C/F0 6C	 Keypad 7	 
     .word _kbd_put_char
     .byte '7', '7'
@@ -385,8 +386,8 @@
     .word _kbd_put_special
     .byte 0, 0
 ; 125	 46/C6	 7E/F0 7E	 5F/F0 5F	 Scroll Lock	 
-    .word _kbd_put_special
-    .byte 0, 0
+    .word _kbd_switch_xlock
+    .byte KBG_FLAG__SCROLL, 0
 ; 126	 E1 1D 45/E1 9D C5	 E1 14 77 E1/F0 14 F0 77	 62/F0 62	 Pause Break	 
     .word _kbd_put_special
     .byte 0, 0

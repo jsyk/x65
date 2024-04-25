@@ -5,7 +5,7 @@
 .include "vera.inc"
 .include "vt.inc"
 
-.export _kbd_put_char, _kbd_put_shift, _kbd_put_capslock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_numlock, _kbd_put_unused
+.export _kbd_put_char, _kbd_put_shift, _kbd_switch_xlock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_unused
 .import kbd_map
 .export kbd_process
 
@@ -130,6 +130,7 @@ done:
 ; Send a command or data byte to the PS2 keyboard
 ; The command is sent to the PS2K_BUF register, and the ACK is waited from the PS2K_RSTAT register.
 .proc _ps2_send_cmdata
+    .a8
     ACCU_8_BIT
     pha
 resend:
@@ -152,8 +153,8 @@ done:
 .endproc
 
 ; ------------------------------------------------------------------------------
-; Table Handler: CapsLock key is pressed or released
-.proc _kbd_put_capslock
+; Table Handler: CapsLock/NumLock/ScrollLock key is pressed or released
+.proc _kbd_switch_xlock
     .a16 
     .i16
     ACCU_8_BIT
@@ -163,10 +164,10 @@ done:
     bmi     done          ; key-up => no action -> return 0, exit.
     ; key-down => we continue!
 
-    ; Read in the current state of the flags
-    lda     z:bKBD_FLAGS
-    ; Invert the CAPSLOCK flag
-    eor     #KBG_FLAG__CAPSL
+    ; get the LOCK-BIT flag from the table: KBG_FLAG__SCROLL, KBG_FLAG__NUML, KBG_FLAG__CAPSL
+    lda     kbd_map+2, X
+    ; Invert the current state of the flags
+    eor     z:bKBD_FLAGS
     ; Store the new state of the flags
     sta     z:bKBD_FLAGS
 
@@ -192,14 +193,6 @@ done:
     
 done:
     ACCU_16_BIT
-    rts
-.endproc
-
-; ------------------------------------------------------------------------------
-; Table Handler: NumLock key is pressed or released
-.proc _kbd_put_numlock
-    .a16 
-    .i16
     rts
 .endproc
 
