@@ -9,6 +9,7 @@ bVT_VSYNC_NR = $84
 bVT_CURSOR_VISIBLE = $85            ; 0 = disabled+off, 1 = not visible, but enabled; 2 = yes, enabled.
 bVT_CURSOR_LAST_VSYNC = $86
 
+; the following two must be consecutive, becasue they are also loaded as a 16-bit value.
 bKBD_NEXT_ASCII = $87
 bKBD_FLAGS = $88
  KBG_FLAG__SHIFT    = %10000000

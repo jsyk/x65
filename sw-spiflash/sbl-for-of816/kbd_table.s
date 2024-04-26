@@ -3,7 +3,7 @@
 .include "common.inc"
 .include "vt.inc"
 
-.import _kbd_put_char, _kbd_put_shift, _kbd_switch_xlock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_unused
+.import _kbd_put_char, _kbd_deadkey, _kbd_switch_xlock, _kbd_put_special, _kbd_put_unused
 .export kbd_map
 
 .rodata
@@ -143,8 +143,8 @@
     .word _kbd_put_char
     .byte 13, 10
 ; 44	 2A/AA	 12/F0 12	 12/F0 12	 Left Shift	 
-    .word _kbd_put_shift
-    .byte 0, 0
+    .word _kbd_deadkey
+    .byte KBG_FLAG__SHIFT, (~KBG_FLAG__SHIFT) & $ff
 ; 45	 not used
     .word _kbd_put_unused
     .byte 0, 0
@@ -182,29 +182,29 @@
     .word _kbd_put_unused
     .byte 0, 0
 ; 57	 36/B6	 59/F0 59	 59/F0 59	 Right Shift	 
-    .word _kbd_put_shift
-    .byte 0, 0
+    .word _kbd_deadkey
+    .byte KBG_FLAG__SHIFT, (~KBG_FLAG__SHIFT) & $ff
 ; 58	 1D/9D	 14/F0 14	 11/F0 11	 Left Ctrl	 
-    .word _kbd_put_ctrl
-    .byte 0, 0
+    .word _kbd_deadkey
+    .byte KBG_FLAG__CTRL, (~KBG_FLAG__CTRL) & $ff
 ; 59	 not used
     .word _kbd_put_unused
     .byte 0, 0
 ; 60	 38/B8	 11/F0 11	 19/F0 19	 Left Alt	 
-    .word _kbd_put_alt
-    .byte 0, 0
+    .word _kbd_deadkey
+    .byte KBG_FLAG__ALT, (~KBG_FLAG__ALT) & $ff
 ; 61	 39/B9	 29/F0 29	 29/F0 29	 Spacebar	 
     .word _kbd_put_char
     .byte ' ', ' '
 ; 62	 E0 38/E0 B8	 E0 11/E0 F0 11	 39/F0 39	 Right Alt	 
-    .word _kbd_put_alt
-    .byte 0, 0
+    .word _kbd_deadkey
+    .byte KBG_FLAG__ALT, (~KBG_FLAG__ALT) & $ff
 ; 63	 not used
     .word _kbd_put_unused
     .byte 0, 0
 ; 64	 E0 1D/E0 9D	 E0 14/E0 F0 14	 58/F0 58	 Right Ctrl	 
-    .word _kbd_put_ctrl
-    .byte 0, 0
+    .word _kbd_deadkey
+    .byte KBG_FLAG__CTRL, (~KBG_FLAG__CTRL) & $ff
 ; 65	 not used
     .word _kbd_put_unused
     .byte 0, 0

@@ -5,7 +5,7 @@
 .include "vera.inc"
 .include "vt.inc"
 
-.export _kbd_put_char, _kbd_put_shift, _kbd_switch_xlock, _kbd_put_ctrl, _kbd_put_alt, _kbd_put_special, _kbd_put_unused
+.export _kbd_put_char, _kbd_deadkey, _kbd_switch_xlock, _kbd_put_special, _kbd_put_unused
 .import kbd_map
 .export kbd_process
 
@@ -77,13 +77,24 @@ done:
     lda     z:bKBD_FLAGS
     bit     #KBG_FLAG__SHIFT
     beq     no_shift        ; no shift-key pressed;
-    ; shift-key is pressed    
-    ; get the translated ascii code
+    ; shift-key is pressed!
+    ; what about the caps-lock?
+    bit     #KBG_FLAG__CAPSL
+    bne     no_shift_get   ; caps-lock is on, shift-key is pressed => no shift!
+
+    ; ----- 
+shift_get:
+    ; get SHIFTED translated ascii code
     lda     kbd_map+3, X
     ; A has the ascii code
     bra     store_key
 
 no_shift:   ; no shift-key pressed
+    ; what about the caps-lock?
+    bit     #KBG_FLAG__CAPSL
+    bne     shift_get    ; caps-lock is on, shift-key is not pressed => shift!
+
+no_shift_get:
     ; get the translated ascii code
     lda     kbd_map+2, X
 
@@ -99,8 +110,8 @@ done:
 .endproc
 
 ; ------------------------------------------------------------------------------
-; Table Handler: Shift-key is pressed or released
-.proc _kbd_put_shift
+; Table Handler: a dead key (Shift, Ctrl, Alt) is pressed or released
+.proc _kbd_deadkey
     .a16 
     .i16
     ACCU_8_BIT
@@ -109,14 +120,14 @@ done:
     ; if the 8th bit is set, the key is released
     bpl     shift_pressed
     ; => the key is released, clear the shift flag!
-    lda     z:bKBD_FLAGS
-    and     #(~KBG_FLAG__SHIFT) & $ff
+    lda     kbd_map+3, X        ; load the second data byte from the table
+    and     z:bKBD_FLAGS
     sta     z:bKBD_FLAGS
     bra     done
 
 shift_pressed:      ; => the key is pressed, set the shift flag!
-    lda     z:bKBD_FLAGS
-    ora     #KBG_FLAG__SHIFT
+    lda     kbd_map+2, X            ; load the first data byte from the table
+    ora     z:bKBD_FLAGS
     sta     z:bKBD_FLAGS
 
 done:
@@ -196,19 +207,6 @@ done:
     rts
 .endproc
 
-; ------------------------------------------------------------------------------
-.proc _kbd_put_ctrl
-    .a16 
-    .i16
-    rts
-.endproc
-
-; ------------------------------------------------------------------------------
-.proc _kbd_put_alt
-    .a16 
-    .i16
-    rts
-.endproc
 
 ; ------------------------------------------------------------------------------
 .proc _kbd_put_special
