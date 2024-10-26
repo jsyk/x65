@@ -281,7 +281,8 @@ module top (
             crwn_r              // bit[0]: CPU R/W signal
         };
 
-    wire     icd_cpu_stop;
+    wire     scrb_cpu_stop, brk00_opc;
+    wire     icd_cpu_stop = scrb_cpu_stop /*| brk00_opc */;
     wire     map_pblrom, unmap_pblrom;
     wire     bad_opc6502_abortn;
     // wire [7:0]  romblock_nr;
@@ -298,6 +299,7 @@ module top (
         .is_isync_i     (csync_vpa_r && cvda_r),
         .cpu_dbo_i      (cpu_db_o),
         .cef_i          (cef_r),
+        .stopped_cpu_i  (stopped_cpu),
         // Bus signals
         .release_wr_i   (release_wr),
         .release_cs_i   (release_cs),
@@ -306,7 +308,8 @@ module top (
         // Control outputs
         .map_pblrom_o   (map_pblrom),
         .unmap_pblrom_o (unmap_pblrom),
-        .bad_opc6502_abortn (bad_opc6502_abortn)
+        .bad_opc6502_abortn (bad_opc6502_abortn),
+        .brk00_opc_o    (brk00_opc)
     );
 
     /* ICD SPI Slave - MISO driver */
@@ -923,7 +926,7 @@ module top (
         .map_bootrom_i      (map_pblrom),            // Map PBL ROM to $E000-$FFFF (for ISAFIX handler)
         .unmap_bootrom_i    (unmap_pblrom),            // Unmap PBL ROM from $E000-$FFFF (for ISAFIX handler)
         // SYSCTRL
-        .cpu_stop_req_o  (icd_cpu_stop),
+        .cpu_stop_req_o  (scrb_cpu_stop),
         .cpu_reset_req_o  (icd_cpu_reset),
         .abrt02_en_o  (isafix816_enabled),
         // SPI Master interface for accessing the flash memory

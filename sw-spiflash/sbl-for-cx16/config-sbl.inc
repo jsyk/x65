@@ -7,7 +7,7 @@
 config_payload_block = 192
 
 ; how many 8k blocks of the payload (not counting this 8k SBL); 32 == 256k
-config_payload_bcount = 32
+config_payload_bcount = 34
 
 ; Configure NORA_RMBCTRL_REG config. to enable the following features necessary for CX16:
 ;   MIRROR_ZP = mirror RAMBLOCK and ROMBLOCK registers in the zero page ($00=RAMBLOCK and $01=RAMBLOCK)

@@ -76,6 +76,13 @@ TMP_BITNR = $F9
     ; and store it to our scratchpad.
     STA TMP_IBYTE
 
+    ; Is the faulting instruction REP (0xC2) ?
+    CMP     #$C2
+    beq     handle_rep          ; yes -> jump
+    ; Is the faulting instruction SEP (0xE2) ?
+    CMP     #$E2
+    beq     handle_sep          ; yes -> jump
+
     ; Load the ZP byte, which is in fact an address into zero page, and store to scratchpad
     LDA a:1, X            ; 8-bit load
     STA TMP_ZPBYTE          ; zp byte from the code
@@ -202,6 +209,15 @@ handle_rmb:         ; Reset memory bit
     AND TMP_BITNR           ; clear the bit to 0
     STA (TMP_ZPBYTE)        ; write back
     ; BRA done_rmb_smb      fall through
+
+    ; -------------------------------------
+    ; Handling the SEP/REP instructions, which are valid but for X16 ROM reasons 
+    ; we want to emulate them as NOP.
+    ; These instructions are 2 bytes.
+handle_rep:
+handle_sep:
+    ; Just skip the REP/SEP by incrementing return address by 2...
+
 
 done_rmb_smb:
     ; SMB/RMB is done.
