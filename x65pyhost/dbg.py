@@ -129,7 +129,6 @@ class DebuggerApp(App):
         # table.add_rows(ROWS[1:])
         # table.add_row(-255, 6, "(RAMB:134)", "$00", "$c1cd", "$6b", "$0f:----",  "$7d:r--NmXPDS", "[green]RTL[/green]")
 
-        self.update_tracebuffer()
         self.set_interval(0.5, self.on_timer)
 
    
@@ -173,7 +172,7 @@ class DebuggerApp(App):
     def action_step_cpu(self) -> None:
         """Action to step the CPU by 1 cc"""
         # self.dark = not self.dark
-        print("action_step_cpu called")
+        # print("action_step_cpu called")
         # Now we should normally step the CPU by one cycle.
         # import pdb; pdb.set_trace()
 
@@ -191,10 +190,11 @@ class DebuggerApp(App):
             # print the buffer out
             self.update_tracebuffer()
 
-        step_count = 1              # step just 1 instruction (few cycles)
+        self.do_step_cpu(step_count = 1)              # step just 1 instruction (few cycles)
 
-        # self.remove_upc_line(self.tracetb)
 
+    def do_step_cpu(self, step_count: int) -> None:
+        """ Step the CPU by step_count instructions. """
         # self.cycle_i = 0                 # CPU Cycles counter
         step_i = 0                  # CPU Stepped Instructions (each multiple cycles)
         cycles_without_step = 0     # how many cycles we are going without encountering an instruction (SYNC)
@@ -260,7 +260,7 @@ class DebuggerApp(App):
             
 
             # finally, check if the original trace register was valid
-            print("Cyc #{:5}:  ".format(self.cycle_i), end='')
+            # print("Cyc #{:5}:  ".format(self.cycle_i), end='')
             
             if is_valid:
                 # is this a beginning of next instruction?
@@ -272,7 +272,7 @@ class DebuggerApp(App):
                 # decode and print cycle line
                 self.print_traceline(self.cycle_i, tbuf)
             else:
-                print("N/A")
+                # print("N/A")
                 # sanity: this could happen just on the first for-iter!
                 if self.cycle_i > 0:
                     print("IS_VALID=FALSE: COMMUNICATION ERROR!!")
@@ -297,7 +297,7 @@ class DebuggerApp(App):
         # Show the final CPU State (regs)
         cpust_fin = CpuRegs()
         if cpust_fin.cpu_read_regs(self.icd):
-            print(cpust_fin)
+            # print(cpust_fin)
             self.cpuregs.update(cpust_fin)
         else:
             print("ERROR: CPU State read failed!!")
@@ -315,7 +315,7 @@ class DebuggerApp(App):
         # read the current (last) trace cycle register
         is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = self.icd.cpu_read_trace()
 
-        print("update_tracebuffer: is_tbr_valid={}".format(is_tbr_valid))
+        # print("update_tracebuffer: is_tbr_valid={}".format(is_tbr_valid))
 
         # check if trace buffer memory is non-empty
         if is_tbr_valid:
@@ -398,52 +398,6 @@ class DebuggerApp(App):
             return self.tracetb.add_row(cycle_nr, "${:02x}".format(MAH), mah_area, "${:02x}".format(CBA), "${:04x}".format(CA), 
                              "${:02x}".format(CD), ctr, sta, "[green]"+disinst+"[/green]")
 
-
-        # addr_color = Fore.LIGHTBLACK_EX if is_addr_invalid \
-        #             else Fore.YELLOW if is_io  \
-        #             else Fore.GREEN if is_sync \
-        #             else Fore.RED if is_write \
-        #             else Fore.WHITE
-
-        # print("MAH:{:2x} ({})  CBA:{:2}  CA:{}{:4x}{}  CD:{}{:2x}{}  ctr:{:2x}:{}{}{}{}  sta:{:2x}:{}{}{}{}{}{}{}{}{}     {}{}{}".format(
-        #         MAH,
-        #         mah_area,
-        #         (CBA if CBA==0 else Fore.BLUE+"{:2x}".format(CBA)+Style.RESET_ALL),
-        #         addr_color,   
-        #         CA,  #/*CA:*/
-        #         Style.RESET_ALL,
-        #         Fore.RED if is_write 
-        #             else Fore.YELLOW if is_io
-        #             else Fore.WHITE,      # red-mark Write Data access
-        #         CD,  #/*CD:*/
-        #         Style.RESET_ALL,
-        #         #/*ctr:*/
-        #         tbuf.ctr_flags, 
-        #         ('-' if tbuf.is_resetn else 'R'),
-        #         ('-' if tbuf.is_irqn else 'I'),
-        #         ('-' if tbuf.is_nmin else 'N'),
-        #         ('-' if tbuf.is_abortn else Fore.RED+'A'+Style.RESET_ALL),
-        #         #/*sta:*/ 
-        #         tbuf.sta_flags, 
-        #         ('r' if tbuf.is_read_nwrite else Fore.RED+'W'+Style.RESET_ALL), 
-        #         ('-' if tbuf.is_vectpull else Fore.YELLOW+'v'+Style.RESET_ALL),        # vector pull, active low
-        #         ('-' if tbuf.is_mlock else 'L'),           # mem lock, active low
-        #         ('e' if tbuf.is_emu8 else Fore.BLUE+'N'+Style.RESET_ALL),        # 'e': emulation mode, active high; 'N' native mode
-        #         ('m' if tbuf.is_am8 else Fore.BLUE+'M'+Style.RESET_ALL),    # '816 M-flag (acumulator): 0=> 16-bit 'M', 1=> 8-bit 'm'
-        #         ('x' if tbuf.is_xy8 else Fore.BLUE+'X'+Style.RESET_ALL),    # '816 X-flag (index regs): 0=> 16-bit 'X', 1=> 8-bit 'x'
-        #         ('P' if tbuf.is_vpa else '-'),        # '02: SYNC, '816: VPA (valid program address)
-        #         ('D' if tbuf.is_vda else '-'),             # '02: always 1, '816: VDA (valid data address)
-        #         ('S' if is_sync else '-'),
-        #         Fore.GREEN if not is_upcoming else Fore.LIGHTBLACK_EX, disinst, Style.RESET_ALL
-        #     ))
-    
-    # def remove_upc_line(self, tracetb: DataTable):
-    #     """ Check if the last line in the buffer is 'upc' (upcoming) and remove it. """
-    #     if tracetb.row_count > 0:
-    #         # extract the last row in the data table; this returns a list[] of columns (strings)
-    #         last_row = tracetb.get_row_at(tracetb.row_count - 1)
-    #         # print("last_row={}".format(last_row))
-    #         if last_row[0] == "upc":
         
 
 
@@ -454,8 +408,8 @@ if __name__ == "__main__":
     app.is_cputype02 = app.icd.is_cputype02()
 
     # // deactivate the reset, STOP the cpu
-    app.icd.cpu_ctrl(False, False, False, 
-                force_irq=False, force_nmi=False, force_abort=False,
-                block_irq=False, block_nmi=False, block_abort=False)
+    # app.icd.cpu_ctrl(False, False, False, 
+    #             force_irq=False, force_nmi=False, force_abort=False,
+    #             block_irq=False, block_nmi=False, block_abort=False)
 
     app.run()
