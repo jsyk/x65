@@ -12,31 +12,28 @@ from textual.containers import ScrollableContainer, HorizontalScroll, VerticalSc
 from textual.widgets import Button, Footer, Header, Static, RichLog, DataTable, Label
 from textual.timer import Timer
 
-# A=$..44, X=$..05, Y=$..44, 
-# SP=$01d5, PC=$00f1b7
-# DPR=$0000, DBR=$00, 
-# FL=$34=--1B-I--/emu
-# 
-#   Bank  .H.L  REG     Decode
-#   $01  $....  DBR.X
-#   $01  $....  DBR.Y
-#        $....  A
-#   $00  $....  SP
-#   $..  $....  PBR.PC
-#   $00  $....  DPR
-#        $..    FL       --1B-I--/emu
+
 class CpuRegView(HorizontalScroll):
+    """ CPU Registers View """
     def compose(self) -> ComposeResult:
         yield DataTable(id='cpuregtb')
-        
     
     def on_ready(self) -> None:
         """Called  when the DOM is ready."""
         self.regtb = self.query_one('#cpuregtb')
+        # It will look like this:
+        #   Bank  .H.L  REG     Decode
+        #   $01  $....  DBR.X
+        #   $01  $....  DBR.Y
+        #        $....  A
+        #   $00  $....  SP
+        #   $..  $....  PBR.PC
+        #   $00  $....  DPR
+        #        $..    FL       --1B-I--/emu
         # create columns
         self.col_Bank = self.regtb.add_column("Bank")
         self.col_HL = self.regtb.add_column(".H.L")
-        self.col_Name = self.regtb.add_column("REG")
+        self.col_Name = self.regtb.add_column("[green]CPU REG[/green]")
         self.col_Decode = self.regtb.add_column("Decode        ")
         # create rows - for each register
         self.reg_X = self.regtb.add_row('$..', '$....', 'DBR.X', '')
@@ -45,7 +42,7 @@ class CpuRegView(HorizontalScroll):
         self.reg_SP = self.regtb.add_row('$00','$....', 'SP', '')
         self.reg_PC = self.regtb.add_row('$..','$....', 'PBR.PC', '')
         self.reg_DPR = self.regtb.add_row('',  '$....', 'DPR', '')
-        self.reg_Flags = self.regtb.add_row('',  '$..', 'FL', '')
+        self.reg_Flags = self.regtb.add_row('',  '$..', 'Flags', '')
 
     
     def update(self, regs: CpuRegs) -> None:
@@ -82,7 +79,7 @@ class CpuRegView(HorizontalScroll):
 class DebuggerApp(App):
     """A Textual app to debug X65."""
 
-    BINDINGS = [("r", "run_cpu", "Run"), 
+    BINDINGS = [("r", "run_stop_cpu", "Run/Stop"), 
                 ("s", "step_cpu", "Step"),
                 ("q", "quit", "Quit")]
 
@@ -113,8 +110,8 @@ class DebuggerApp(App):
         # text_log.write(table)
         # text_log.write("[bold magenta]Write text or any Rich renderable!")
         # text_log.write("")
-        self.timer = Timer(event_target=self, interval=1)
-        # self.statuslabel = self.query_one("#targetstatus")
+        # self.timer = Timer(event_target=self, interval=0.5)
+        self.statuslabel = self.query_one("#targetstatus")
 
         self.tracetb = self.query_one('#trace')
         self.tracetb.add_column("Cycle#")
@@ -133,12 +130,44 @@ class DebuggerApp(App):
         # table.add_row(-255, 6, "(RAMB:134)", "$00", "$c1cd", "$6b", "$0f:----",  "$7d:r--NmXPDS", "[green]RTL[/green]")
 
         self.update_tracebuffer()
-   
+        self.set_interval(0.5, self.on_timer)
 
-    def action_run_cpu(self) -> None:
-        """An action to run the cpu."""
-        # // deactivate the reset, step the cpu
-        self.icd.cpu_ctrl(True, False, False)
+   
+    def on_timer(self) -> None:
+        """ Called from interval timer, in main loop - assume ICD is accessible """
+        # read the current trace register, without disturbing it
+        is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = self.icd.cpu_read_trace(sample_cpu=True)
+        self.statuslabel.update("Status: {}".format('CPU RUNs' if is_cpuruns else 'CPU Stopped' ))
+
+        # check if trace buffer memory is non-empty, while CPU stopped
+        if not is_cpuruns and is_tbr_valid:
+            # yes, we should *first* print the trace buffer contents!
+            # print the buffer out
+            self.update_tracebuffer()
+            
+
+    def action_run_stop_cpu(self) -> None:
+        """An action to run/stop the cpu."""
+        # read the current trace register, without disturbing it
+        is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = self.icd.cpu_read_trace(sample_cpu=True)
+        if is_cpuruns:
+            # CPU runs --> stop it!
+            self.icd.cpu_ctrl(False, False, False)
+        else:
+            # CPU stopped --> run it: deactivate the reset, run the cpu
+            self.icd.cpu_ctrl(True, False, False)
+            # add line to the trace view
+            # isnt there an 'preview'/'upcoming' row in the table?
+            # if yes then we should remove it first, to replace with new data
+            if self.tracetb_row_preview is not None:
+                self.tracetb.remove_row(self.tracetb_row_preview)
+                self.tracetb_row_preview = None
+            
+            self.tracetb.add_row("----", 
+                                "----", "----", "----", "----", 
+                                "----", "----", "----", "----")
+            # move cursor to the last entry
+            self.tracetb.move_cursor(row=self.tracetb.row_count)
         
     
     def action_step_cpu(self) -> None:
@@ -153,6 +182,14 @@ class DebuggerApp(App):
         #             force_irq=False, force_nmi=False, force_abort=False,
         #             block_irq=False, block_nmi=False, block_abort=False)
         # self.update_tracebuffer()
+
+        # read the current trace register, without disturbing it
+        is_valid, is_ovf, is_tbr_valid, is_tbr_full, is_cpuruns, rawbuf = self.icd.cpu_read_trace(sample_cpu=True)
+        if is_cpuruns:
+            # CPU runs --> stop it!
+            self.icd.cpu_ctrl(False, False, False)
+            # print the buffer out
+            self.update_tracebuffer()
 
         step_count = 1              # step just 1 instruction (few cycles)
 
@@ -283,12 +320,11 @@ class DebuggerApp(App):
         # check if trace buffer memory is non-empty
         if is_tbr_valid:
             # yes, we should *first* print the trace buffer contents!
-            # sanity check: this could happen just on the first for-iteration!!
-            # if cycle_i > 0:
-            #     print("IS_TBR_VALID=TRUE: COMMUNICATION ERROR!!")
-            #     exit(1)
+            self.cycle_i = 0
             # print the buffer out
             self.print_tracebuffer()
+            # move cursor to the last entry
+            self.tracetb.move_cursor(row=self.tracetb.row_count)
 
 
     def print_tracebuffer(self):
